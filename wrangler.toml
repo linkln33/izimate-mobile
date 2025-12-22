@@ -1,0 +1,7 @@
+name = "izimate-image-upload"
+main = "worker-image-upload.ts"
+compatibility_date = "2024-01-01"
+
+[[r2_buckets]]
+binding = "IZIMATE_JOB_IMAGES"
+bucket_name = "izimate-job-images"

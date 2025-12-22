@@ -5,6 +5,7 @@
  */
 
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { Platform } from 'react-native'
 
 const BASE_URL = 'https://www.izimate.com'
 
@@ -139,15 +140,93 @@ export function getAllPhotos(photos: (string | null | undefined)[] | null | unde
 }
 
 /**
- * Upload a single image directly to Cloudflare R2 using S3-compatible API
- * For mobile React Native - uses file URI instead of File object
+ * Upload a single image to Cloudflare R2
+ * - On Web: Uses Cloudflare Worker to bypass CORS
+ * - On Native: Direct upload to R2 using S3-compatible API
  * 
- * Requires R2 credentials in environment variables:
+ * Requires environment variables:
  * - EXPO_PUBLIC_R2_ACCOUNT_ID
- * - EXPO_PUBLIC_R2_ACCESS_KEY_ID
- * - EXPO_PUBLIC_R2_SECRET_ACCESS_KEY
+ * - EXPO_PUBLIC_R2_ACCESS_KEY_ID (native only)
+ * - EXPO_PUBLIC_R2_SECRET_ACCESS_KEY (native only)
+ * - EXPO_PUBLIC_WORKER_UPLOAD_URL (web only)
  */
 export async function uploadImage(
+  imageUri: string,
+  folder: string = 'listings'
+): Promise<string> {
+  // On web, use Worker API to bypass CORS
+  if (Platform.OS === 'web') {
+    return uploadViaWorker(imageUri, folder)
+  }
+  
+  // On native, use direct R2 upload
+  return uploadDirectToR2(imageUri, folder)
+}
+
+/**
+ * Upload image via Cloudflare Worker (for web browsers)
+ * This bypasses CORS issues by handling uploads server-side
+ */
+async function uploadViaWorker(
+  imageUri: string,
+  folder: string = 'listings'
+): Promise<string> {
+  try {
+    const workerUrl = process.env.EXPO_PUBLIC_WORKER_UPLOAD_URL
+    
+    if (!workerUrl) {
+      throw new Error(
+        'Worker URL not configured. Please set EXPO_PUBLIC_WORKER_UPLOAD_URL in your .env file. ' +
+        'See WORKER_DEPLOYMENT.md for deployment instructions.'
+      )
+    }
+
+    if (__DEV__) {
+      console.log('📤 Uploading via Worker:', {
+        imageUri,
+        folder,
+        workerUrl,
+      })
+    }
+
+    // Fetch the blob from the URI
+    const response = await fetch(imageUri)
+    const blob = await response.blob()
+
+    // Create form data
+    const formData = new FormData()
+    formData.append('file', blob, 'image.jpg')
+    formData.append('folder', folder)
+
+    // Upload to Worker
+    const uploadResponse = await fetch(workerUrl, {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!uploadResponse.ok) {
+      const errorData = await uploadResponse.json().catch(() => ({ error: 'Upload failed' }))
+      throw new Error(errorData.error || `Upload failed with status ${uploadResponse.status}`)
+    }
+
+    const result = await uploadResponse.json()
+    
+    if (__DEV__) {
+      console.log('✅ Worker upload successful:', result.url)
+    }
+
+    return result.url
+  } catch (error: any) {
+    console.error('❌ Worker upload error:', error)
+    throw new Error(error?.message || 'Failed to upload image via Worker')
+  }
+}
+
+/**
+ * Upload image directly to R2 (for native apps)
+ * Uses S3-compatible API with AWS SDK
+ */
+async function uploadDirectToR2(
   imageUri: string,
   folder: string = 'listings'
 ): Promise<string> {
@@ -157,9 +236,9 @@ export async function uploadImage(
     const accessKeyId = process.env.EXPO_PUBLIC_R2_ACCESS_KEY_ID
     const secretAccessKey = process.env.EXPO_PUBLIC_R2_SECRET_ACCESS_KEY
     
-    // Use separate bucket for profile pictures (avatars)
-    // All other images go to izimate-job-images bucket
-    const bucketName = folder === 'avatars' ? 'izimate-user-avatars' : 'izimate-job-images'
+    // Use the same bucket for all images, with folder prefix
+    // Avatars go to izimate-job-images bucket with avatars/ prefix
+    const bucketName = 'izimate-job-images'
     
     if (!accessKeyId || !secretAccessKey) {
       throw new Error(
@@ -169,7 +248,8 @@ export async function uploadImage(
 
     // R2 S3-compatible endpoint
     const r2Endpoint = `https://${accountId}.r2.cloudflarestorage.com`
-    const publicUrlBase = `https://pub-${accountId}.r2.dev`
+    // Note: The public URL hash is different from account ID (bucket-specific)
+    const publicUrlBase = 'https://pub-fc05c194e2724d46965bee358f23e49a.r2.dev'
 
     if (__DEV__) {
       console.log('📤 Uploading image directly to R2:', {
@@ -182,7 +262,10 @@ export async function uploadImage(
 
     // Read the image file
     // Handle both web (blob:) and native (file://, content://) URIs
-    let imageBlob: Blob
+    let imageData: ArrayBuffer | Blob
+    let imageSize: number
+    let fileName: string
+    let contentType: string
     try {
       if (__DEV__) {
         console.log('📁 Reading image file from URI:', {
@@ -199,34 +282,77 @@ export async function uploadImage(
       if (!fileResponse.ok) {
         throw new Error(`Failed to read image file: ${fileResponse.status} ${fileResponse.statusText}`)
       }
-      imageBlob = await fileResponse.blob()
+      
+      const imageBlob = await fileResponse.blob()
+      imageSize = imageBlob.size
+      
+      // Convert Blob to ArrayBuffer for browser compatibility
+      // The AWS SDK has issues with Blob streams in browser environments
+      // ArrayBuffer works reliably across all platforms
+      imageData = await imageBlob.arrayBuffer()
       
       if (__DEV__) {
         console.log('✅ Image file read successfully:', {
-          size: imageBlob.size,
+          size: imageSize,
           type: imageBlob.type,
+          dataType: imageData instanceof ArrayBuffer ? 'ArrayBuffer' : 'Blob',
+        })
+      }
+
+      // Determine file extension and content type from blob MIME type
+      // This works for both blob: URIs (web) and file:// URIs (native)
+      let fileExt = 'jpg'
+      let contentType = 'image/jpeg'
+      
+      if (imageBlob.type) {
+        // Extract extension from MIME type
+        if (imageBlob.type.includes('png')) {
+          fileExt = 'png'
+          contentType = 'image/png'
+        } else if (imageBlob.type.includes('webp')) {
+          fileExt = 'webp'
+          contentType = 'image/webp'
+        } else if (imageBlob.type.includes('gif')) {
+          fileExt = 'gif'
+          contentType = 'image/gif'
+        } else if (imageBlob.type.includes('jpeg') || imageBlob.type.includes('jpg')) {
+          fileExt = 'jpg'
+          contentType = 'image/jpeg'
+        } else {
+          // Try to extract from URI as fallback (for native file:// URIs)
+          const uriExt = imageUri.split('.').pop()?.toLowerCase()
+          if (uriExt && ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(uriExt)) {
+            fileExt = uriExt === 'jpeg' ? 'jpg' : uriExt
+            contentType = imageBlob.type || `image/${fileExt}`
+          }
+        }
+      } else {
+        // Fallback: try to extract from URI if MIME type is not available
+        const uriExt = imageUri.split('.').pop()?.toLowerCase()
+        if (uriExt && ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(uriExt)) {
+          fileExt = uriExt === 'jpeg' ? 'jpg' : uriExt
+          contentType = `image/${fileExt}`
+        }
+      }
+
+      // Generate unique filename
+      const timestamp = Date.now()
+      const random = Math.random().toString(36).substring(2, 15)
+      // Always use folder prefix (avatars/ or listings/)
+      fileName = `${folder}/${timestamp}-${random}.${fileExt}`
+      
+      if (__DEV__) {
+        console.log('📝 Generated filename:', {
+          fileName,
+          fileExt,
+          contentType,
+          mimeType: imageBlob.type,
         })
       }
     } catch (fileError: any) {
       console.error('❌ Error reading image file:', fileError)
       throw new Error(`Failed to read image file: ${fileError?.message || 'Unknown error'}`)
     }
-
-    // Generate unique filename
-    const timestamp = Date.now()
-    const random = Math.random().toString(36).substring(2, 15)
-    const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg'
-    // For avatars in separate bucket, don't use folder prefix (bucket is already dedicated)
-    // For other images, use folder prefix
-    const fileName = folder === 'avatars' 
-      ? `${timestamp}-${random}.${fileExt}`
-      : `${folder}/${timestamp}-${random}.${fileExt}`
-    
-    // Determine MIME type
-    let contentType = 'image/jpeg'
-    if (fileExt === 'png') contentType = 'image/png'
-    else if (fileExt === 'webp') contentType = 'image/webp'
-    else if (fileExt === 'gif') contentType = 'image/gif'
 
     // Use AWS SDK v3 for S3-compatible uploads (works on both web and native)
     // Static import to avoid Metro bundler issues with dynamic imports
@@ -240,12 +366,14 @@ export async function uploadImage(
     })
 
     // Upload to R2 using PutObjectCommand
+    // Use ArrayBuffer/Uint8Array for browser compatibility
+    // Blob streams can cause "getReader is not a function" errors in browsers
     try {
       await s3Client.send(
         new PutObjectCommand({
           Bucket: bucketName,
           Key: fileName,
-          Body: imageBlob,
+          Body: imageData instanceof ArrayBuffer ? new Uint8Array(imageData) : imageData,
           ContentType: contentType,
         })
       )
@@ -272,7 +400,7 @@ export async function uploadImage(
         folder,
         fileName,
         url: finalUrl,
-        size: imageBlob.size,
+        size: imageSize,
       })
     }
 

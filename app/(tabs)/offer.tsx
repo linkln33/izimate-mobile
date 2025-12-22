@@ -321,18 +321,6 @@ export default function OfferScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Offer Services</Text>
-        <Pressable
-          style={styles.createButton}
-          onPress={() => router.push('/listings/create')}
-        >
-          <Ionicons name="add" size={20} color="#ffffff" />
-          <Text style={styles.createButtonText}>New</Text>
-        </Pressable>
-      </View>
-
       {/* Stats */}
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
@@ -473,39 +461,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6b7280',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    padding: 20,
-    paddingTop: 60,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  },
-  createButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f25842',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 6,
-  },
-  createButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
   statsContainer: {
     flexDirection: 'row',
     backgroundColor: '#ffffff',
     padding: 20,
+    paddingTop: 60,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
     gap: 20,

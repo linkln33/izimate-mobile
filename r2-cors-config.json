@@ -1,0 +1,21 @@
+[
+  {
+    "AllowedOrigins": [
+      "http://localhost:8083",
+      "http://localhost:19006",
+      "http://localhost:3000",
+      "https://*.expo.dev",
+      "https://*.vercel.app"
+    ],
+    "AllowedMethods": ["GET", "PUT", "POST", "HEAD", "DELETE"],
+    "AllowedHeaders": [
+      "Content-Type",
+      "Authorization",
+      "x-amz-content-sha256",
+      "x-amz-date",
+      "x-amz-security-token"
+    ],
+    "ExposeHeaders": ["ETag", "Content-Length"],
+    "MaxAgeSeconds": 3600
+  }
+]

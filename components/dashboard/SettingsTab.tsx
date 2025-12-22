@@ -67,21 +67,27 @@ export function SettingsTab({ user, onUserUpdate }: Props) {
   const handleDetectLocation = async () => {
     try {
       setSaving(true)
-      const location = await getCurrentLocation()
-      const address = await reverseGeocode(location.lat, location.lng)
+      const locationData = await getCurrentLocation()
+      const address = await reverseGeocode(locationData.lat, locationData.lng)
       setLocation(address)
 
       if (user) {
-        await supabase
+        const { error } = await supabase
           .from('users')
           .update({
-            location_lat: location.lat,
-            location_lng: location.lng,
-            location_address: address,
+            location_lat: locationData.lat,
+            location_lng: locationData.lng,
           })
           .eq('id', user.id)
+        
+        if (error) {
+          console.error('📍 Location save error:', error)
+        }
       }
+      
+      Alert.alert('Success', 'Location detected successfully')
     } catch (error) {
+      console.error('📍 Location detection error:', error)
       Alert.alert('Error', 'Failed to get location')
     } finally {
       setSaving(false)
@@ -93,17 +99,20 @@ export function SettingsTab({ user, onUserUpdate }: Props) {
 
     setSaving(true)
     try {
+      // Build update object with only fields that exist in the database
+      const updateData: Record<string, any> = {
+        name: name.trim(),
+      }
+      
+      // Only include optional fields if they have values
+      if (bio.trim()) updateData.bio = bio.trim()
+      if (phone.trim()) updateData.phone = phone.trim()
+      if (avatarUrl) updateData.avatar_url = avatarUrl
+      if (currency) updateData.currency = currency
+      
       const { error, data } = await supabase
         .from('users')
-        .update({
-          name: name.trim(),
-          bio: bio.trim() || null,
-          phone: phone.trim() || null,
-          avatar_url: avatarUrl || null,
-          location_address: location || null,
-          currency,
-          last_active: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', user.id)
         .select()
         .single()
@@ -115,6 +124,7 @@ export function SettingsTab({ user, onUserUpdate }: Props) {
         Alert.alert('Success', 'Profile updated successfully')
       }
     } catch (error: any) {
+      console.error('💾 Profile save error:', error)
       Alert.alert('Error', error.message || 'Failed to update profile')
     } finally {
       setSaving(false)

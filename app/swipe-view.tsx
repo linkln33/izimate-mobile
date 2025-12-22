@@ -12,10 +12,10 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { supabase } from '@/lib/supabase'
-import { recordSwipe } from '@/lib/utils/matching'
+import { recordSwipe, getOrCreateMatchForChat } from '@/lib/utils/matching'
 import { getCurrentLocation, calculateDistance } from '@/lib/utils/location'
 import type { Listing, User } from '@/lib/types'
-import { CardDisplay } from '@/components/swipe/CardDisplay'
+import { ListingCard } from '@/components/listings/ListingCard'
 import { normalizePhotoUrls } from '@/lib/utils/images'
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window')
@@ -36,23 +36,18 @@ export default function SwipeViewScreen() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
-  // Removed superLikeQuota state - chat is always available
-  const [isCardExpanded, setIsCardExpanded] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedUrgency, setSelectedUrgency] = useState<string | null>(null)
   const [filteredListings, setFilteredListings] = useState<EnrichedListing[]>([])
-
-  // Reset expansion when card changes
-  useEffect(() => {
-    setIsCardExpanded(false)
-  }, [currentIndex])
+  const [isCardExpanded, setIsCardExpanded] = useState(false)
 
   // Reset index when filtered listings change
   useEffect(() => {
     setCurrentIndex(0)
-    setIsCardExpanded(false)
   }, [filteredListings.length])
 
   // Animation values for current card
@@ -237,12 +232,84 @@ export default function SwipeViewScreen() {
         )
 
         setListings(enriched)
+        setCurrentUserId(authUser.id)
       }
     } catch (error) {
       console.error('Error loading data:', error)
       Alert.alert('Error', 'Failed to load listings')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Handler functions that match the list view
+  const handleLike = async (listingId: string) => {
+    if (!currentUserId) return
+    
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    
+    const result = await recordSwipe(
+      currentUserId,
+      listingId,
+      null,
+      'customer_on_listing',
+      'right'
+    )
+
+    if (result.match) {
+      Alert.alert(
+        'It\'s a Match!',
+        'You matched with this listing. Start chatting!',
+        [
+          { text: 'Continue', style: 'cancel' },
+          {
+            text: 'View Match',
+            onPress: () => router.push(`/chat/${result.match?.id}`),
+          },
+        ]
+      )
+    }
+    
+    // Move to next card and reset animation
+    const nextIndex = currentIndex < displayListings.length - 1 ? currentIndex + 1 : 0
+    setCurrentIndex(nextIndex)
+    translateX.value = 0
+    translateY.value = 0
+    scale.value = 1
+  }
+
+  const handleDislike = async (listingId: string) => {
+    if (!currentUserId) return
+    
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    
+    await recordSwipe(
+      currentUserId,
+      listingId,
+      null,
+      'customer_on_listing',
+      'left'
+    )
+    
+    // Move to next card and reset animation
+    const nextIndex = currentIndex < displayListings.length - 1 ? currentIndex + 1 : 0
+    setCurrentIndex(nextIndex)
+    translateX.value = 0
+    translateY.value = 0
+    scale.value = 1
+  }
+
+  const handleChat = async (listingId: string) => {
+    if (!currentUserId) return
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+
+    const result = await getOrCreateMatchForChat(currentUserId, listingId)
+
+    if (result.success && result.match) {
+      router.push(`/chat/${result.match.id}`)
+    } else {
+      Alert.alert('Error', result.error || 'Failed to start chat')
     }
   }
 
@@ -274,70 +341,27 @@ export default function SwipeViewScreen() {
     setFilteredListings(filtered)
   }, [listings, searchQuery, selectedCategory, selectedUrgency])
 
+  // Compute display listings - must be defined before handlers that use it
+  const displayListings = filteredListings.length > 0 ? filteredListings : listings
+
   // Define handlers first (before gesture that uses them)
   const handleSwipeLeft = useCallback(async () => {
     const listing = displayListings[currentIndex]
-    if (!listing) return
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    await recordSwipe(
-      user.id,
-      listing.id,
-      null,
-      'customer_on_listing',
-      'left'
-    )
-
-    // Move to next card
-    const nextIndex = currentIndex < displayListings.length - 1 ? currentIndex + 1 : 0
-    setCurrentIndex(nextIndex)
-    setIsCardExpanded(false)
-    translateX.value = 0
-    translateY.value = 0
-    scale.value = 1
-  }, [currentIndex, displayListings])
+    if (!listing || !currentUserId) return
+    handleDislike(listing.id)
+  }, [currentIndex, displayListings, currentUserId])
 
   const handleSwipeRight = useCallback(async () => {
     const listing = displayListings[currentIndex]
-    if (!listing) return
+    if (!listing || !currentUserId) return
+    handleLike(listing.id)
+  }, [currentIndex, displayListings, currentUserId])
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const result = await recordSwipe(
-      user.id,
-      listing.id,
-      null,
-      'customer_on_listing',
-      'right'
-    )
-
-    if (result.match) {
-      Alert.alert(
-        'It\'s a Match!',
-        'You matched with this listing. Start chatting!',
-        [
-          { text: 'Continue', style: 'cancel' },
-          {
-            text: 'View Match',
-            onPress: () => router.push(`/chat/${result.match?.id}`),
-          },
-        ]
-      )
-    }
-
-    // Move to next card
-    const nextIndex = currentIndex < displayListings.length - 1 ? currentIndex + 1 : 0
-    setCurrentIndex(nextIndex)
-    setIsCardExpanded(false)
-    translateX.value = 0
-    translateY.value = 0
-    scale.value = 1
-  }, [currentIndex, displayListings, router])
-
-  // Removed handleSwipeUp - chat is now handled directly in button press
+  const handleSwipeUp = useCallback(async () => {
+    const listing = displayListings[currentIndex]
+    if (!listing || !currentUserId) return
+    handleChat(listing.id)
+  }, [currentIndex, displayListings, currentUserId])
 
   // Pan gesture - disable when card is expanded
   const panGesture = Gesture.Pan()
@@ -432,24 +456,7 @@ export default function SwipeViewScreen() {
     return { opacity }
   })
 
-  const handleButtonSwipe = (direction: 'left' | 'right' | 'up') => {
-    if (direction === 'left') {
-      translateX.value = withSpring(-SCREEN_WIDTH, {}, () => {
-        runOnJS(handleSwipeLeft)()
-      })
-    } else if (direction === 'right') {
-      translateX.value = withSpring(SCREEN_WIDTH, {}, () => {
-        runOnJS(handleSwipeRight)()
-      })
-    } else {
-      // Chat button - handled directly in button press, no swipe animation needed
-      // The chat button opens chat directly, so we don't need swipe up gesture
-    }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-  }
-
-  // Compute values after all hooks
-  const displayListings = filteredListings.length > 0 ? filteredListings : listings
+  // Compute current listing (displayListings already defined above)
   const currentListing = displayListings[currentIndex]
   const categories = Array.from(new Set(listings.map((l) => l.category).filter(Boolean))) as string[]
   const urgencyOptions = ['flexible', 'asap', 'urgent']
@@ -480,14 +487,6 @@ export default function SwipeViewScreen() {
     <View style={styles.container}>
       {/* Header with Search and Filter */}
       <View style={styles.header}>
-        {/* Back Button */}
-        <Pressable
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
-        </Pressable>
-
         {/* Filter Button - Left */}
         <Pressable
           style={styles.filterButton}
@@ -523,6 +522,14 @@ export default function SwipeViewScreen() {
             </Pressable>
           )}
         </View>
+
+        {/* List View Button */}
+        <Pressable
+          style={styles.listViewButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="list" size={24} color="#f25842" />
+        </Pressable>
       </View>
 
       {/* Swipe Indicators */}
@@ -537,86 +544,36 @@ export default function SwipeViewScreen() {
         <Text style={styles.chatText}>CHAT</Text>
       </Animated.View>
 
-      {/* Card Display */}
-      {isCardExpanded ? (
-        <ScrollView
-          style={styles.cardDisplayScrollContainer}
-          contentContainerStyle={styles.cardDisplayScrollContent}
-          scrollEnabled={true}
-          showsVerticalScrollIndicator={true}
-          nestedScrollEnabled={false}
-          bounces={true}
-          scrollEventThrottle={16}
-        >
-          <CardDisplay
-            listings={displayListings}
-            currentIndex={currentIndex}
-            currentListing={currentListing}
-            isCardExpanded={isCardExpanded}
-            onExpandChange={setIsCardExpanded}
-            panGesture={panGesture}
-            animatedCardStyle={animatedCardStyle}
-          />
-        </ScrollView>
-      ) : (
-        <CardDisplay
-          listings={displayListings}
-          currentIndex={currentIndex}
-          currentListing={currentListing}
-          isCardExpanded={isCardExpanded}
-          onExpandChange={setIsCardExpanded}
-          panGesture={panGesture}
-          animatedCardStyle={animatedCardStyle}
-        />
-      )}
+      {/* Swipeable Card with ListingCard */}
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={[styles.cardWrapper, animatedCardStyle]}>
+          <ScrollView
+            style={styles.cardScrollView}
+            contentContainerStyle={styles.cardScrollContent}
+            showsVerticalScrollIndicator={true}
+            bounces={true}
+          >
+            <View style={styles.listingCardWrapper}>
+              <ListingCard
+                listing={currentListing}
+                showLikeButtons={true}
+                onLike={handleLike}
+                onDislike={handleDislike}
+                onChat={handleChat}
+                isOwnListing={currentListing.user_id === currentUserId}
+                userCurrency={currentUser?.currency}
+                userCountry={currentUser?.country}
+              />
+            </View>
+          </ScrollView>
+        </Animated.View>
+      </GestureDetector>
 
-      {/* Action Buttons */}
-      <View 
-        style={[
-          styles.actionButtons, 
-          { zIndex: 10 },
-        ]} 
-        pointerEvents="box-none"
-        {...(Platform.OS === 'web' && {
-          // @ts-ignore - web-specific className
-          className: 'action-buttons-container',
-        })}
-      >
-        <Pressable
-          style={[styles.actionButton, styles.rejectButton]}
-          onPress={() => handleButtonSwipe('left')}
-        >
-          <Ionicons name="close" size={32} color="#ef4444" />
-        </Pressable>
-        <Pressable
-          style={[styles.actionButton, styles.chatButton]}
-          onPress={async () => {
-            const listing = displayListings[currentIndex]
-            if (!listing) return
-
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) return
-
-            // Get or create match for chat
-            const { getOrCreateMatchForChat } = await import('@/lib/utils/matching')
-            const result = await getOrCreateMatchForChat(user.id, listing.id)
-
-            if (result.success && result.match) {
-              router.push(`/chat/${result.match.id}`)
-            } else {
-              const { Alert } = await import('react-native')
-              Alert.alert('Error', result.error || 'Failed to start chat')
-            }
-          }}
-        >
-          <Ionicons name="chatbubble-ellipses" size={28} color="#ffffff" />
-        </Pressable>
-        <Pressable
-          style={[styles.actionButton, styles.acceptButton]}
-          onPress={() => handleButtonSwipe('right')}
-        >
-          <Ionicons name="heart" size={32} color="#10b981" />
-        </Pressable>
+      {/* Card Counter */}
+      <View style={styles.cardCounter}>
+        <Text style={styles.cardCounterText}>
+          {currentIndex + 1} / {displayListings.length}
+        </Text>
       </View>
 
       {/* Filter Modal */}
@@ -770,14 +727,6 @@ const styles = StyleSheet.create({
     gap: 12,
     zIndex: 100,
   },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   filterButton: {
     width: 44,
     height: 44,
@@ -825,6 +774,14 @@ const styles = StyleSheet.create({
   clearButton: {
     marginLeft: 8,
   },
+  listViewButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fef2f2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   menuButton: {
     width: 44,
     height: 44,
@@ -867,6 +824,33 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  cardWrapper: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  cardScrollView: {
+    flex: 1,
+  },
+  cardScrollContent: {
+    paddingBottom: 20,
+  },
+  listingCardWrapper: {
+    marginBottom: 16,
+    backgroundColor: 'transparent',
+    width: '100%',
+  },
+  cardCounter: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    backgroundColor: 'transparent',
+  },
+  cardCounterText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
   },
   likeIndicator: {
     position: 'absolute',

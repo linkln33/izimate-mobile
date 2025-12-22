@@ -138,10 +138,20 @@ export default function ProfileScreen() {
         
         // Also update in database immediately
         if (user) {
-          await supabase
+          console.log('📸 Updating user in database:', { userId: user.id, imageUrl })
+          const { error: updateError, data: updateData } = await supabase
             .from('users')
             .update({ avatar_url: imageUrl })
             .eq('id', user.id)
+            .select()
+          
+          if (updateError) {
+            console.error('📸 Database update error:', updateError)
+            // Image was uploaded but DB update failed - still show success for image
+            Alert.alert('Partial Success', 'Profile picture uploaded but failed to save to profile. Please try again.')
+            return
+          }
+          console.log('📸 Database update successful:', updateData)
         }
         
         Alert.alert('Success', 'Profile picture updated successfully')
@@ -164,22 +174,28 @@ export default function ProfileScreen() {
   const handleDetectLocation = async () => {
     try {
       setSaving(true)
-      const location = await getCurrentLocation()
-      const address = await reverseGeocode(location.lat, location.lng)
+      const locationData = await getCurrentLocation()
+      const address = await reverseGeocode(locationData.lat, locationData.lng)
       setLocation(address)
 
-      // Update user location in database
+      // Update user location in database - only use columns that exist
       if (user) {
-        await supabase
+        const { error } = await supabase
           .from('users')
           .update({
-            location_lat: location.lat,
-            location_lng: location.lng,
-            location_address: address,
+            location_lat: locationData.lat,
+            location_lng: locationData.lng,
           })
           .eq('id', user.id)
+        
+        if (error) {
+          console.error('📍 Location save error:', error)
+        }
       }
+      
+      Alert.alert('Success', 'Location detected successfully')
     } catch (error) {
+      console.error('📍 Location detection error:', error)
       Alert.alert('Error', 'Failed to get location')
     } finally {
       setSaving(false)
@@ -191,25 +207,42 @@ export default function ProfileScreen() {
 
     setSaving(true)
     try {
-      const { error } = await supabase
+      // Build update object with only fields that exist in the database
+      // Note: Some columns may not exist depending on the database schema
+      const updateData: Record<string, any> = {
+        name: name.trim(),
+      }
+      
+      // Only include optional fields if they have values
+      if (bio.trim()) updateData.bio = bio.trim()
+      if (phone.trim()) updateData.phone = phone.trim()
+      if (avatarUrl) updateData.avatar_url = avatarUrl
+      if (currency) updateData.currency = currency
+      
+      console.log('💾 Saving profile:', { userId: user.id, updateData })
+      
+      const { error, data } = await supabase
         .from('users')
-        .update({
-          name: name.trim(),
-          bio: bio.trim() || null,
-          phone: phone.trim() || null,
-          avatar_url: avatarUrl || null,
-          location_address: location || null,
-          currency,
-          last_active: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', user.id)
+        .select()
 
-      if (error) throw error
+      if (error) {
+        console.error('💾 Profile save error:', error)
+        throw error
+      }
+      
+      console.log('💾 Profile saved successfully:', data)
+
+      // Update local user state with new data
+      if (data && data[0]) {
+        setUser(data[0])
+      }
 
       Alert.alert('Success', 'Profile updated successfully')
-      loadUserData()
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update profile')
+    } catch (error: any) {
+      console.error('💾 Profile save failed:', error)
+      Alert.alert('Error', error?.message || 'Failed to update profile')
     } finally {
       setSaving(false)
     }
@@ -240,6 +273,18 @@ export default function ProfileScreen() {
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Ionicons name="person" size={40} color="#6b7280" />
+              </View>
+            )}
+            {/* Display name under avatar */}
+            {name ? (
+              <Text style={styles.avatarName}>{name}</Text>
+            ) : (
+              <Text style={styles.avatarNamePlaceholder}>Add your name</Text>
+            )}
+            {user?.verification_status === 'verified' && (
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="shield-checkmark" size={14} color="#a855f7" />
+                <Text style={styles.verifiedBadgeText}>Verified</Text>
               </View>
             )}
             <Pressable style={styles.changeAvatarButton} onPress={handlePickAvatar}>
@@ -484,6 +529,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  avatarName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  avatarNamePlaceholder: {
+    fontSize: 16,
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(168, 85, 247, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.4)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  verifiedBadgeText: {
+    fontSize: 12,
+    color: '#7c3aed',
+    fontWeight: '600',
   },
   changeAvatarButton: {
     paddingHorizontal: 16,
