@@ -89,16 +89,20 @@ izimate-job-mobile/
 - ✅ Tab navigation
 - ✅ TypeScript support
 - ✅ Expo Router (file-based routing)
-- ✅ **Cloudflare R2 image storage** (via web API)
+- ✅ **Cloudflare R2 image storage** (direct S3-compatible uploads)
 
 ## Image Storage
 
-**All images are stored on Cloudflare R2** via the web app's API route (`/api/upload-image`).
+**All images are stored on Cloudflare R2** via direct S3-compatible API uploads.
 
 - **Storage**: Cloudflare R2
-- **Upload Method**: API route call to web app
-- **Configuration**: Set `EXPO_PUBLIC_API_URL` to your web app URL
-- **URL Format**: `https://pub-{account-id}.r2.dev/{folder}/{filename}.webp`
+- **Upload Method**: Direct upload using S3-compatible API (aws4fetch)
+- **Configuration**: Set R2 credentials in `.env`:
+  - `EXPO_PUBLIC_R2_ACCOUNT_ID`
+  - `EXPO_PUBLIC_R2_ACCESS_KEY_ID`
+  - `EXPO_PUBLIC_R2_SECRET_ACCESS_KEY`
+- **URL Format**: `https://pub-{account-id}.r2.dev/{folder}/{filename}.{ext}`
+- **Folders**: `listings`, `avatars`, `messages`
 
 ## Development
 
@@ -113,7 +117,9 @@ All environment variables must be prefixed with `EXPO_PUBLIC_` to be accessible 
 **Required:**
 - `EXPO_PUBLIC_SUPABASE_URL` - Your Supabase project URL
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anon key
-- `EXPO_PUBLIC_API_URL` - Your web app URL (for image uploads)
+- `EXPO_PUBLIC_R2_ACCOUNT_ID` - Your Cloudflare R2 account ID
+- `EXPO_PUBLIC_R2_ACCESS_KEY_ID` - Your R2 access key ID
+- `EXPO_PUBLIC_R2_SECRET_ACCESS_KEY` - Your R2 secret access key
 
 ### Building for Production
 

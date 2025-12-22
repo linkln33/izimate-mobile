@@ -157,17 +157,13 @@ export function createListingHandlers(
           uris: previewUris,
         })
         
-        // Check if it's a CORS error and provide helpful message
-        const isCorsError = uploadError.message.includes('CORS')
-        const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'unknown'
-        const errorMessage = isCorsError
-          ? `CORS Error: The web app's API is blocking requests.\n\n` +
-            `Your origin: ${currentOrigin}\n` +
-            `API: https://www.izimate.com/api/upload-image\n\n` +
-            `Fix: Configure CORS on your Next.js API route to allow this origin.\n\n` +
-            `Or set EXPO_PUBLIC_API_URL=http://localhost:3000 if running Next.js locally.`
-          : `Upload failed: ${uploadError.message}\n\n` +
-            `${imageUris.length} photo(s) added for preview only (won't persist on submit).`
+        // Provide helpful error message
+        const errorMessage = `Upload failed: ${uploadError.message}\n\n` +
+          `${imageUris.length} photo(s) added for preview only (won't persist on submit).\n\n` +
+          `Please check:\n` +
+          `- Your internet connection\n` +
+          `- R2 credentials in .env file\n` +
+          `- R2 bucket permissions`
         
         Alert.alert('Upload Failed', errorMessage)
       } finally {
