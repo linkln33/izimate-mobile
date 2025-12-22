@@ -95,12 +95,16 @@ export default function ProfileScreen() {
 
   const handlePickAvatar = async () => {
     try {
+      console.log('📸 handlePickAvatar: Starting...')
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+      console.log('📸 Permission status:', status)
+      
       if (status !== 'granted') {
         Alert.alert('Permission Required', 'Please allow access to photos')
         return
       }
 
+      console.log('📸 Launching image library...')
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: [ImagePicker.MediaType.Images],
         allowsEditing: true,
@@ -108,14 +112,46 @@ export default function ProfileScreen() {
         aspect: [1, 1],
       })
 
-      if (result.canceled || !result.assets || !result.assets[0]) return
+      console.log('📸 Image picker result:', {
+        canceled: result.canceled,
+        hasAssets: !!result.assets,
+        assetCount: result.assets?.length || 0,
+      })
+
+      if (result.canceled || !result.assets || !result.assets[0]) {
+        console.log('📸 Image picker was canceled or no assets')
+        return
+      }
 
       setSaving(true)
-      const imageUrl = await uploadImage(result.assets[0].uri, 'avatars')
-      setAvatarUrl(imageUrl)
+      console.log('📸 Starting upload...', { uri: result.assets[0].uri })
+      
+      try {
+        const imageUrl = await uploadImage(result.assets[0].uri, 'avatars')
+        console.log('📸 Upload successful:', imageUrl)
+        setAvatarUrl(imageUrl)
+        
+        // Also update in database immediately
+        if (user) {
+          await supabase
+            .from('users')
+            .update({ avatar_url: imageUrl })
+            .eq('id', user.id)
+        }
+        
+        Alert.alert('Success', 'Profile picture updated successfully')
+      } catch (uploadError: any) {
+        console.error('📸 Upload error:', uploadError)
+        Alert.alert(
+          'Upload Failed', 
+          uploadError?.message || 'Failed to upload image. Please check your internet connection and try again.'
+        )
+      }
+      
       setSaving(false)
-    } catch (error) {
-      Alert.alert('Error', 'Failed to upload image')
+    } catch (error: any) {
+      console.error('📸 handlePickAvatar error:', error)
+      Alert.alert('Error', error?.message || 'Failed to pick image. Please try again.')
       setSaving(false)
     }
   }
