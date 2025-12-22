@@ -4,6 +4,8 @@
  * Compatible with React Native Image component
  */
 
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+
 const BASE_URL = 'https://www.izimate.com'
 
 /**
@@ -181,7 +183,6 @@ export async function uploadImage(
     // Read the image file
     // Handle both web (blob:) and native (file://, content://) URIs
     let imageBlob: Blob
-    let imageArrayBuffer: ArrayBuffer
     try {
       if (__DEV__) {
         console.log('📁 Reading image file from URI:', {
@@ -200,14 +201,10 @@ export async function uploadImage(
       }
       imageBlob = await fileResponse.blob()
       
-      // Convert Blob to ArrayBuffer for AWS SDK compatibility
-      imageArrayBuffer = await imageBlob.arrayBuffer()
-      
       if (__DEV__) {
         console.log('✅ Image file read successfully:', {
           size: imageBlob.size,
           type: imageBlob.type,
-          arrayBufferSize: imageArrayBuffer.byteLength,
         })
       }
     } catch (fileError: any) {
@@ -232,8 +229,7 @@ export async function uploadImage(
     else if (fileExt === 'gif') contentType = 'image/gif'
 
     // Use AWS SDK v3 for S3-compatible uploads (works on both web and native)
-    const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3')
-    
+    // Static import to avoid Metro bundler issues with dynamic imports
     const s3Client = new S3Client({
       region: 'auto', // Required by SDK but not used by R2
       endpoint: r2Endpoint,
@@ -244,13 +240,12 @@ export async function uploadImage(
     })
 
     // Upload to R2 using PutObjectCommand
-    // Use ArrayBuffer instead of Blob for better React Native compatibility
     try {
       await s3Client.send(
         new PutObjectCommand({
           Bucket: bucketName,
           Key: fileName,
-          Body: imageArrayBuffer,
+          Body: imageBlob,
           ContentType: contentType,
         })
       )
@@ -278,7 +273,6 @@ export async function uploadImage(
         fileName,
         url: finalUrl,
         size: imageBlob.size,
-        bucket: bucketName,
       })
     }
 
