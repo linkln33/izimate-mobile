@@ -1,0 +1,327 @@
+import { useState, useEffect } from 'react'
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Linking } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { supabase } from '@/lib/supabase'
+import type { User, ProviderProfile } from '@/lib/types'
+
+interface Props {
+  user: User | null
+}
+
+export function VerificationTab({ user }: Props) {
+  const [providerProfile, setProviderProfile] = useState<ProviderProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadProviderProfile()
+  }, [user?.id])
+
+  const loadProviderProfile = async () => {
+    if (!user?.id) return
+
+    try {
+      const { data } = await supabase
+        .from('provider_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (data) {
+        setProviderProfile(data)
+      }
+    } catch (error) {
+      // No provider profile yet
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleIdentityVerification = async () => {
+    if (!user?.id) return
+
+    const API_URL = process.env.EXPO_PUBLIC_SITE_URL || 'https://izimate.com'
+    
+    try {
+      const response = await fetch(`${API_URL}/api/verification/identity/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          documentType: 'passport',
+          documentCountry: 'GB',
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.verification_url) {
+        Linking.openURL(data.verification_url)
+      } else {
+        Alert.alert('Error', data.error || 'Failed to start verification')
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to start verification')
+    }
+  }
+
+  const handleBusinessVerification = async () => {
+    Alert.alert('Business Verification', 'Please visit the web app to complete business verification.')
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#f25842" />
+      </View>
+    )
+  }
+
+  const identityVerified = user?.identity_verified || false
+  const identityStatus = user?.identity_verification_status || 'pending'
+  const businessVerified = providerProfile?.business_verified || false
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <Text style={styles.title}>Verification Center</Text>
+
+      {/* Identity Verification */}
+      <View style={styles.verificationCard}>
+        <View style={styles.verificationHeader}>
+          <View style={styles.verificationHeaderLeft}>
+            <Ionicons
+              name={identityVerified ? 'checkmark-circle' : 'person-outline'}
+              size={32}
+              color={identityVerified ? '#10b981' : '#6b7280'}
+            />
+            <View style={styles.verificationHeaderText}>
+              <Text style={styles.verificationTitle}>Identity Verification</Text>
+              <Text style={styles.verificationSubtitle}>
+                Verify your identity with government-issued ID
+              </Text>
+            </View>
+          </View>
+          {identityVerified && (
+            <View style={styles.verifiedBadge}>
+              <Text style={styles.verifiedBadgeText}>Verified</Text>
+            </View>
+          )}
+        </View>
+
+        {identityStatus === 'pending' && (
+          <Pressable
+            style={styles.verifyButton}
+            onPress={handleIdentityVerification}
+          >
+            <Text style={styles.verifyButtonText}>Start Verification</Text>
+          </Pressable>
+        )}
+
+        {identityStatus === 'processing' && (
+          <View style={styles.statusInfo}>
+            <ActivityIndicator size="small" color="#fbbf24" />
+            <Text style={styles.statusText}>Verification in progress...</Text>
+          </View>
+        )}
+
+        {identityStatus === 'verified' && (
+          <View style={styles.statusInfo}>
+            <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+            <Text style={styles.statusText}>Identity verified</Text>
+          </View>
+        )}
+
+        {identityStatus === 'failed' || identityStatus === 'rejected' && (
+          <View style={styles.statusInfo}>
+            <Ionicons name="close-circle" size={20} color="#ef4444" />
+            <Text style={styles.statusText}>Verification {identityStatus}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Business Verification */}
+      <View style={styles.verificationCard}>
+        <View style={styles.verificationHeader}>
+          <View style={styles.verificationHeaderLeft}>
+            <Ionicons
+              name={businessVerified ? 'checkmark-circle' : 'business-outline'}
+              size={32}
+              color={businessVerified ? '#10b981' : '#6b7280'}
+            />
+            <View style={styles.verificationHeaderText}>
+              <Text style={styles.verificationTitle}>Business Verification</Text>
+              <Text style={styles.verificationSubtitle}>
+                Verify your UK business registration (Companies House)
+              </Text>
+            </View>
+          </View>
+          {businessVerified && (
+            <View style={styles.verifiedBadge}>
+              <Text style={styles.verifiedBadgeText}>Verified</Text>
+            </View>
+          )}
+        </View>
+
+        {!providerProfile && (
+          <Text style={styles.infoText}>
+            Set up a provider profile to verify your business
+          </Text>
+        )}
+
+        {providerProfile && !businessVerified && (
+          <Pressable
+            style={styles.verifyButton}
+            onPress={handleBusinessVerification}
+          >
+            <Text style={styles.verifyButtonText}>Verify Business</Text>
+          </Pressable>
+        )}
+
+        {businessVerified && (
+          <View style={styles.statusInfo}>
+            <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+            <Text style={styles.statusText}>Business verified</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Verification Score */}
+      {providerProfile && (
+        <View style={styles.scoreCard}>
+          <Text style={styles.scoreTitle}>Verification Score</Text>
+          <Text style={styles.scoreValue}>{providerProfile.verification_score || 0}/100</Text>
+          <View style={styles.scoreBar}>
+            <View
+              style={[
+                styles.scoreBarFill,
+                { width: `${providerProfile.verification_score || 0}%` },
+              ]}
+            />
+          </View>
+        </View>
+      )}
+    </ScrollView>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contentContainer: {
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 20,
+  },
+  verificationCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  verificationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  verificationHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    flex: 1,
+    gap: 12,
+  },
+  verificationHeaderText: {
+    flex: 1,
+  },
+  verificationTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  verificationSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  verifiedBadge: {
+    backgroundColor: '#d1fae5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  verifiedBadgeText: {
+    color: '#10b981',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  verifyButton: {
+    backgroundColor: '#f25842',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  verifyButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  statusInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusText: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontStyle: 'italic',
+  },
+  scoreCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 20,
+    marginTop: 8,
+  },
+  scoreTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  scoreValue: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#f25842',
+    marginBottom: 12,
+  },
+  scoreBar: {
+    height: 8,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  scoreBarFill: {
+    height: '100%',
+    backgroundColor: '#f25842',
+  },
+})

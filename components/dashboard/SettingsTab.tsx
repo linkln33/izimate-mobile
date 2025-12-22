@@ -1,0 +1,420 @@
+import { useState, useEffect } from 'react'
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, ActivityIndicator, Alert, Image, Switch } from 'react-native'
+import { useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
+import * as ImagePicker from 'expo-image-picker'
+import { supabase } from '@/lib/supabase'
+import { uploadImage } from '@/lib/utils/images'
+import { getCurrentLocation, reverseGeocode } from '@/lib/utils/location'
+import type { User } from '@/lib/types'
+
+interface Props {
+  user: User | null
+  onUserUpdate: (user: User) => void
+}
+
+export function SettingsTab({ user, onUserUpdate }: Props) {
+  const router = useRouter()
+  const [saving, setSaving] = useState(false)
+  const [activeSection, setActiveSection] = useState<'profile' | 'preferences' | 'notifications'>('profile')
+
+  // Profile form state
+  const [name, setName] = useState('')
+  const [bio, setBio] = useState('')
+  const [phone, setPhone] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [location, setLocation] = useState('')
+  const [currency, setCurrency] = useState('GBP')
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '')
+      setBio(user.bio || '')
+      setPhone(user.phone || '')
+      setAvatarUrl(user.avatar_url || '')
+      setLocation(user.location_address || '')
+      setCurrency(user.currency || 'GBP')
+    }
+  }, [user])
+
+  const handlePickAvatar = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to photos')
+        return
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+        aspect: [1, 1],
+      })
+
+      if (result.canceled || !result.assets || !result.assets[0]) return
+
+      setSaving(true)
+      const imageUrl = await uploadImage(result.assets[0].uri, 'avatars')
+      setAvatarUrl(imageUrl)
+      setSaving(false)
+    } catch (error) {
+      Alert.alert('Error', 'Failed to upload image')
+      setSaving(false)
+    }
+  }
+
+  const handleDetectLocation = async () => {
+    try {
+      setSaving(true)
+      const location = await getCurrentLocation()
+      const address = await reverseGeocode(location.lat, location.lng)
+      setLocation(address)
+
+      if (user) {
+        await supabase
+          .from('users')
+          .update({
+            location_lat: location.lat,
+            location_lng: location.lng,
+            location_address: address,
+          })
+          .eq('id', user.id)
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to get location')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSaveProfile = async () => {
+    if (!user) return
+
+    setSaving(true)
+    try {
+      const { error, data } = await supabase
+        .from('users')
+        .update({
+          name: name.trim(),
+          bio: bio.trim() || null,
+          phone: phone.trim() || null,
+          avatar_url: avatarUrl || null,
+          location_address: location || null,
+          currency,
+          last_active: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      if (data) {
+        onUserUpdate(data as User)
+        Alert.alert('Success', 'Profile updated successfully')
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update profile')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      {/* Section Tabs */}
+      <View style={styles.sectionTabs}>
+        <Pressable
+          style={[styles.sectionTab, activeSection === 'profile' && styles.sectionTabActive]}
+          onPress={() => setActiveSection('profile')}
+        >
+          <Text style={[styles.sectionTabText, activeSection === 'profile' && styles.sectionTabTextActive]}>
+            Profile
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.sectionTab, activeSection === 'preferences' && styles.sectionTabActive]}
+          onPress={() => setActiveSection('preferences')}
+        >
+          <Text style={[styles.sectionTabText, activeSection === 'preferences' && styles.sectionTabTextActive]}>
+            Preferences
+          </Text>
+        </Pressable>
+      </View>
+
+      {activeSection === 'profile' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Profile Information</Text>
+
+          {/* Avatar */}
+          <View style={styles.avatarSection}>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Ionicons name="person" size={40} color="#6b7280" />
+              </View>
+            )}
+            <Pressable style={styles.changeAvatarButton} onPress={handlePickAvatar}>
+              <Text style={styles.changeAvatarText}>Change Photo</Text>
+            </Pressable>
+          </View>
+
+          {/* Name */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Full Name *</Text>
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="Enter your name"
+            />
+          </View>
+
+          {/* Bio */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Bio</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={bio}
+              onChangeText={setBio}
+              placeholder="Tell us about yourself..."
+              multiline
+              numberOfLines={4}
+            />
+          </View>
+
+          {/* Phone */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Phone Number</Text>
+            <TextInput
+              style={styles.input}
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="+1 (555) 123-4567"
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          {/* Location */}
+          <View style={styles.inputGroup}>
+            <View style={styles.locationHeader}>
+              <Text style={styles.label}>Location</Text>
+              <Pressable onPress={handleDetectLocation}>
+                <Ionicons name="location" size={20} color="#f25842" />
+              </Pressable>
+            </View>
+            <TextInput
+              style={styles.input}
+              value={location}
+              onChangeText={setLocation}
+              placeholder="Enter your location"
+            />
+          </View>
+
+          <Pressable
+            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+            onPress={handleSaveProfile}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Text style={styles.saveButtonText}>Save Changes</Text>
+            )}
+          </Pressable>
+        </View>
+      )}
+
+      {activeSection === 'preferences' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Preferences</Text>
+
+          {/* Currency */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Currency</Text>
+            <View style={styles.currencyButtons}>
+              {['GBP', 'USD', 'EUR'].map((curr) => (
+                <Pressable
+                  key={curr}
+                  style={[
+                    styles.currencyButton,
+                    currency === curr && styles.currencyButtonActive,
+                  ]}
+                  onPress={() => setCurrency(curr)}
+                >
+                  <Text
+                    style={[
+                      styles.currencyButtonText,
+                      currency === curr && styles.currencyButtonTextActive,
+                    ]}
+                  >
+                    {curr}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          <Pressable
+            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+            onPress={handleSaveProfile}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Text style={styles.saveButtonText}>Save Settings</Text>
+            )}
+          </Pressable>
+        </View>
+      )}
+    </ScrollView>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
+  contentContainer: {
+    padding: 20,
+  },
+  sectionTabs: {
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 20,
+  },
+  sectionTab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  sectionTabActive: {
+    backgroundColor: '#fee2e2',
+  },
+  sectionTabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  sectionTabTextActive: {
+    color: '#f25842',
+    fontWeight: '600',
+  },
+  section: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+    marginBottom: 20,
+  },
+  avatarSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 12,
+  },
+  avatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#e5e7eb',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  changeAvatarButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+  },
+  changeAvatarText: {
+    fontSize: 14,
+    color: '#1a1a1a',
+    fontWeight: '500',
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  locationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  currencyButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  currencyButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  currencyButtonActive: {
+    backgroundColor: '#fee2e2',
+    borderColor: '#f25842',
+  },
+  currencyButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  currencyButtonTextActive: {
+    color: '#f25842',
+    fontWeight: '600',
+  },
+  saveButton: {
+    backgroundColor: '#f25842',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#d1d5db',
+  },
+  saveButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+})

@@ -1,0 +1,76 @@
+{
+  "expo": {
+    "name": "iZimate Job",
+    "slug": "izimate-job",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "scheme": "izimate-job",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.izimate.job",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "com.izimate.job",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "VIBRATE",
+        "POST_NOTIFICATIONS"
+      ],
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow iZimate Job to use your location to find nearby services."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow iZimate Job to access your camera to upload photos."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow iZimate Job to access your photos to upload images."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": ""
+      },
+      "supabaseUrl": "https://cbprxgoelrduljhyfnhi.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNicHJ4Z29lbHJkdWxqaHlmbmhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NTY1NjcsImV4cCI6MjA4MTQzMjU2N30.L21zJv_VbUEx8xHLOUADJuw_3nk__SjoHDLwPOYF9vA"
+    }
+  }
+}
