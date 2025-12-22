@@ -105,9 +105,13 @@ export default function ProfileScreen() {
       }
 
       console.log('📸 Launching image library...')
-      // Use MediaType array (new API, works on both web and native)
+      // Use fallback for web compatibility - MediaType may not exist on web
+      const mediaTypes = ImagePicker.MediaType?.Images 
+        ? [ImagePicker.MediaType.Images]
+        : ImagePicker.MediaTypeOptions?.Images || 'images'
+      
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: [ImagePicker.MediaType.Images],
+        mediaTypes: mediaTypes as any,
         allowsEditing: true,
         quality: 0.8,
         aspect: [1, 1],
