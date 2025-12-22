@@ -219,46 +219,41 @@ export async function uploadImage(
     else if (fileExt === 'webp') contentType = 'image/webp'
     else if (fileExt === 'gif') contentType = 'image/gif'
 
-    // Import aws4fetch for S3-compatible signing
-    const { AwsClient } = await import('aws4fetch')
+    // Use AWS SDK v3 for S3-compatible uploads (works on both web and native)
+    const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3')
     
-    const client = new AwsClient({
-      accessKeyId,
-      secretAccessKey,
+    const s3Client = new S3Client({
+      region: 'auto', // Required by SDK but not used by R2
+      endpoint: r2Endpoint,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
     })
 
-    // Create signed PUT request to R2
-    const putUrl = `${r2Endpoint}/${bucketName}/${fileName}`
-    const signedRequest = await client.sign(
-      new Request(putUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': contentType,
-        },
-        body: imageBlob,
-      })
-    )
-
-    // Upload to R2
-    const uploadResponse = await fetch(signedRequest)
-
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text()
-      console.error('❌ R2 upload failed:', {
-        status: uploadResponse.status,
-        statusText: uploadResponse.statusText,
-        error: errorText,
-      })
+    // Upload to R2 using PutObjectCommand
+    try {
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: bucketName,
+          Key: fileName,
+          Body: imageBlob,
+          ContentType: contentType,
+        })
+      )
+    } catch (s3Error: any) {
+      console.error('❌ R2 upload failed:', s3Error)
       
-      if (uploadResponse.status === 403) {
+      // Handle specific AWS SDK errors
+      if (s3Error.name === 'Forbidden' || s3Error.$metadata?.httpStatusCode === 403) {
         throw new Error('Access denied to R2 bucket. Please check your R2 credentials and bucket permissions.')
-      } else if (uploadResponse.status === 404) {
+      } else if (s3Error.name === 'NotFound' || s3Error.$metadata?.httpStatusCode === 404) {
         throw new Error('R2 bucket not found. Please check your bucket name and account ID.')
-      } else if (uploadResponse.status === 413) {
+      } else if (s3Error.$metadata?.httpStatusCode === 413) {
         throw new Error('Image file is too large. Please choose a smaller image.')
       }
       
-      throw new Error(`R2 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`)
+      throw new Error(`R2 upload failed: ${s3Error.message || 'Unknown error'}`)
     }
 
     // Construct public URL
