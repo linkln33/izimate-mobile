@@ -154,7 +154,10 @@ export async function uploadImage(
     const accountId = process.env.EXPO_PUBLIC_R2_ACCOUNT_ID || 'f6e513ef2a7ef932e869758dba577bbb'
     const accessKeyId = process.env.EXPO_PUBLIC_R2_ACCESS_KEY_ID
     const secretAccessKey = process.env.EXPO_PUBLIC_R2_SECRET_ACCESS_KEY
-    const bucketName = 'izimate-job-images'
+    
+    // Use separate bucket for profile pictures (avatars)
+    // All other images go to izimate-job-images bucket
+    const bucketName = folder === 'avatars' ? 'izimate-user-avatars' : 'izimate-job-images'
     
     if (!accessKeyId || !secretAccessKey) {
       throw new Error(
@@ -211,7 +214,11 @@ export async function uploadImage(
     const timestamp = Date.now()
     const random = Math.random().toString(36).substring(2, 15)
     const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg'
-    const fileName = `${folder}/${timestamp}-${random}.${fileExt}`
+    // For avatars in separate bucket, don't use folder prefix (bucket is already dedicated)
+    // For other images, use folder prefix
+    const fileName = folder === 'avatars' 
+      ? `${timestamp}-${random}.${fileExt}`
+      : `${folder}/${timestamp}-${random}.${fileExt}`
     
     // Determine MIME type
     let contentType = 'image/jpeg'
