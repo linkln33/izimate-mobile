@@ -22,12 +22,44 @@ export function normalizePhotoUrl(url: string | null | undefined): string {
 
   const trimmedUrl = url.trim()
 
+  // Handle blob URLs FIRST - return as-is (they're valid for local preview)
+  // Check for blob: protocol (case-insensitive)
+  const lowerUrl = trimmedUrl.toLowerCase()
+  if (lowerUrl.startsWith('blob:')) {
+    if (__DEV__) {
+      console.log('🖼️ normalizePhotoUrl: Preserving blob URL as-is:', trimmedUrl)
+    }
+    return trimmedUrl
+  }
+  
+  // Also check if it contains blob: anywhere (in case of malformed URLs)
+  if (trimmedUrl.includes('blob:') && !trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+    if (__DEV__) {
+      console.warn('⚠️ normalizePhotoUrl: Found blob: in URL, preserving as-is:', trimmedUrl)
+    }
+    return trimmedUrl
+  }
+
   // If already a full URL (http/https/data), return as-is
   // This includes R2 URLs (r2.dev, r2.cloudflarestorage.com) and Supabase Storage URLs
   if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://') || trimmedUrl.startsWith('data:')) {
-    // R2 URLs: https://pub-{account-id}.r2.dev/{path} or custom domain
+    // R2 URLs: https://pub-{account-id}.r2.dev/{object-key}
+    // Expected format: https://pub-f6e513ef2a7ef932e869758dba577bbb.r2.dev/listings/filename.webp
     // Supabase Storage URLs: https://{project}.supabase.co/storage/v1/object/public/{bucket}/{path}
     // Both are valid, return as-is
+    
+    // Debug: Log R2 URLs to verify format
+    if (__DEV__ && trimmedUrl.includes('r2.dev')) {
+      const isR2Format = /^https:\/\/pub-[a-f0-9]+\.r2\.dev\/.+/.test(trimmedUrl)
+      if (!isR2Format) {
+        console.warn('⚠️ R2 URL format might be incorrect:', {
+          url: trimmedUrl,
+          expected: 'https://pub-{account-id}.r2.dev/{object-key}',
+          actual: trimmedUrl,
+        })
+      }
+    }
+    
     return trimmedUrl
   }
 
@@ -37,6 +69,17 @@ export function normalizePhotoUrl(url: string | null | undefined): string {
   }
 
   // If it doesn't start with /, assume it's a filename and prepend /picture/
+  // But check if it's already a blob URL that somehow got here (double-check)
+  if (trimmedUrl.toLowerCase().startsWith('blob:') || trimmedUrl.includes('blob:')) {
+    if (__DEV__) {
+      console.error('❌ normalizePhotoUrl: Blob URL reached fallback path! This should not happen:', trimmedUrl)
+    }
+    return trimmedUrl
+  }
+  
+  if (__DEV__) {
+    console.log('🖼️ normalizePhotoUrl: Treating as filename, prepending /picture/:', trimmedUrl)
+  }
   return `${BASE_URL}/picture/${trimmedUrl}`
 }
 
@@ -94,154 +137,168 @@ export function getAllPhotos(photos: (string | null | undefined)[] | null | unde
 }
 
 /**
- * Upload a single image to Cloudflare R2 via API route
+ * Upload a single image directly to Cloudflare R2 using S3-compatible API
  * For mobile React Native - uses file URI instead of File object
  * 
- * Requires EXPO_PUBLIC_API_URL to be set to your web app URL
+ * Requires R2 credentials in environment variables:
+ * - EXPO_PUBLIC_R2_ACCOUNT_ID
+ * - EXPO_PUBLIC_R2_ACCESS_KEY_ID
+ * - EXPO_PUBLIC_R2_SECRET_ACCESS_KEY
  */
 export async function uploadImage(
   imageUri: string,
   folder: string = 'listings'
 ): Promise<string> {
   try {
-    // Get API base URL from environment or use default
-    const apiBaseUrl = 
-      process.env.EXPO_PUBLIC_API_URL || 
-      process.env.EXPO_PUBLIC_SITE_URL || 
-      'https://www.izimate.com'
+    // Get R2 credentials from environment
+    const accountId = process.env.EXPO_PUBLIC_R2_ACCOUNT_ID || 'f6e513ef2a7ef932e869758dba577bbb'
+    const accessKeyId = process.env.EXPO_PUBLIC_R2_ACCESS_KEY_ID
+    const secretAccessKey = process.env.EXPO_PUBLIC_R2_SECRET_ACCESS_KEY
+    const bucketName = 'izimate-job-images'
     
-    // Remove trailing slash if present
-    const baseUrl = apiBaseUrl.replace(/\/$/, '')
-    const uploadUrl = `${baseUrl}/api/upload-image`
-
-    if (__DEV__) {
-      console.log('📤 Uploading image to R2:', {
-        imageUri,
-        folder,
-        uploadUrl,
-      })
-    }
-
-    // Create FormData for API request
-    // React Native FormData accepts objects with uri, type, and name properties
-    const formData = new FormData()
-    
-    // Get file extension from URI
-    const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg'
-    const fileName = `image.${fileExt}`
-    
-    // Determine MIME type
-    let mimeType = 'image/jpeg'
-    if (fileExt === 'png') mimeType = 'image/png'
-    else if (fileExt === 'webp') mimeType = 'image/webp'
-    else if (fileExt === 'gif') mimeType = 'image/gif'
-    
-    // Append file to FormData
-    // React Native FormData format: { uri, type, name }
-    formData.append('file', {
-      uri: imageUri,
-      type: mimeType,
-      name: fileName,
-    } as any)
-    
-    formData.append('folder', folder)
-    formData.append('optimize', 'true')
-
-    // Upload to R2 via API route
-    let uploadResponse: Response
-    try {
-      uploadResponse = await fetch(uploadUrl, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          // Don't set Content-Type - let fetch set it with boundary for FormData
-        },
-      })
-    } catch (fetchError: any) {
-      console.error('❌ Network error during upload:', fetchError)
-      
-      // Check if it's a CORS error (common error messages)
-      const errorMessage = fetchError?.message || String(fetchError || '')
-      const isCorsError = 
-        errorMessage.includes('CORS') || 
-        errorMessage.includes('Access-Control-Allow-Origin') ||
-        errorMessage.includes('Failed to fetch') ||
-        errorMessage.includes('NetworkError') ||
-        (typeof window !== 'undefined' && errorMessage.includes('blocked by CORS policy'))
-      
-      if (isCorsError) {
-        const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'unknown'
-        throw new Error(
-          `CORS Error: The upload API at ${baseUrl}/api/upload-image is blocking requests from ${currentOrigin}. ` +
-          `Please configure CORS on your server to allow requests from your development origin. ` +
-          `You may need to add ${currentOrigin} to the allowed origins in your API route configuration.`
-        )
-      }
-      
+    if (!accessKeyId || !secretAccessKey) {
       throw new Error(
-        `Failed to connect to upload service. Please check your internet connection and ensure EXPO_PUBLIC_API_URL is set correctly. (${uploadUrl})`
+        'R2 credentials not configured. Please set EXPO_PUBLIC_R2_ACCESS_KEY_ID and EXPO_PUBLIC_R2_SECRET_ACCESS_KEY in your .env file.'
       )
     }
 
-    if (!uploadResponse.ok) {
-      let errorData: any = {}
-      try {
-        errorData = await uploadResponse.json()
-      } catch (parseError) {
-        // Response is not JSON, use status text
-        console.warn('⚠️ Upload error response is not JSON')
-      }
-      
-      const errorMessage = errorData.error || errorData.message || `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`
-      
+    // R2 S3-compatible endpoint
+    const r2Endpoint = `https://${accountId}.r2.cloudflarestorage.com`
+    const publicUrlBase = `https://pub-${accountId}.r2.dev`
+
+    if (__DEV__) {
+      console.log('📤 Uploading image directly to R2:', {
+        imageUri,
+        folder,
+        bucketName,
+        accountId,
+      })
+    }
+
+    // Read the image file
+    // Handle both web (blob:) and native (file://, content://) URIs
+    let imageBlob: Blob
+    try {
       if (__DEV__) {
-        console.error('❌ R2 upload error:', {
-          status: uploadResponse.status,
-          statusText: uploadResponse.statusText,
-          error: errorMessage,
-          uploadUrl,
+        console.log('📁 Reading image file from URI:', {
+          uri: imageUri,
+          isBlob: imageUri.startsWith('blob:'),
+          isFile: imageUri.startsWith('file://'),
+          isContent: imageUri.startsWith('content://'),
         })
       }
       
-      // Provide more helpful error messages
-      if (uploadResponse.status === 404) {
-        throw new Error(
-          `Upload endpoint not found at ${uploadUrl}. ` +
-          `Please ensure:\n` +
-          `1. The web app is running and accessible at ${baseUrl}\n` +
-          `2. The API route /api/upload-image exists in your Next.js app\n` +
-          `3. If testing locally, set EXPO_PUBLIC_API_URL to your local server (e.g., http://localhost:3000)`
-        )
-      } else if (uploadResponse.status === 500) {
-        throw new Error('Server error during upload. Please try again later or contact support.')
+      // For React Native, fetch works with file:// and content:// URIs
+      // For web, fetch works with blob: URIs
+      const fileResponse = await fetch(imageUri)
+      if (!fileResponse.ok) {
+        throw new Error(`Failed to read image file: ${fileResponse.status} ${fileResponse.statusText}`)
+      }
+      imageBlob = await fileResponse.blob()
+      
+      if (__DEV__) {
+        console.log('✅ Image file read successfully:', {
+          size: imageBlob.size,
+          type: imageBlob.type,
+        })
+      }
+    } catch (fileError: any) {
+      console.error('❌ Error reading image file:', fileError)
+      throw new Error(`Failed to read image file: ${fileError?.message || 'Unknown error'}`)
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2, 15)
+    const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg'
+    const fileName = `${folder}/${timestamp}-${random}.${fileExt}`
+    
+    // Determine MIME type
+    let contentType = 'image/jpeg'
+    if (fileExt === 'png') contentType = 'image/png'
+    else if (fileExt === 'webp') contentType = 'image/webp'
+    else if (fileExt === 'gif') contentType = 'image/gif'
+
+    // Import aws4fetch for S3-compatible signing
+    const { AwsClient } = await import('aws4fetch')
+    
+    const client = new AwsClient({
+      accessKeyId,
+      secretAccessKey,
+    })
+
+    // Create signed PUT request to R2
+    const putUrl = `${r2Endpoint}/${bucketName}/${fileName}`
+    const signedRequest = await client.sign(
+      new Request(putUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': contentType,
+        },
+        body: imageBlob,
+      })
+    )
+
+    // Upload to R2
+    const uploadResponse = await fetch(signedRequest)
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text()
+      console.error('❌ R2 upload failed:', {
+        status: uploadResponse.status,
+        statusText: uploadResponse.statusText,
+        error: errorText,
+      })
+      
+      if (uploadResponse.status === 403) {
+        throw new Error('Access denied to R2 bucket. Please check your R2 credentials and bucket permissions.')
+      } else if (uploadResponse.status === 404) {
+        throw new Error('R2 bucket not found. Please check your bucket name and account ID.')
       } else if (uploadResponse.status === 413) {
         throw new Error('Image file is too large. Please choose a smaller image.')
       }
       
-      throw new Error(errorMessage)
+      throw new Error(`R2 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`)
     }
 
-    const data = await uploadResponse.json()
-    
-    if (!data.url) {
-      throw new Error('No URL returned from upload service')
-    }
+    // Construct public URL
+    const finalUrl = `${publicUrlBase}/${fileName}`
 
-    // Log the URL for debugging
     if (__DEV__) {
       console.log('✅ Image uploaded successfully to R2:', {
         folder,
-        url: data.url,
+        fileName,
+        url: finalUrl,
+        size: imageBlob.size,
       })
     }
 
-    // Ensure we return a full URL
-    if (!data.url || (!data.url.startsWith('http://') && !data.url.startsWith('https://'))) {
-      console.error('❌ Invalid URL returned from R2:', data.url)
-      throw new Error('Invalid URL returned from storage')
+    // Verify the URL is accessible (non-blocking, async check)
+    if (__DEV__) {
+      setTimeout(async () => {
+        try {
+          const testResponse = await fetch(finalUrl, { method: 'HEAD', signal: AbortSignal.timeout(5000) })
+          if (!testResponse.ok) {
+            console.warn('⚠️ Uploaded image URL returned non-OK status (may need time to propagate):', {
+              url: finalUrl,
+              status: testResponse.status,
+              statusText: testResponse.statusText,
+            })
+          } else {
+            console.log('✅ Uploaded image URL is accessible:', finalUrl)
+          }
+        } catch (testError: any) {
+          if (__DEV__) {
+            console.log('ℹ️ URL verification check (non-blocking):', {
+              url: finalUrl,
+              note: 'Image may need a moment to be accessible',
+            })
+          }
+        }
+      }, 100)
     }
 
-    return data.url
+    return finalUrl
   } catch (error: any) {
     console.error('❌ Image upload error:', error)
     throw new Error(error?.message || 'Failed to upload image')

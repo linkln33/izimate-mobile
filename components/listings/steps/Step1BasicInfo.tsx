@@ -1,6 +1,6 @@
 import { View, Text, TextInput, Pressable, ScrollView, Image, ActivityIndicator, StyleSheet } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
+import { Ionicons } from '@expo/vector-icons'
 import type { ListingFormState, ListingFormActions } from '../useListingForm'
 import { normalizePhotoUrl } from '@/lib/utils/images'
 
@@ -41,7 +41,7 @@ export function Step1BasicInfo({
     setTagInput,
   } = formActions
 
-  // Track which images failed to load
+  // Track image loading errors
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set())
 
   const handleAddTag = () => {
@@ -198,37 +198,126 @@ export function Step1BasicInfo({
             <Text style={styles.photoCount}>{photos.length} photo(s) added</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosScroll}>
               {photos.map((photo, index) => {
-                // Normalize photo URL to ensure it's valid for React Native Image component
-                const normalizedPhoto = normalizePhotoUrl(photo)
+                // Normalize photo URL to ensure it's a valid absolute URL
+                // BUT: Preserve blob URLs as-is (they're valid for local preview)
+                let normalizedPhoto: string
+                if (photo && (photo.startsWith('blob:') || photo.toLowerCase().startsWith('blob:'))) {
+                  // Blob URLs should be used as-is - don't normalize them
+                  normalizedPhoto = photo
+                  if (__DEV__) {
+                    console.log(`🖼️ Step1BasicInfo: Preserving blob URL as-is for photo ${index}:`, photo)
+                  }
+                } else {
+                  normalizedPhoto = normalizePhotoUrl(photo)
+                  if (__DEV__) {
+                    console.log(`🖼️ Step1BasicInfo: Normalized photo ${index}:`, {
+                      original: photo,
+                      normalized: normalizedPhoto,
+                    })
+                  }
+                }
+                
+                if (__DEV__ && photo?.startsWith('blob:') && !normalizedPhoto.startsWith('blob:')) {
+                  console.error('❌ Blob URL was incorrectly normalized!', {
+                    original: photo,
+                    normalized: normalizedPhoto,
+                  })
+                }
                 const hasError = imageErrors.has(index)
+                
                 return (
                   <View key={index} style={styles.photoPreviewItem}>
-                    {!hasError && normalizedPhoto ? (
+                    {!hasError ? (
                       <Image 
-                        source={{ uri: normalizedPhoto }} 
+                        source={{ 
+                          uri: normalizedPhoto,
+                          cache: 'default', // Use default cache instead of reload
+                        }} 
                         style={styles.photoPreviewImage}
                         resizeMode="cover"
                         onError={(error) => {
-                          console.error(`❌ Image load error for photo ${index}:`, {
-                            original: photo,
-                            normalized: normalizedPhoto,
+                          const errorInfo = {
+                            originalUrl: photo,
+                            normalizedUrl: normalizedPhoto,
                             error: error.nativeEvent?.error || error,
-                          })
+                            errorDetails: error.nativeEvent,
+                            errorCode: error.nativeEvent?.error?.code,
+                            errorMessage: error.nativeEvent?.error?.message,
+                          }
+                          console.error(`❌ Image load error for photo ${index}:`, errorInfo)
+                          
+                          // Try to fetch the URL directly to see what the actual error is
+                          fetch(normalizedPhoto, { method: 'HEAD' })
+                            .then(response => {
+                              console.error(`❌ Direct fetch test for ${normalizedPhoto}:`, {
+                                status: response.status,
+                                statusText: response.statusText,
+                                headers: Object.fromEntries(response.headers.entries()),
+                              })
+                            })
+                            .catch(fetchError => {
+                              console.error(`❌ Direct fetch failed:`, fetchError)
+                            })
+                          
                           setImageErrors(prev => new Set(prev).add(index))
                         }}
                         onLoad={() => {
-                          console.log(`✅ Image loaded successfully for photo ${index}:`, normalizedPhoto)
+                          if (__DEV__) {
+                            console.log(`✅ Image loaded successfully:`, {
+                              index,
+                              url: normalizedPhoto,
+                              originalUrl: photo,
+                            })
+                          }
+                          // Remove from errors if it loads successfully
                           setImageErrors(prev => {
                             const newSet = new Set(prev)
                             newSet.delete(index)
                             return newSet
                           })
                         }}
+                        onLoadStart={() => {
+                          if (__DEV__) {
+                            console.log(`🔄 Starting to load image ${index}:`, normalizedPhoto)
+                          }
+                        }}
+                        onLoadEnd={() => {
+                          if (__DEV__) {
+                            console.log(`🏁 Finished loading attempt for image ${index}`)
+                          }
+                        }}
                       />
                     ) : (
-                      <View style={styles.photoPreviewPlaceholder}>
+                      <View style={styles.photoErrorContainer}>
                         <Ionicons name="image-outline" size={32} color="#9ca3af" />
-                        <Text style={styles.photoPreviewPlaceholderText}>Failed to load</Text>
+                        <Text style={styles.photoErrorText}>Failed to load</Text>
+                        <Pressable
+                          style={styles.photoRetryButton}
+                        onPress={async () => {
+                          // Clear error and try loading again
+                          setImageErrors(prev => {
+                            const newSet = new Set(prev)
+                            newSet.delete(index)
+                            return newSet
+                          })
+                          
+                          // Verify URL is accessible before retrying
+                          if (__DEV__) {
+                            try {
+                              const testResponse = await fetch(normalizedPhoto, { method: 'HEAD' })
+                              console.log(`🔄 Retry - URL accessibility check:`, {
+                                url: normalizedPhoto,
+                                status: testResponse.status,
+                                ok: testResponse.ok,
+                              })
+                            } catch (error) {
+                              console.warn(`⚠️ Retry - URL check failed:`, error)
+                            }
+                          }
+                        }}
+                        >
+                          <Text style={styles.photoRetryText}>Retry</Text>
+                        </Pressable>
                       </View>
                     )}
                     <Pressable
@@ -446,5 +535,30 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderRadius: 12,
     padding: 2,
+  },
+  photoErrorContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    gap: 8,
+  },
+  photoErrorText: {
+    fontSize: 12,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  photoRetryButton: {
+    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#f25842',
+    borderRadius: 6,
+  },
+  photoRetryText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
   },
 })

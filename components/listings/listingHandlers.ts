@@ -42,17 +42,9 @@ export function createListingHandlers(
       }
 
       console.log('📸 Launching image library...')
-      let mediaTypes: any
-      if (ImagePicker.MediaType?.Images) {
-        mediaTypes = ImagePicker.MediaType.Images
-      } else if ((ImagePicker as any).MediaTypeOptions?.Images) {
-        mediaTypes = (ImagePicker as any).MediaTypeOptions.Images
-      } else {
-        mediaTypes = 'images'
-      }
-      
+      // Use the new MediaType enum instead of deprecated MediaTypeOptions
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: mediaTypes,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
         quality: 0.8,
       })
@@ -76,24 +68,108 @@ export function createListingHandlers(
         const uploadedUrls = await uploadMultipleImages(imageUris, 'listings')
         console.log('📸 Uploaded URLs:', uploadedUrls)
         
+        // Validate URLs before adding
+        const validUrls = uploadedUrls.filter(url => {
+          const isValid = url && typeof url === 'string' && url.trim().length > 0 && 
+                         (url.startsWith('http://') || url.startsWith('https://'))
+          if (!isValid) {
+            console.warn('⚠️ Invalid URL returned from upload:', url)
+          }
+          return isValid
+        })
+        
+        if (validUrls.length !== uploadedUrls.length) {
+          console.warn(`⚠️ ${uploadedUrls.length - validUrls.length} invalid URL(s) filtered out`)
+        }
+        
+        if (validUrls.length === 0) {
+          throw new Error('No valid URLs returned from upload service')
+        }
+        
+        // Log the exact URLs being added for debugging
+        console.log('📸 URLs to add to photos:', {
+          validUrls,
+          urlsCount: validUrls.length,
+          urlDetails: validUrls.map((url, idx) => ({
+            index: idx,
+            url,
+            startsWithHttps: url.startsWith('https://'),
+            isR2Url: url.includes('r2.dev'),
+            urlLength: url.length,
+          })),
+        })
+        
         // Update photos using the helper function
         const currentPhotos = photos || []
-        const newPhotos = [...currentPhotos, ...uploadedUrls]
+        const newPhotos = [...currentPhotos, ...validUrls]
         updatePhotos(newPhotos)
-        Alert.alert('Success', `${uploadedUrls.length} photo(s) uploaded successfully`)
+        
+        console.log('✅ Photos updated in form state:', {
+          previousCount: currentPhotos.length,
+          newCount: newPhotos.length,
+          addedUrls: validUrls,
+          allPhotos: newPhotos,
+        })
+        
+        // Verify URLs are accessible before showing success
+        const urlChecks = await Promise.allSettled(
+          validUrls.map(async (url) => {
+            try {
+              const response = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(3000) })
+              return { url, accessible: response.ok, status: response.status }
+            } catch (error) {
+              return { url, accessible: false, error: error instanceof Error ? error.message : String(error) }
+            }
+          })
+        )
+        
+        const accessibleCount = urlChecks.filter(
+          result => result.status === 'fulfilled' && result.value.accessible
+        ).length
+        
+        console.log('🔍 URL accessibility check:', {
+          total: validUrls.length,
+          accessible: accessibleCount,
+          results: urlChecks.map(r => r.status === 'fulfilled' ? r.value : { error: r.reason }),
+        })
+        
+        if (accessibleCount < validUrls.length) {
+          console.warn('⚠️ Some uploaded images may not be immediately accessible')
+        }
+        
+        Alert.alert('Success', `${validUrls.length} photo(s) uploaded successfully`)
       } catch (uploadError: any) {
         console.error('📸 Upload error:', uploadError)
         
         // Fallback: Use local URIs for preview (they won't persist on submit)
+        // Only add blob URLs if they're actually blob URLs (for web) or file:// URIs (for native)
         console.log('⚠️ Using local URIs as fallback for preview')
         const currentPhotos = photos || []
-        const newPhotos = [...currentPhotos, ...imageUris]
+        // Filter out any invalid URLs and only keep blob: or file: URIs for preview
+        const previewUris = imageUris.filter(uri => 
+          uri.startsWith('blob:') || uri.startsWith('file:') || uri.startsWith('content://')
+        )
+        const newPhotos = [...currentPhotos, ...previewUris]
         updatePhotos(newPhotos)
         
-        Alert.alert(
-          'Using Local Preview', 
-          `${imageUris.length} photo(s) added for preview. Note: Photos won't be uploaded until you fix the upload issue.\n\nError: ${uploadError.message}`
-        )
+        console.log('📸 Added preview URIs (will not persist on submit):', {
+          count: previewUris.length,
+          uris: previewUris,
+        })
+        
+        // Check if it's a CORS error and provide helpful message
+        const isCorsError = uploadError.message.includes('CORS')
+        const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'unknown'
+        const errorMessage = isCorsError
+          ? `CORS Error: The web app's API is blocking requests.\n\n` +
+            `Your origin: ${currentOrigin}\n` +
+            `API: https://www.izimate.com/api/upload-image\n\n` +
+            `Fix: Configure CORS on your Next.js API route to allow this origin.\n\n` +
+            `Or set EXPO_PUBLIC_API_URL=http://localhost:3000 if running Next.js locally.`
+          : `Upload failed: ${uploadError.message}\n\n` +
+            `${imageUris.length} photo(s) added for preview only (won't persist on submit).`
+        
+        Alert.alert('Upload Failed', errorMessage)
       } finally {
         setLoading(false)
       }

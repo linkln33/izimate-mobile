@@ -160,30 +160,32 @@ export function useListingForm(isEditMode: boolean) {
       setTags([])
     }
     
-    // Handle photos - normalize URLs when loading from database
+    // Handle photos - normalize URLs to ensure R2 URLs work correctly
     if (listing.photos) {
-      let photoArray: string[] = []
+      let photosArray: string[] = []
+      
       if (Array.isArray(listing.photos)) {
-        photoArray = listing.photos.filter((p: any) => p && typeof p === 'string')
+        photosArray = listing.photos.filter((p: any) => p && typeof p === 'string')
       } else if (typeof listing.photos === 'string') {
         try {
           const parsed = JSON.parse(listing.photos)
           if (Array.isArray(parsed)) {
-            photoArray = parsed.filter((p: any) => p && typeof p === 'string')
+            photosArray = parsed.filter((p: any) => p && typeof p === 'string')
           } else {
-            photoArray = listing.photos ? [listing.photos] : []
+            photosArray = listing.photos ? [listing.photos] : []
           }
         } catch {
-          photoArray = listing.photos ? [listing.photos] : []
+          photosArray = listing.photos ? [listing.photos] : []
         }
       }
-      // Normalize photo URLs to ensure they're valid for React Native Image component
-      const normalizedPhotos = normalizePhotoUrls(photoArray)
-      setPhotos(normalizedPhotos)
-      console.log('📸 Photos normalized:', {
-        original: photoArray,
+      
+      // Normalize photo URLs to ensure R2 URLs and other formats work correctly
+      const normalizedPhotos = normalizePhotoUrls(photosArray)
+      console.log('📸 Normalized photos for edit:', {
+        original: photosArray,
         normalized: normalizedPhotos,
       })
+      setPhotos(normalizedPhotos)
     } else {
       setPhotos([])
     }

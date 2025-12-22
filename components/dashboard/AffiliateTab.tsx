@@ -34,6 +34,7 @@ export function AffiliateTab({ user }: Props) {
   const loadAffiliateData = async () => {
     if (!user?.id) {
       console.log('⚠️ No user ID, cannot load affiliate data')
+      setLoading(false)
       return
     }
 
@@ -48,7 +49,13 @@ export function AffiliateTab({ user }: Props) {
 
       if (affiliateError && affiliateError.code !== 'PGRST116') {
         console.error('❌ Error loading affiliate data:', affiliateError)
-        throw affiliateError
+        // Check if it's a table doesn't exist error
+        if (affiliateError.code === '42P01' || affiliateError.message?.includes('does not exist')) {
+          console.error('❌ Affiliates table does not exist in database')
+          // Don't throw, just show no affiliate state
+        } else {
+          throw affiliateError
+        }
       }
 
       if (affiliateData) {
@@ -69,19 +76,36 @@ export function AffiliateTab({ user }: Props) {
         }
 
         // Load referrals
-        const { data: referralsData } = await supabase
+        const { data: referralsData, error: referralsError } = await supabase
           .from('referrals')
           .select('*')
           .eq('affiliate_id', affiliateData.id)
           .order('created_at', { ascending: false })
           .limit(50)
 
-        if (referralsData) {
+        if (referralsError) {
+          console.error('❌ Error loading referrals:', referralsError)
+          // If referrals table doesn't exist, just set empty array
+          if (referralsError.code === '42P01' || referralsError.message?.includes('does not exist')) {
+            console.warn('⚠️ Referrals table does not exist, using empty array')
+            setReferrals([])
+          }
+        } else if (referralsData) {
           setReferrals(referralsData)
+        } else {
+          setReferrals([])
         }
+      } else {
+        // No affiliate found, ensure referrals is empty
+        setReferrals([])
       }
-    } catch (error) {
-      console.error('Error loading affiliate data:', error)
+    } catch (error: any) {
+      console.error('❌ Error loading affiliate data:', error)
+      // Don't show error to user if it's just that tables don't exist
+      // They'll see the registration screen instead
+      if (error.code !== '42P01' && !error.message?.includes('does not exist')) {
+        Alert.alert('Error', 'Failed to load affiliate data. Please try again.')
+      }
     } finally {
       setLoading(false)
     }
@@ -98,7 +122,12 @@ export function AffiliateTab({ user }: Props) {
   }
 
   const handleRegister = async () => {
-    console.log('🔵 handleRegister called', { userId: user?.id, user })
+    console.log('🔵 handleRegister called', { userId: user?.id, user, registering })
+    
+    if (registering) {
+      console.log('⚠️ Already registering, ignoring duplicate call')
+      return
+    }
     
     if (!user?.id) {
       console.error('❌ No user ID')
@@ -172,27 +201,47 @@ export function AffiliateTab({ user }: Props) {
       // Generate a unique referral code - simplified approach
       // Use user ID as part of code to ensure uniqueness
       let referralCode = generateReferralCode()
-      let isUnique = false
       let attempts = 0
       const maxAttempts = 5
+      let success = false
 
       // Simplified uniqueness check - just try to insert, if it fails due to unique constraint, retry
       // This is more efficient than checking beforehand
-      while (!isUnique && attempts < maxAttempts) {
+      while (!success && attempts < maxAttempts) {
         try {
-          // Try to create the affiliate record using the database function
-          // This bypasses RLS issues by using SECURITY DEFINER
+          // Use direct INSERT instead of RPC (RPC has schema cache issues)
+          // RLS policy allows users to create their own affiliate records
           const userIdToUse = session.user.id
           console.log(`🔄 Attempt ${attempts + 1}: Trying code ${referralCode} for user ${userIdToUse}`)
           
+          // Direct INSERT - RLS policy "Users can create own affiliate record" allows this
           const { data: newAffiliate, error: affiliateError } = await supabase
-            .rpc('create_affiliate', {
-              p_user_id: userIdToUse,
-              p_referral_code: referralCode,
-              p_tier: 'standard'
+            .from('affiliates')
+            .insert({
+              user_id: userIdToUse,
+              referral_code: referralCode,
+              tier: 'standard',
+              total_referrals: 0,
+              active_referrals: 0,
+              total_earnings: 0,
+              pending_earnings: 0,
+              paid_earnings: 0,
+              is_active: true
             })
+            .select()
+            .single()
+          
+          console.log('📊 INSERT Result:', { 
+            hasData: !!newAffiliate, 
+            hasError: !!affiliateError,
+            errorCode: affiliateError?.code,
+            errorMessage: affiliateError?.message?.substring(0, 100)
+          })
 
           if (affiliateError) {
+            console.error('❌ Affiliate creation error:', affiliateError)
+            console.error('Error code:', affiliateError.code)
+            console.error('Error message:', affiliateError.message)
             // Check if it's a unique constraint violation or referral code exists
             if (
               affiliateError.code === '23505' || 
@@ -208,18 +257,31 @@ export function AffiliateTab({ user }: Props) {
               // User already registered
               console.log('ℹ️ User already registered as affiliate')
               Alert.alert('Already Registered', 'You are already registered as an affiliate!')
-              loadAffiliateData()
+              await loadAffiliateData()
               setRegistering(false)
               return
             } else {
-              // Some other error - throw it
-              throw affiliateError
+              // Some other error - show it to user
+              console.error('❌ Unexpected error:', affiliateError)
+              Alert.alert('Error', `Failed to register: ${affiliateError.message || affiliateError.code || 'Unknown error'}`)
+              setRegistering(false)
+              return
             }
           }
 
           // Success! We created the affiliate
-          // The RPC function returns an array, so get the first element
-          const createdAffiliate = Array.isArray(newAffiliate) ? newAffiliate[0] : newAffiliate
+          // Direct INSERT returns the created object
+          console.log('📦 Response:', newAffiliate)
+          const createdAffiliate = newAffiliate
+          
+          if (!createdAffiliate) {
+            console.error('❌ No affiliate data returned')
+            Alert.alert('Error', 'Registration completed but could not retrieve affiliate data. Please refresh.')
+            await loadAffiliateData()
+            setRegistering(false)
+            return
+          }
+          
           console.log('✅ Affiliate created successfully:', createdAffiliate)
           
           // Also update user's referral_code if they don't have one
@@ -233,17 +295,24 @@ export function AffiliateTab({ user }: Props) {
             if (updateError) {
               console.warn('⚠️ Failed to update user referral code:', updateError)
               // Don't fail the whole process if this fails
+            } else {
+              console.log('✅ User referral code updated')
             }
           }
 
           console.log('🎉 Registration complete!')
+          success = true
           Alert.alert('Success', `You are now an affiliate!\n\nYour referral code: ${referralCode}`)
           await loadAffiliateData()
           setRegistering(false)
           return
           
         } catch (error: any) {
-          // If it's not a uniqueness error, throw it
+          console.error('❌ Exception in affiliate creation:', error)
+          console.error('Error type:', typeof error)
+          console.error('Error keys:', Object.keys(error))
+          
+          // If it's not a uniqueness error, show it
           if (error.code !== '23505' && !error.message?.includes('unique') && !error.message?.includes('duplicate')) {
             console.error('❌ Error creating affiliate:', error)
             console.error('Full error details:', JSON.stringify(error, null, 2))
@@ -253,19 +322,36 @@ export function AffiliateTab({ user }: Props) {
           }
           
           // It's a uniqueness error, try again
+          console.log('⚠️ Uniqueness error, retrying with new code')
           referralCode = generateReferralCode()
           attempts++
         }
       }
 
       // If we exhausted all attempts
-      Alert.alert('Error', 'Failed to generate unique referral code after multiple attempts. Please try again.')
-      setRegistering(false)
-      return
+      if (!success) {
+        Alert.alert('Error', 'Failed to generate unique referral code after multiple attempts. Please try again.')
+        setRegistering(false)
+      }
     } catch (error: any) {
       console.error('❌ Error registering affiliate:', error)
       console.error('Error stack:', error.stack)
-      Alert.alert('Error', error.message || 'Failed to register as affiliate. Check console for details.')
+      console.error('Error type:', typeof error)
+      console.error('Error details:', JSON.stringify(error, null, 2))
+      
+      // Provide user-friendly error messages
+      let errorMessage = 'Failed to register as affiliate.'
+      if (error.code === '42883' || (error.message?.includes('function') && error.message?.includes('does not exist'))) {
+        errorMessage = 'The affiliate system is not fully configured. Please contact support.'
+      } else if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        errorMessage = 'Database tables are missing. Please contact support.'
+      } else if (error.message) {
+        errorMessage = error.message
+      } else if (error.toString) {
+        errorMessage = error.toString()
+      }
+      
+      Alert.alert('Error', errorMessage)
     } finally {
       setRegistering(false)
       console.log('🏁 Registration process finished')
@@ -348,16 +434,17 @@ export function AffiliateTab({ user }: Props) {
         }),
       })
 
-      const data = await response.json()
-
-      if (response.ok) {
-        Alert.alert('Success', 'Payout request submitted successfully')
-        loadAffiliateData()
-      } else {
-        Alert.alert('Error', data.error || 'Failed to request payout')
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || `Server error: ${response.status}`)
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to request payout')
+
+      const data = await response.json()
+      Alert.alert('Success', 'Payout request submitted successfully')
+      await loadAffiliateData()
+    } catch (error: any) {
+      console.error('❌ Error requesting payout:', error)
+      Alert.alert('Error', error.message || 'Failed to request payout. Please try again later.')
     } finally {
       setRequestingPayout(false)
     }
@@ -367,6 +454,15 @@ export function AffiliateTab({ user }: Props) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#f25842" />
+        <Text style={styles.loadingText}>Loading affiliate data...</Text>
+      </View>
+    )
+  }
+
+  if (!user) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>Please log in to access the affiliate program</Text>
       </View>
     )
   }
@@ -381,15 +477,39 @@ export function AffiliateTab({ user }: Props) {
             Earn money by referring friends and colleagues. Get £3-5 per signup plus 10-15% recurring commissions!
           </Text>
           <Pressable
-            style={[styles.registerButton, registering && styles.registerButtonDisabled]}
-            onPress={() => {
-              console.log('🔴 BUTTON CLICKED!')
-              handleRegister()
+            style={({ pressed }) => [
+              styles.registerButton, 
+              (registering || pressed) && styles.registerButtonDisabled
+            ]}
+            onPress={async () => {
+              console.log('🔴 BUTTON CLICKED!', { 
+                user: user?.id, 
+                registering,
+                timestamp: new Date().toISOString()
+              })
+              if (registering) {
+                console.log('⚠️ Already processing, ignoring click')
+                return
+              }
+              try {
+                await handleRegister()
+              } catch (error: any) {
+                console.error('❌ Error in button handler:', error)
+                Alert.alert(
+                  'Error', 
+                  error?.message || 'An unexpected error occurred. Please try again.'
+                )
+                setRegistering(false)
+              }
             }}
             disabled={registering}
+            android_ripple={{ color: 'rgba(255, 255, 255, 0.2)' }}
           >
             {registering ? (
-              <ActivityIndicator size="small" color="#ffffff" />
+              <>
+                <ActivityIndicator size="small" color="#ffffff" style={{ marginRight: 8 }} />
+                <Text style={styles.registerButtonText}>Registering...</Text>
+              </>
             ) : (
               <Text style={styles.registerButtonText}>Start Earning Now</Text>
             )}
@@ -763,6 +883,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 52,
+    flexDirection: 'row',
   },
   registerButtonDisabled: {
     backgroundColor: '#d1d5db',
@@ -1084,6 +1208,17 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: '#6b7280',
+    textAlign: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ef4444',
     textAlign: 'center',
     padding: 20,
   },
