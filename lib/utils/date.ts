@@ -115,3 +115,36 @@ export function formatTimeRange(
   if (endTime) return formatTime(endTime)
   return ''
 }
+
+/**
+ * Format a date relative to now
+ * Example: "2 hours ago", "3 days ago", "just now"
+ */
+export function formatRelativeTime(date: string | Date | null | undefined): string {
+  if (!date) return 'recently'
+  
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date
+    if (isNaN(dateObj.getTime())) return 'recently'
+    
+    const now = new Date()
+    const diffMs = now.getTime() - dateObj.getTime()
+    const diffSeconds = Math.floor(diffMs / 1000)
+    const diffMinutes = Math.floor(diffSeconds / 60)
+    const diffHours = Math.floor(diffMinutes / 60)
+    const diffDays = Math.floor(diffHours / 24)
+    const diffWeeks = Math.floor(diffDays / 7)
+    const diffMonths = Math.floor(diffDays / 30)
+    const diffYears = Math.floor(diffDays / 365)
+
+    if (diffSeconds < 60) return 'just now'
+    if (diffMinutes < 60) return `${diffMinutes} ${diffMinutes === 1 ? 'minute' : 'minutes'} ago`
+    if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`
+    if (diffDays < 7) return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`
+    if (diffWeeks < 4) return `${diffWeeks} ${diffWeeks === 1 ? 'week' : 'weeks'} ago`
+    if (diffMonths < 12) return `${diffMonths} ${diffMonths === 1 ? 'month' : 'months'} ago`
+    return `${diffYears} ${diffYears === 1 ? 'year' : 'years'} ago`
+  } catch {
+    return 'recently'
+  }
+}

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Dimensions, Image, Pressable, Linking, Platform, ActivityIndicator } from 'react-native'
+import { useState, useEffect, useRef } from 'react'
+import { View, Text, StyleSheet, Dimensions, Image, Pressable, Linking, Platform, ActivityIndicator, ScrollView } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { Listing, User } from '@/lib/types'
 import { getMainPhoto } from '@/lib/utils/images'
@@ -76,6 +76,8 @@ export function ListingCard({
   const [imageError, setImageError] = useState(false)
   const [internalExpanded, setInternalExpanded] = useState(false)
   const [dimensions, setDimensions] = useState(getDimensions())
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const scrollViewRef = useRef<ScrollView>(null)
   
   // Listen for dimension changes (especially on web when window is resized)
   useEffect(() => {
@@ -114,18 +116,25 @@ export function ListingCard({
   // Ensure we have a rating (use random if missing)
   const displayRating = listing.customerRating ?? (Math.random() * 1.5 + 3.5)
 
-  // Get first valid photo URL using shared utility
+  // Get all valid photo URLs
+  const validPhotos = listing.photos?.filter(photo => 
+    photo && typeof photo === 'string' && photo.trim().length > 0
+  ) || []
+  
+  // Get first valid photo URL using shared utility for fallback
   const mainPhoto = getMainPhoto(listing.photos)
   
   // Debug logging for image URLs
   useEffect(() => {
-    if (mainPhoto) {
-      console.log('🖼️ ListingCard - Main photo URL:', mainPhoto)
+    if (validPhotos.length > 0) {
+      console.log('🖼️ ListingCard - Valid photos count:', validPhotos.length)
+      console.log('🖼️ ListingCard - Valid photos:', validPhotos)
+      console.log('🖼️ ListingCard - Card width:', cardMaxWidth)
       console.log('🖼️ ListingCard - All photos:', listing.photos)
     } else if (listing.photos && listing.photos.length > 0) {
-      console.warn('⚠️ ListingCard - Photos array exists but getMainPhoto returned null:', listing.photos)
+      console.warn('⚠️ ListingCard - Photos array exists but no valid photos found:', listing.photos)
     }
-  }, [mainPhoto, listing.photos])
+  }, [validPhotos.length, listing.photos])
 
   // Get currency: listing currency > user currency > country-based detection > default GBP
   const currencyCode = listing.currency || 
@@ -158,30 +167,108 @@ export function ListingCard({
     ? Math.min(600, dimensions.width - 32) 
     : dimensions.width - 32
 
+  // Navigation functions for image arrows
+  const goToPreviousImage = () => {
+    console.log('🔙 Previous image clicked, current index:', currentImageIndex)
+    if (currentImageIndex > 0 && scrollViewRef.current) {
+      const newIndex = currentImageIndex - 1
+      const scrollX = newIndex * cardMaxWidth
+      console.log('🔙 Scrolling to index:', newIndex, 'scrollX:', scrollX, 'cardWidth:', cardMaxWidth)
+      setCurrentImageIndex(newIndex)
+      scrollViewRef.current.scrollTo({ x: scrollX, animated: true })
+    }
+  }
+
+  const goToNextImage = () => {
+    console.log('▶️ Next image clicked, current index:', currentImageIndex)
+    if (currentImageIndex < validPhotos.length - 1 && scrollViewRef.current) {
+      const newIndex = currentImageIndex + 1
+      const scrollX = newIndex * cardMaxWidth
+      console.log('▶️ Scrolling to index:', newIndex, 'scrollX:', scrollX, 'cardWidth:', cardMaxWidth)
+      setCurrentImageIndex(newIndex)
+      scrollViewRef.current.scrollTo({ x: scrollX, animated: true })
+    }
+  }
+
   return (
     <View style={[styles.listingCard, { maxWidth: cardMaxWidth, width: '100%' }]}>
         {/* Image Section - Fixed at top */}
         <View style={[styles.imageContainer, { height: finalImageHeight }]}>
-          {mainPhoto && !imageError ? (
-            <Image
-              source={{ uri: mainPhoto }}
-              style={styles.listingImage}
-              resizeMode="cover"
-              onError={(error) => {
-                console.error('❌ Image load error for URL:', mainPhoto)
-                console.error('Error details:', error)
-                console.error('Listing photos array:', listing.photos)
-                console.error('Listing ID:', listing.id)
-                console.error('Image source:', { uri: mainPhoto })
-                setImageError(true)
-              }}
-              onLoad={() => {
-                console.log('✅ Image loaded successfully:', mainPhoto)
-              }}
-              onLoadStart={() => {
-                console.log('🔄 Starting to load image:', mainPhoto)
-              }}
-            />
+          {validPhotos.length > 0 && !imageError ? (
+            <>
+              <ScrollView
+                ref={scrollViewRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={(event) => {
+                  const newIndex = Math.round(
+                    event.nativeEvent.contentOffset.x / event.nativeEvent.layoutMeasurement.width
+                  )
+                  setCurrentImageIndex(newIndex)
+                }}
+                style={styles.imageScrollView}
+              >
+                {validPhotos.map((photo, index) => (
+                  <Image
+                    key={index}
+                    source={{ uri: photo }}
+                    style={[styles.listingImage, { width: cardMaxWidth }]}
+                    resizeMode="cover"
+                    onError={(error) => {
+                      console.error(`❌ Image load error for photo ${index}:`, photo)
+                      console.error('Error details:', error)
+                      if (index === 0) {
+                        setImageError(true)
+                      }
+                    }}
+                    onLoad={() => {
+                      console.log(`✅ Image ${index} loaded successfully:`, photo)
+                    }}
+                  />
+                ))}
+              </ScrollView>
+              
+              {/* Navigation Arrows - Only show when multiple images */}
+              {validPhotos.length > 1 && (
+                <>
+                  {/* Left Arrow */}
+                  {currentImageIndex > 0 && (
+                    <Pressable
+                      style={[styles.imageArrow, styles.imageArrowLeft]}
+                      onPress={goToPreviousImage}
+                    >
+                      <Ionicons name="chevron-back" size={24} color="#ffffff" />
+                    </Pressable>
+                  )}
+                  
+                  {/* Right Arrow */}
+                  {currentImageIndex < validPhotos.length - 1 && (
+                    <Pressable
+                      style={[styles.imageArrow, styles.imageArrowRight]}
+                      onPress={goToNextImage}
+                    >
+                      <Ionicons name="chevron-forward" size={24} color="#ffffff" />
+                    </Pressable>
+                  )}
+                </>
+              )}
+              
+              {/* Image indicators */}
+              {validPhotos.length > 1 && (
+                <View style={styles.imageIndicators}>
+                  {validPhotos.map((_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.imageIndicator,
+                        index === currentImageIndex && styles.imageIndicatorActive
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
+            </>
           ) : (
             <View style={styles.placeholderImage}>
               <Ionicons name="image-outline" size={64} color="#9ca3af" />
@@ -215,17 +302,6 @@ export function ListingCard({
             <View style={[styles.distanceBadge, { bottom: 16, top: 'auto' }]}>
               <Ionicons name="location" size={14} color="#ffffff" />
               <Text style={styles.distanceText}>{listing.distance.toFixed(1)} km</Text>
-            </View>
-          )}
-          {listing.photos && 
-           Array.isArray(listing.photos) && 
-           listing.photos.length > 1 && 
-           listing.photos.some(p => p && typeof p === 'string' && p.trim().length > 0) && (
-            <View style={styles.photoCountBadge}>
-              <Ionicons name="images" size={14} color="#ffffff" />
-              <Text style={styles.photoCountText}>
-                {listing.photos.filter(p => p && typeof p === 'string' && p.trim().length > 0).length}
-              </Text>
             </View>
           )}
         </View>
@@ -347,72 +423,208 @@ export function ListingCard({
           {/* Expanded Details */}
           {isExpanded && (
             <View style={styles.expandedDetails}>
-              {/* Date Posted and View Count - Same Line */}
-              <View style={styles.dateViewsRow}>
-                <View style={styles.dateViewsItem}>
-                  <Ionicons name="time-outline" size={14} color="#6b7280" />
-                  <Text style={styles.dateViewsText}>
-                    Posted {formatRelativeTime(listing.created_at)}
-                  </Text>
+              {/* Full Description Section */}
+              <View style={styles.expandedSection}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="document-text-outline" size={18} color="#f25842" />
+                  <Text style={styles.sectionTitle}>Full Description</Text>
                 </View>
-                {listing.view_count > 0 && (
-                  <View style={styles.dateViewsItem}>
-                    <Ionicons name="eye-outline" size={14} color="#6b7280" />
-                    <Text style={styles.dateViewsText}>{listing.view_count} views</Text>
-                  </View>
-                )}
+                <Text style={styles.fullDescription}>
+                  {listing.description || 'No detailed description provided.'}
+                </Text>
               </View>
 
-              {/* Other Stats */}
-              {(listing.swipe_count > 0 || listing.match_count > 0) && (
-                <View style={styles.statsRow}>
-                  {listing.swipe_count > 0 && (
-                    <View style={styles.statItem}>
-                      <Ionicons name="heart-outline" size={14} color="#6b7280" />
-                      <Text style={styles.statText}>{listing.swipe_count} likes</Text>
+              {/* Schedule & Timing Section */}
+              <View style={styles.expandedSection}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="calendar-outline" size={18} color="#f25842" />
+                  <Text style={styles.sectionTitle}>Schedule & Timing</Text>
+                </View>
+                
+                <View style={styles.scheduleGrid}>
+                  {/* Preferred Date */}
+                  {listing.preferred_date && (
+                    <View style={styles.scheduleItem}>
+                      <Text style={styles.scheduleLabel}>Preferred Date</Text>
+                      <Text style={styles.scheduleValue}>
+                        {listing.preferred_date ? formatDate(listing.preferred_date) : 'Not specified'}
+                      </Text>
                     </View>
                   )}
-                  {listing.match_count > 0 && (
-                    <View style={styles.statItem}>
-                      <Ionicons name="checkmark-circle-outline" size={14} color="#6b7280" />
-                      <Text style={styles.statText}>{listing.match_count} matches</Text>
+                  
+                  {/* Urgency */}
+                  <View style={styles.scheduleItem}>
+                    <Text style={styles.scheduleLabel}>Timeline</Text>
+                    <View style={styles.urgencyContainer}>
+                      <Ionicons 
+                        name={listing.urgency === 'asap' ? 'flash' : listing.urgency === 'this_week' ? 'time' : 'calendar'} 
+                        size={14} 
+                        color={listing.urgency === 'asap' ? '#ef4444' : '#f25842'} 
+                      />
+                      <Text style={[styles.scheduleValue, listing.urgency === 'asap' && styles.urgentText]}>
+                        {urgencyText}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  {/* Posted Date */}
+                  <View style={styles.scheduleItem}>
+                    <Text style={styles.scheduleLabel}>Posted</Text>
+                    <Text style={styles.scheduleValue}>
+                      {listing.created_at ? formatRelativeTime(listing.created_at) : 'Recently'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Budget Breakdown Section */}
+              <View style={styles.expandedSection}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="wallet-outline" size={18} color="#f25842" />
+                  <Text style={styles.sectionTitle}>Budget Details</Text>
+                </View>
+                
+                <View style={styles.budgetBreakdown}>
+                  <View style={styles.budgetItem}>
+                    <Text style={styles.budgetLabel}>Budget Range</Text>
+                    <Text style={styles.budgetValue}>{budgetText}</Text>
+                  </View>
+                  {listing.budget_type && (
+                    <View style={styles.budgetItem}>
+                      <Text style={styles.budgetLabel}>Payment Type</Text>
+                      <Text style={styles.budgetValue}>
+                        {listing.budget_type === 'fixed' ? 'Fixed Price' : 
+                         listing.budget_type === 'hourly' ? 'Per Hour' : 
+                         listing.budget_type === 'daily' ? 'Per Day' : 'Negotiable'}
+                      </Text>
                     </View>
                   )}
                 </View>
-              )}
+              </View>
 
-              {/* Preferred Date */}
-              {listing.preferred_date && (
-                <View style={styles.detailRow}>
-                  <Ionicons name="calendar-outline" size={16} color="#6b7280" />
-                  <Text style={styles.detailText}>
-                    Preferred: {formatDate(listing.preferred_date)}
-                  </Text>
+              {/* Activity & Stats Section */}
+              <View style={styles.expandedSection}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="analytics-outline" size={18} color="#f25842" />
+                  <Text style={styles.sectionTitle}>Activity</Text>
+                </View>
+                
+                <View style={styles.statsGrid}>
+                  {(listing.view_count || 0) > 0 && (
+                    <View style={styles.statCard}>
+                      <Ionicons name="eye-outline" size={16} color="#6b7280" />
+                      <Text style={styles.statNumber}>{listing.view_count || 0}</Text>
+                      <Text style={styles.statLabel}>Views</Text>
+                    </View>
+                  )}
+                  
+                  {(listing.swipe_count || 0) > 0 && (
+                    <View style={styles.statCard}>
+                      <Ionicons name="heart-outline" size={16} color="#10b981" />
+                      <Text style={styles.statNumber}>{listing.swipe_count || 0}</Text>
+                      <Text style={styles.statLabel}>Likes</Text>
+                    </View>
+                  )}
+                  
+                  {(listing.match_count || 0) > 0 && (
+                    <View style={styles.statCard}>
+                      <Ionicons name="checkmark-circle-outline" size={16} color="#f25842" />
+                      <Text style={styles.statNumber}>{listing.match_count || 0}</Text>
+                      <Text style={styles.statLabel}>Matches</Text>
+                    </View>
+                  )}
+                  
+                  {/* Always show status */}
+                  <View style={styles.statCard}>
+                    <Ionicons 
+                      name={listing.status === 'active' ? 'checkmark-circle' : 'pause-circle'} 
+                      size={16} 
+                      color={listing.status === 'active' ? '#10b981' : '#f59e0b'} 
+                    />
+                    <Text style={styles.statNumber}>•</Text>
+                    <Text style={styles.statLabel}>
+                      {listing.status === 'active' ? 'Active' : 
+                       listing.status === 'paused' ? 'Paused' : 
+                       listing.status === 'completed' ? 'Done' : 'Draft'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Contact & Location Details */}
+              {(listing.location_lat && listing.location_lng) && (
+                <View style={styles.expandedSection}>
+                  <View style={styles.sectionHeader}>
+                    <Ionicons name="location-outline" size={18} color="#f25842" />
+                    <Text style={styles.sectionTitle}>Location Details</Text>
+                  </View>
+                  
+                  <View style={styles.locationDetails}>
+                    <Text style={styles.locationDetailText}>
+                      {listing.location_address || 'Location provided'}
+                    </Text>
+                    <View style={styles.mapButtonsContainer}>
+                      <Pressable
+                        style={styles.mapButton}
+                        onPress={async () => {
+                          const mapsUrl = Platform.OS === 'ios' 
+                            ? `http://maps.apple.com/?q=${listing.location_lat},${listing.location_lng}`
+                            : `https://www.google.com/maps/search/?api=1&query=${listing.location_lat},${listing.location_lng}`
+                          try {
+                            await Linking.openURL(mapsUrl)
+                          } catch (error) {
+                            console.error('Failed to open Maps:', error)
+                          }
+                        }}
+                      >
+                        <Ionicons name="map-outline" size={16} color="#ffffff" />
+                        <Text style={styles.mapButtonText}>Open in Maps</Text>
+                      </Pressable>
+                      
+                      <Pressable
+                        style={styles.wazeButton}
+                        onPress={async () => {
+                          const wazeUrl = `https://waze.com/ul?ll=${listing.location_lat},${listing.location_lng}&navigate=yes&utm_source=izimate-job`
+                          try {
+                            await Linking.openURL(wazeUrl)
+                          } catch (error) {
+                            console.error('Failed to open Waze:', error)
+                          }
+                        }}
+                      >
+                        <Ionicons name="navigate-outline" size={16} color="#ffffff" />
+                        <Text style={styles.wazeButtonText}>Open in Waze</Text>
+                      </Pressable>
+                    </View>
+                  </View>
                 </View>
               )}
             </View>
           )}
           
-          {/* Expand/Collapse Button - only show if not showing any action buttons */}
-          {!showActions && !showLikeButtons && !isOwnListing && (
-            <Pressable
-              style={({ pressed }) => [
-                styles.expandButton,
-                pressed && styles.expandButtonPressed,
-              ]}
-              onPress={handleToggleExpand}
-              android_ripple={{ color: 'rgba(242, 88, 66, 0.1)' }}
-            >
-              <Text style={styles.expandButtonText}>
-                {isExpanded ? 'Show Less' : 'See More'}
-              </Text>
-              <Ionicons 
-                name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-                size={12} 
-                color="#f25842" 
-              />
-            </Pressable>
-          )}
+          {/* Expand/Collapse Button - Always show for better UX */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.expandButton,
+              pressed && styles.expandButtonPressed,
+            ]}
+            onPress={handleToggleExpand}
+            android_ripple={{ color: 'rgba(242, 88, 66, 0.1)' }}
+          >
+            <Ionicons 
+              name={isExpanded ? 'chevron-up' : 'chevron-down'} 
+              size={16} 
+              color="#f25842" 
+            />
+            <Text style={styles.expandButtonText}>
+              {isExpanded ? 'Show Less Details' : 'View More Details'}
+            </Text>
+            <Ionicons 
+              name={isExpanded ? 'chevron-up' : 'chevron-down'} 
+              size={16} 
+              color="#f25842" 
+            />
+          </Pressable>
 
           {/* Edit/Delete Action Buttons - for offer page (user's own listings) */}
           {showActions && onEdit && onDelete && (
@@ -483,10 +695,56 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     width: '100%',
   },
-  listingImage: {
+  imageScrollView: {
     width: '100%',
     height: '100%',
+  },
+  listingImage: {
+    height: '100%',
     backgroundColor: '#e5e7eb',
+  },
+  imageIndicators: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  imageIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  imageIndicatorActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  imageArrow: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  imageArrowLeft: {
+    left: 12,
+  },
+  imageArrowRight: {
+    right: 12,
+  },
+  imageArrowDisabled: {
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   placeholderImage: {
     width: '100%',
@@ -513,23 +771,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   distanceText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  photoCountBadge: {
-    position: 'absolute',
-    top: 60,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  photoCountText: {
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '600',
@@ -691,25 +932,27 @@ const styles = StyleSheet.create({
   expandButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(242, 88, 66, 0.15)',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(242, 88, 66, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(242, 88, 66, 0.4)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    borderColor: 'rgba(242, 88, 66, 0.3)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginTop: 12,
+    marginTop: 16,
     marginBottom: 8,
+    width: '100%',
   },
   expandButtonPressed: {
     opacity: 0.8,
+    backgroundColor: 'rgba(242, 88, 66, 0.2)',
   },
   expandButtonText: {
-    fontSize: 11,
+    fontSize: 14,
     color: '#f25842',
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   actionButtonsContainer: {
     flexDirection: 'row',
@@ -812,51 +1055,155 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   expandedDetails: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: 16,
+    paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
+    gap: 20,
   },
-  dateViewsRow: {
+  expandedSection: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  fullDescription: {
+    fontSize: 15,
+    color: '#4b5563',
+    lineHeight: 22,
+  },
+  scheduleGrid: {
+    gap: 12,
+  },
+  scheduleItem: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
-    gap: 16,
-  },
-  dateViewsItem: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    flex: 1,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
   },
-  dateViewsText: {
-    fontSize: 13,
+  scheduleLabel: {
+    fontSize: 14,
     color: '#6b7280',
+    fontWeight: '500',
   },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 12,
+  scheduleValue: {
+    fontSize: 14,
+    color: '#1a1a1a',
+    fontWeight: '600',
   },
-  statItem: {
+  urgencyContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  statText: {
+  urgentText: {
+    color: '#ef4444',
+  },
+  budgetBreakdown: {
+    gap: 12,
+  },
+  budgetItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  budgetLabel: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  budgetValue: {
+    fontSize: 14,
+    color: '#1a1a1a',
+    fontWeight: '600',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    gap: 4,
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  statLabel: {
     fontSize: 12,
     color: '#6b7280',
+    textAlign: 'center',
   },
-  detailRow: {
+  locationDetails: {
+    gap: 12,
+  },
+  locationDetailText: {
+    fontSize: 14,
+    color: '#4b5563',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  mapButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  mapButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    marginBottom: 8,
+    backgroundColor: '#f25842',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
-  detailText: {
-    fontSize: 13,
-    color: '#6b7280',
+  mapButtonText: {
+    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+  wazeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  wazeButtonText: {
+    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '600',
   },
   categoryBadge: {
     position: 'absolute',

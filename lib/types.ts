@@ -183,7 +183,7 @@ export interface Affiliate {
   total_earnings: number
   pending_earnings: number
   paid_earnings: number
-  payout_method?: 'account_credit' | 'bank_transfer' | 'paypal'
+  payout_method?: 'bank_transfer' | 'revolut' | 'paypal'
   payout_details?: Record<string, any>
   is_active: boolean
   created_at: string

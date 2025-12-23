@@ -23,11 +23,6 @@ export default function OfferScreen() {
   const [quota, setQuota] = useState<any>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
-  const [stats, setStats] = useState({
-    totalViews: 0,
-    totalFavorites: 0,
-    totalMatches: 0,
-  })
 
   // Ensure tab bar is visible when this screen is focused
   useEffect(() => {
@@ -159,13 +154,6 @@ export default function OfferScreen() {
       )
 
       setListings(enriched)
-
-      // Calculate stats
-      const totalViews = enriched.reduce((sum, l) => sum + (l.view_count || 0), 0)
-      const totalFavorites = enriched.reduce((sum, l) => sum + (l.favoritesCount || 0), 0)
-      const totalMatches = enriched.reduce((sum, l) => sum + (l.match_count || 0), 0)
-
-      setStats({ totalViews, totalFavorites, totalMatches })
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -321,21 +309,6 @@ export default function OfferScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Stats */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.totalViews}</Text>
-          <Text style={styles.statLabel}>Total Views</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.totalFavorites}</Text>
-          <Text style={styles.statLabel}>Favorites</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.totalMatches}</Text>
-          <Text style={styles.statLabel}>Matches</Text>
-        </View>
-      </View>
 
       {/* Quota Info */}
       {quota && (
@@ -449,6 +422,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f9fafb',
     paddingBottom: 0, // Tab bar will handle bottom spacing
+    paddingTop: 60, // Add top padding for status bar
   },
   centerContainer: {
     flex: 1,
@@ -460,29 +434,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#6b7280',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    padding: 20,
-    paddingTop: 60,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    gap: 20,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
   },
   quotaContainer: {
     backgroundColor: '#fef3c7',

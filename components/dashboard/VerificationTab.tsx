@@ -39,29 +39,49 @@ export function VerificationTab({ user }: Props) {
   const handleIdentityVerification = async () => {
     if (!user?.id) return
 
-    const API_URL = process.env.EXPO_PUBLIC_SITE_URL || 'https://izimate.com'
-    
     try {
-      const response = await fetch(`${API_URL}/api/verification/identity/create`, {
+      // Create Didit verification session directly
+      const response = await fetch('https://api.didit.me/v1/sessions', {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer AsiGVVkU_5tKEwQdR2OkTVjh6Gp3eTicnF6dSW-qQmQ`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: user.id,
-          documentType: 'passport',
-          documentCountry: 'GB',
+          workflow_id: '694ea16c-7c1c-41dc-acdc-a191ac4cf67c',
+          user_reference: user.id,
+          redirect_url: `https://izimate.com/verification/callback`,
+          webhook_url: `https://izimate.com/api/verification/webhook`,
+          settings: {
+            language: 'en',
+            theme: {
+              primary_color: '#f25842',
+            }
+          }
         }),
       })
 
       const data = await response.json()
 
       if (response.ok && data.verification_url) {
-        Linking.openURL(data.verification_url)
+        // Store session info in database
+        await supabase
+          .from('verification_sessions')
+          .insert({
+            user_id: user.id,
+            session_id: data.session_id,
+            type: 'identity',
+            status: 'pending',
+            verification_url: data.verification_url
+          })
+
+        // Open Didit verification flow
+        await Linking.openURL(data.verification_url)
       } else {
         Alert.alert('Error', data.error || 'Failed to start verification')
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Didit verification error:', error)
       Alert.alert('Error', 'Failed to start verification')
     }
   }
@@ -229,10 +249,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
     elevation: 3,
   },
   verificationHeader: {

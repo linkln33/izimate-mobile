@@ -18,12 +18,13 @@ export function AffiliateTab({ user }: Props) {
   const [registering, setRegistering] = useState(false)
   const [showPayoutModal, setShowPayoutModal] = useState(false)
   const [showEarningsHistory, setShowEarningsHistory] = useState(false)
-  const [payoutMethod, setPayoutMethod] = useState<'account_credit' | 'bank_transfer' | 'paypal'>('account_credit')
+  const [payoutMethod, setPayoutMethod] = useState<'bank_transfer' | 'revolut' | 'paypal'>('bank_transfer')
   const [payoutDetails, setPayoutDetails] = useState({
     paypal_email: '',
     bank_account: '',
     bank_sort_code: '',
     bank_name: '',
+    revolut_phone: '',
   })
   const [requestingPayout, setRequestingPayout] = useState(false)
 
@@ -72,6 +73,7 @@ export function AffiliateTab({ user }: Props) {
             bank_account: affiliateData.payout_details.bank_account || '',
             bank_sort_code: affiliateData.payout_details.bank_sort_code || '',
             bank_name: affiliateData.payout_details.bank_name || '',
+            revolut_phone: affiliateData.payout_details.revolut_phone || '',
           })
         }
 
@@ -474,7 +476,7 @@ export function AffiliateTab({ user }: Props) {
           <Ionicons name="people" size={64} color="#f25842" />
           <Text style={styles.welcomeTitle}>Join the Affiliate Program</Text>
           <Text style={styles.welcomeText}>
-            Earn money by referring friends and colleagues. Get £3-5 per signup plus 10-15% recurring commissions!
+            Earn £3 per signup + 10% recurring! Refer friends and colleagues to start earning.
           </Text>
           <Pressable
             style={({ pressed }) => [
@@ -579,22 +581,29 @@ export function AffiliateTab({ user }: Props) {
       {/* Referral Code */}
       <View style={styles.referralCard}>
         <Text style={styles.referralTitle}>Your Referral Code</Text>
-        <View style={styles.referralCodeContainer}>
-          <Text style={styles.referralCode}>{affiliate.referral_code}</Text>
-          <Pressable style={styles.copyButton} onPress={handleCopyCode}>
-            <Ionicons name="copy-outline" size={20} color="#f25842" />
+        
+        {/* Code Display with Copy Button */}
+        <View style={styles.codeDisplayContainer}>
+          <View style={styles.codeBox}>
+            <Text style={styles.referralCode}>{affiliate.referral_code}</Text>
+          </View>
+          <Pressable style={styles.copyCodeButton} onPress={handleCopyCode}>
+            <Ionicons name="copy-outline" size={18} color="#ffffff" />
           </Pressable>
         </View>
+
+        {/* Action Buttons */}
         <View style={styles.referralActions}>
           <Pressable style={styles.copyUrlButton} onPress={handleCopyUrl}>
             <Ionicons name="copy-outline" size={16} color="#6b7280" />
             <Text style={styles.copyUrlText}>Copy URL</Text>
           </Pressable>
           <Pressable style={styles.shareButton} onPress={handleShare}>
-            <Ionicons name="share-social" size={20} color="#ffffff" />
+            <Ionicons name="share-social" size={18} color="#ffffff" />
             <Text style={styles.shareButtonText}>Share</Text>
           </Pressable>
         </View>
+        
         <Text style={styles.referralUrl}>
           https://izimate.com/auth/signup?ref={affiliate.referral_code}
         </Text>
@@ -602,12 +611,11 @@ export function AffiliateTab({ user }: Props) {
 
       {/* Tier */}
       <View style={styles.tierCard}>
-        <Text style={styles.tierTitle}>Your Tier: {affiliate.tier.charAt(0).toUpperCase() + affiliate.tier.slice(1)}</Text>
+        <Text style={styles.tierTitle}>Affiliate Program</Text>
         <Text style={styles.tierDescription}>
-          {affiliate.tier === 'standard' && 'Earn £3-5 per signup + 10% recurring'}
-          {affiliate.tier === 'premium' && 'Earn £4-7 per signup + 12% recurring (10+ referrals/month)'}
-          {affiliate.tier === 'elite' && 'Earn £5-10 per signup + 15% recurring (25+ referrals/month)'}
+          Earn £3 per signup + 10% recurring commissions from all your referrals
         </Text>
+        <Text style={styles.proUserNote}>*Available to Pro Users</Text>
       </View>
 
       {/* Payout Management */}
@@ -619,9 +627,13 @@ export function AffiliateTab({ user }: Props) {
           </Pressable>
         </View>
         <View style={styles.payoutInfo}>
-          <Text style={styles.payoutMethod}>
-            Method: {affiliate.payout_method ? affiliate.payout_method.replace('_', ' ').toUpperCase() : 'Not set'}
-          </Text>
+        <Text style={styles.payoutMethod}>
+          Method: {affiliate.payout_method ? 
+            (affiliate.payout_method === 'bank_transfer' ? 'Bank' : 
+             affiliate.payout_method === 'revolut' ? 'Revolut' : 
+             affiliate.payout_method === 'paypal' ? 'PayPal' : 
+             affiliate.payout_method.replace('_', ' ')) : 'Not set'}
+        </Text>
           {affiliate.pending_earnings > 0 && (
             <Pressable
               style={[styles.requestPayoutButton, requestingPayout && styles.requestPayoutButtonDisabled]}
@@ -767,7 +779,7 @@ export function AffiliateTab({ user }: Props) {
             <ScrollView style={styles.modalBody}>
               <Text style={styles.modalLabel}>Payout Method</Text>
               <View style={styles.payoutMethodOptions}>
-                {(['account_credit', 'bank_transfer', 'paypal'] as const).map((method) => (
+                {(['bank_transfer', 'revolut', 'paypal'] as const).map((method) => (
                   <Pressable
                     key={method}
                     style={[
@@ -780,7 +792,9 @@ export function AffiliateTab({ user }: Props) {
                       styles.payoutMethodOptionText,
                       payoutMethod === method && styles.payoutMethodOptionTextActive,
                     ]}>
-                      {method.replace('_', ' ').toUpperCase()}
+                      {method === 'bank_transfer' ? 'BANK' : 
+                       method === 'revolut' ? 'REVOLUT' : 
+                       method === 'paypal' ? 'PAYPAL' : method.toUpperCase()}
                     </Text>
                   </Pressable>
                 ))}
@@ -796,6 +810,19 @@ export function AffiliateTab({ user }: Props) {
                     placeholder="your@email.com"
                     keyboardType="email-address"
                     autoCapitalize="none"
+                  />
+                </View>
+              )}
+
+              {payoutMethod === 'revolut' && (
+                <View style={styles.modalInputGroup}>
+                  <Text style={styles.modalLabel}>Revolut Phone Number</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    value={payoutDetails.revolut_phone}
+                    onChangeText={(text) => setPayoutDetails({ ...payoutDetails, revolut_phone: text })}
+                    placeholder="+44 7XXX XXXXXX"
+                    keyboardType="phone-pad"
                   />
                 </View>
               )}
@@ -931,28 +958,35 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  codeExplanation: {
+    fontSize: 12,
+    color: '#6b7280',
     marginBottom: 12,
+    lineHeight: 16,
   },
   referralCode: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#f25842',
-    letterSpacing: 4,
-    marginBottom: 16,
+    letterSpacing: 1,
+    textAlign: 'center',
   },
   shareButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#f25842',
-    paddingHorizontal: 24,
     paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 8,
-    gap: 8,
-    marginBottom: 16,
+    gap: 6,
   },
   shareButtonText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   referralUrl: {
@@ -975,6 +1009,13 @@ const styles = StyleSheet.create({
   tierDescription: {
     fontSize: 14,
     color: '#6b7280',
+    marginBottom: 8,
+  },
+  proUserNote: {
+    fontSize: 12,
+    color: '#f25842',
+    fontStyle: 'italic',
+    fontWeight: '500',
   },
   referralsSection: {
     marginTop: 8,
@@ -1029,20 +1070,39 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#10b981',
   },
-  referralCodeContainer: {
+  codeDisplayContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
     marginBottom: 16,
+    gap: 8,
+  },
+  codeBox: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  copyCodeButton: {
+    backgroundColor: '#f25842',
+    borderRadius: 8,
+    padding: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 44,
+    minHeight: 44,
   },
   copyButton: {
     padding: 8,
+    marginLeft: 8,
   },
   referralActions: {
     flexDirection: 'row',
     gap: 12,
     width: '100%',
     marginBottom: 16,
+    marginTop: 8,
   },
   copyUrlButton: {
     flex: 1,

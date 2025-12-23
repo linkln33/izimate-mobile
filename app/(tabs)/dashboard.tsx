@@ -4,15 +4,12 @@ import { useRouter, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase'
 import { getUnreadNotificationCount } from '@/lib/utils/notifications'
-import { ListingsTab } from '@/components/dashboard/ListingsTab'
-import { LikedTab } from '@/components/dashboard/LikedTab'
-import { ApprovalsTab } from '@/components/dashboard/ApprovalsTab'
 import { BillingTab } from '@/components/dashboard/BillingTab'
 import { AffiliateTab } from '@/components/dashboard/AffiliateTab'
 import { VerificationTab } from '@/components/dashboard/VerificationTab'
-import { SettingsTab } from '@/components/dashboard/SettingsTab'
-import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection'
+import { CalendarWidget } from '@/components/dashboard/CalendarWidget'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 import type { Listing, Match, User } from '@/lib/types'
 
 interface DashboardStats {
@@ -180,6 +177,7 @@ export default function DashboardScreen() {
           <Text style={styles.userName}>{user?.name || 'User'}</Text>
         </View>
         <View style={styles.headerActions}>
+          <NotificationBell />
           <Pressable onPress={() => router.push('/(tabs)/profile')}>
             <Ionicons name="settings-outline" size={24} color="#6b7280" />
           </Pressable>
@@ -193,7 +191,7 @@ export default function DashboardScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={true}
       >
-        {/* Overview Section - Always expanded by default */}
+        {/* Overview Section - Combined listings, messages, liked, and approvals */}
         <CollapsibleSection
           title="Overview"
           icon="home"
@@ -204,60 +202,10 @@ export default function DashboardScreen() {
             listings={listings}
             matches={matches}
             stats={stats}
-            onNavigate={() => {}}
+            router={router}
           />
         </CollapsibleSection>
 
-        {/* Listings Section */}
-        <CollapsibleSection
-          title="My Listings"
-          icon="briefcase"
-          badge={stats.pendingLikes}
-        >
-          <ListingsTab
-            listings={listings}
-            onRefresh={loadDashboardData}
-            onNavigate={() => {}}
-          />
-        </CollapsibleSection>
-
-        {/* Messages Section */}
-        <CollapsibleSection
-          title="Messages"
-          icon="chatbubbles"
-          badge={stats.unreadMessages}
-        >
-          <MessagesTab
-            matches={matches}
-            onNavigate={(matchId: string) => router.push(`/chat/${matchId}`)}
-          />
-        </CollapsibleSection>
-
-        {/* Approvals Section */}
-        <CollapsibleSection
-          title="Pending Approvals"
-          icon="checkmark-circle"
-          badge={stats.pendingApprovals}
-        >
-          <ApprovalsTab />
-        </CollapsibleSection>
-
-        {/* Liked Listings Section */}
-        <CollapsibleSection
-          title="Liked Listings"
-          icon="heart"
-        >
-          <LikedTab />
-        </CollapsibleSection>
-
-        {/* Notifications Section */}
-        <CollapsibleSection
-          title="Notifications"
-          icon="notifications"
-          badge={stats.unreadNotifications}
-        >
-          <NotificationCenter />
-        </CollapsibleSection>
 
         {/* Billing Section */}
         <CollapsibleSection
@@ -283,13 +231,6 @@ export default function DashboardScreen() {
           <VerificationTab user={user} />
         </CollapsibleSection>
 
-        {/* Settings Section */}
-        <CollapsibleSection
-          title="Settings"
-          icon="settings"
-        >
-          <SettingsTab user={user} onUserUpdate={setUser} />
-        </CollapsibleSection>
 
         {/* Logout Button */}
         <View style={styles.logoutContainer}>
@@ -304,51 +245,108 @@ export default function DashboardScreen() {
 }
 
 // Overview Tab Component
-function OverviewTab({ user, listings, matches, stats, onNavigate }: any) {
+function OverviewTab({ user, listings, matches, stats, router }: any) {
+  // Calculate active listings (assuming max 5 listings per user)
+  const activeListings = listings?.filter((listing: any) => listing.status === 'active').length || 0
+  const maxListings = 5
+  
+  // Calculate positive rating percentage (convert 4.5/5 to percentage)
+  const overallRating = user?.rating || 4.5
+  const positivePercentage = Math.round((overallRating / 5) * 100)
+
+  // Mock events data - replace with actual events from database
+  const mockEvents = [
+    {
+      id: '1',
+      title: 'Client Meeting - Website Project',
+      date: new Date(2024, 11, 28), // December 28, 2024
+      time: '2:00 PM',
+      type: 'meeting' as const,
+    },
+    {
+      id: '2',
+      title: 'Job Interview - Marketing Role',
+      date: new Date(2024, 11, 30), // December 30, 2024
+      time: '10:00 AM',
+      type: 'interview' as const,
+    },
+    {
+      id: '3',
+      title: 'Project Deadline - Logo Design',
+      date: new Date(2025, 0, 2), // January 2, 2025
+      time: '5:00 PM',
+      type: 'deadline' as const,
+    },
+    {
+      id: '4',
+      title: 'Follow-up Call',
+      date: new Date(2025, 0, 5), // January 5, 2025
+      time: '11:30 AM',
+      type: 'other' as const,
+    },
+  ]
+
+  const handleNavigateToListings = () => {
+    router.push('/(tabs)/offer')
+  }
+
+  const handleNavigateToRating = () => {
+    // Navigate to rating/reviews page when implemented
+    router.push('/(tabs)/profile')
+  }
+
+  const handleNavigateToMessages = () => {
+    router.push('/(tabs)/messages')
+  }
+
+  const handleNavigateToLiked = () => {
+    router.push('/(tabs)/swipe')
+  }
+
   return (
     <View>
+      {/* Stats Grid */}
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.totalListings}</Text>
-          <Text style={styles.statLabel}>Listings</Text>
+          <Text style={styles.statValue}>{activeListings}/{maxListings}</Text>
+          <Pressable onPress={handleNavigateToListings}>
+            <Text style={styles.statLabelLink}>Active Listings</Text>
+          </Pressable>
         </View>
+        
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.activeMatches}</Text>
-          <Text style={styles.statLabel}>Matches</Text>
+          <View style={styles.ratingContainer}>
+            <Text style={styles.statValue}>{positivePercentage}%</Text>
+            <Ionicons name="star" size={20} color="#fbbf24" style={styles.starIcon} />
+          </View>
+          <Pressable onPress={handleNavigateToRating}>
+            <Text style={styles.statLabelLink}>Positive</Text>
+          </Pressable>
         </View>
+        
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{stats.unreadMessages}</Text>
-          <Text style={styles.statLabel}>Messages</Text>
+          <Pressable onPress={handleNavigateToMessages}>
+            <Text style={styles.statLabelLink}>Messages</Text>
+          </Pressable>
         </View>
+        
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.pendingLikes + stats.pendingApprovals}</Text>
-          <Text style={styles.statLabel}>Pending</Text>
+          <Text style={styles.statValue}>{stats.pendingLikes}</Text>
+          <Pressable onPress={handleNavigateToLiked}>
+            <Text style={styles.statLabelLink}>Liked</Text>
+          </Pressable>
         </View>
+      </View>
+
+      {/* Calendar Widget */}
+      <View style={styles.calendarSection}>
+        <CalendarWidget events={mockEvents} />
       </View>
     </View>
   )
 }
 
-// MessagesTab - simple component for dashboard messages list
-function MessagesTab({ matches, onNavigate }: { matches: Match[]; onNavigate: (matchId: string) => void }) {
-  return (
-    <View>
-      {matches.length === 0 ? (
-        <Text style={styles.emptyText}>No messages yet</Text>
-      ) : (
-        matches.map((match: Match) => (
-          <Pressable
-            key={match.id}
-            style={styles.matchCard}
-            onPress={() => onNavigate(match.id)}
-          >
-            <Text style={styles.matchTitle}>Match #{match.id.slice(0, 8)}</Text>
-          </Pressable>
-        ))
-      )}
-    </View>
-  )
-}
 
 
 const styles = StyleSheet.create({
@@ -446,6 +444,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     marginTop: 4,
+  },
+  statLabelLink: {
+    fontSize: 14,
+    color: '#f25842',
+    marginTop: 4,
+    textDecorationLine: 'underline',
+    fontWeight: '500',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  starIcon: {
+    marginLeft: 4,
+  },
+  calendarSection: {
+    marginTop: 20,
   },
   actionButton: {
     backgroundColor: '#f25842',

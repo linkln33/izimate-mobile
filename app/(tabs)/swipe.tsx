@@ -8,6 +8,7 @@ import { recordSwipe, getSuperLikeQuota } from '@/lib/utils/matching'
 import { getCurrentLocation, calculateDistance } from '@/lib/utils/location'
 import type { Listing, User, SuperLikeQuota } from '@/lib/types'
 import { ListingCard } from '@/components/listings/ListingCard'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { normalizePhotoUrls } from '@/lib/utils/images'
 
 interface EnrichedListing extends Listing {
@@ -364,6 +365,9 @@ export default function FindScreen() {
             </Pressable>
           )}
         </View>
+
+        {/* Notification Bell */}
+        <NotificationBell />
 
         {/* Swipe View Button */}
         <Pressable
