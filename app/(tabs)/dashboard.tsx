@@ -7,6 +7,7 @@ import { getUnreadNotificationCount } from '@/lib/utils/notifications'
 import { BillingTab } from '@/components/dashboard/BillingTab'
 import { AffiliateTab } from '@/components/dashboard/AffiliateTab'
 import { VerificationTab } from '@/components/dashboard/VerificationTab'
+import { BookingManagementTab } from '@/components/dashboard/BookingManagementTab'
 import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection'
 import { CalendarWidget } from '@/components/dashboard/CalendarWidget'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
@@ -231,6 +232,13 @@ export default function DashboardScreen() {
           <VerificationTab user={user} />
         </CollapsibleSection>
 
+        {/* Booking Management Section */}
+        <CollapsibleSection
+          title="Booking Management"
+          icon="calendar"
+        >
+          <BookingManagementTab />
+        </CollapsibleSection>
 
         {/* Logout Button */}
         <View style={styles.logoutContainer}>

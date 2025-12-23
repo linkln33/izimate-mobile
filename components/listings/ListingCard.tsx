@@ -6,6 +6,7 @@ import { getMainPhoto } from '@/lib/utils/images'
 import { formatBudget, getCurrencyFromUser } from '@/lib/utils/price'
 import { formatDate, formatRelativeTime } from '@/lib/utils/date'
 import { getUserCurrency } from '@/lib/utils/currency'
+import { BookingCalendar } from '../booking/BookingCalendar'
 
 const getDimensions = () => Dimensions.get('window')
 
@@ -31,6 +32,9 @@ interface ListingCardProps {
   onDislike?: (listingId: string) => void
   onChat?: (listingId: string) => void
   isOwnListing?: boolean // If true, don't show like buttons (user can't like their own)
+  // Booking functionality
+  showBookingButton?: boolean
+  onBookingComplete?: (bookingId: string) => void
   // Currency for formatting prices (optional - will detect from user if not provided)
   userCurrency?: string | null
   userCountry?: string | null
@@ -70,6 +74,8 @@ export function ListingCard({
   onDislike,
   onChat,
   isOwnListing = false,
+  showBookingButton = false,
+  onBookingComplete,
   userCurrency,
   userCountry,
 }: ListingCardProps) {
@@ -77,6 +83,7 @@ export function ListingCard({
   const [internalExpanded, setInternalExpanded] = useState(false)
   const [dimensions, setDimensions] = useState(getDimensions())
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [showBookingCalendar, setShowBookingCalendar] = useState(false)
   const scrollViewRef = useRef<ScrollView>(null)
   
   // Listen for dimension changes (especially on web when window is resized)
@@ -676,8 +683,37 @@ export function ListingCard({
               </Pressable>
             </View>
           )}
+
+          {/* Booking Button - for bookable services */}
+          {showBookingButton && !isOwnListing && listing.booking_enabled && (
+            <View style={styles.bookingButtonContainer}>
+              <Pressable
+                style={styles.bookingButton}
+                onPress={() => setShowBookingCalendar(true)}
+              >
+                <Ionicons name="calendar" size={20} color="#ffffff" />
+                <Text style={styles.bookingButtonText}>Book Appointment</Text>
+              </Pressable>
+            </View>
+          )}
         </View>
     </View>
+
+    {/* Booking Calendar Modal */}
+    {showBookingCalendar && listing.customer && (
+      <BookingCalendar
+        listingId={listing.id}
+        listingTitle={listing.title || 'Service'}
+        providerId={listing.user_id}
+        providerName={listing.customer.name || 'Provider'}
+        visible={showBookingCalendar}
+        onClose={() => setShowBookingCalendar(false)}
+        onBookingComplete={(bookingId) => {
+          setShowBookingCalendar(false)
+          onBookingComplete?.(bookingId)
+        }}
+      />
+    )}
   )
 }
 
@@ -1053,6 +1089,33 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
+  },
+  bookingButtonContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    width: '100%',
+  },
+  bookingButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  bookingButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
   },
   expandedDetails: {
     marginTop: 16,

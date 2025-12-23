@@ -97,6 +97,11 @@ export interface Listing {
   enable_affiliate?: boolean
   affiliate_commission?: number
   affiliate_commission_type?: 'percentage' | 'fixed'
+  // Booking system fields
+  booking_enabled?: boolean
+  service_type?: string
+  timezone?: string
+  booking_advance_days?: number
   created_at: string
   updated_at: string
 }

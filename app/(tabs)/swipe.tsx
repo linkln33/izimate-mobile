@@ -313,6 +313,12 @@ export default function FindScreen() {
     loadData()
   }
 
+  const handleBookingComplete = (bookingId: string) => {
+    console.log('Booking completed:', bookingId)
+    // Optionally show a success message or navigate somewhere
+    // You could also refresh the listings to update any booking status
+  }
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -420,12 +426,14 @@ export default function FindScreen() {
 
             return (
               <View style={styles.listingCardWrapper}>
-                <ListingCard 
+                <ListingCard
                   listing={listingWithNormalizedPhotos}
                   showLikeButtons={true}
+                  showBookingButton={true}
                   onLike={handleLike}
                   onDislike={handleDislike}
                   onChat={handleChat}
+                  onBookingComplete={handleBookingComplete}
                   isOwnListing={item.user_id === currentUserId}
                   userCurrency={currentUser?.currency}
                   userCountry={currentUser?.country}
