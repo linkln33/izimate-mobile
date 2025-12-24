@@ -140,10 +140,9 @@ export function getBiometricTypeName(): string {
  */
 export async function promptBiometricSetup(): Promise<void> {
   const { isAvailable, error } = await isBiometricAvailable()
+  const biometricName = getBiometricTypeName()
   
   if (!isAvailable) {
-    const biometricName = getBiometricTypeName()
-    
     Alert.alert(
       'Biometric Authentication',
       `${biometricName} is not set up on your device. Would you like to set it up in Settings for faster booking confirmations?`,
@@ -168,6 +167,13 @@ export async function promptBiometricSetup(): Promise<void> {
           }
         }
       ]
+    )
+  } else {
+    // If biometrics are available, show instructions on how to use them
+    Alert.alert(
+      'Biometric Authentication Available',
+      `${biometricName} is already set up on your device. You can use it to confirm bookings faster.`,
+      [{ text: 'OK' }]
     )
   }
 }

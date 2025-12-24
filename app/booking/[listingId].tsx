@@ -34,13 +34,13 @@ export default function BookingScreen() {
       if (listingError) {
         console.error('Error loading listing:', listingError)
         Alert.alert('Error', 'Failed to load listing details')
-        router.back()
+        router.replace('/(tabs)/swipe')
         return
       }
 
       if (!listingData.booking_enabled) {
         Alert.alert('Booking Unavailable', 'This service is not available for online booking')
-        router.back()
+        router.replace('/(tabs)/swipe')
         return
       }
 
@@ -56,7 +56,7 @@ export default function BookingScreen() {
       if (providerError) {
         console.error('Error loading provider:', providerError)
         Alert.alert('Error', 'Failed to load provider details')
-        router.back()
+        router.replace('/(tabs)/swipe')
         return
       }
 
@@ -65,32 +65,21 @@ export default function BookingScreen() {
     } catch (error) {
       console.error('Error loading booking data:', error)
       Alert.alert('Error', 'Failed to load booking information')
-      router.back()
+      router.replace('/(tabs)/swipe')
     } finally {
       setLoading(false)
     }
   }
 
   const handleBookingComplete = (bookingId: string) => {
-    // Navigate to booking confirmation or back to listing
-    Alert.alert(
-      'Booking Confirmed!',
-      'Your booking has been successfully created.',
-      [
-        {
-          text: 'View My Bookings',
-          onPress: () => router.push('/dashboard?tab=bookings')
-        },
-        {
-          text: 'OK',
-          onPress: () => router.back()
-        }
-      ]
-    )
+    // Navigation is handled by BookingFlowManager (redirects to dashboard)
+    // This callback is just for any additional handling if needed
   }
 
   const handleCancel = () => {
-    router.back()
+    // Use replace instead of back to avoid navigation errors
+    // Always use replace to ensure we have a valid route
+    router.replace('/(tabs)/swipe')
   }
 
   if (loading) {

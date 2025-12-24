@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { 
   authenticateForBooking, 
@@ -79,30 +79,32 @@ export function BiometricBookingConfirmation({
   }
 
   const handleManualConfirm = async () => {
-    if (loading) return
+    if (loading) {
+      console.log('Confirm booking blocked: loading is true')
+      return
+    }
 
-    Alert.alert(
-      'Confirm Booking',
-      `Please confirm your booking:\n\n${serviceName}\nwith ${providerName}\n${date} at ${time}\n\n${currency}${price}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Confirm Booking', 
-          onPress: async () => {
-            try {
-              await onConfirm()
-            } catch (error) {
-              console.error('Error confirming booking:', error)
-              Alert.alert('Error', 'Failed to confirm booking. Please try again.')
-            }
-          }
-        }
-      ]
-    )
+    console.log('Confirm Booking button pressed')
+    
+    try {
+      console.log('Confirm Booking: Calling onConfirm callback')
+      await onConfirm()
+      console.log('Confirm Booking: onConfirm completed successfully')
+    } catch (error) {
+      console.error('Error confirming booking:', error)
+      Alert.alert('Error', 'Failed to confirm booking. Please try again.')
+    }
   }
 
-  const handleSetupBiometrics = () => {
-    promptBiometricSetup()
+  const handleSetupBiometrics = async () => {
+    try {
+      await promptBiometricSetup()
+      // After showing setup prompt, recheck availability
+      await checkBiometricAvailability()
+    } catch (error) {
+      console.error('Error in setup biometrics:', error)
+      Alert.alert('Error', 'Failed to open biometric setup. Please check your device settings.')
+    }
   }
 
   const getBiometricIcon = () => {
@@ -215,7 +217,11 @@ export function BiometricBookingConfirmation({
               Set up {getBiometricTypeName()} for faster booking confirmations
             </Text>
             
-            <Pressable style={styles.setupButton} onPress={handleSetupBiometrics}>
+            <Pressable 
+              style={styles.setupButton} 
+              onPress={handleSetupBiometrics}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Ionicons name="settings-outline" size={20} color="#f25842" />
               <Text style={styles.setupButtonText}>Setup Biometrics</Text>
             </Pressable>
@@ -226,13 +232,14 @@ export function BiometricBookingConfirmation({
           style={[styles.manualButton, loading && styles.buttonDisabled]}
           onPress={handleManualConfirm}
           disabled={loading}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           {loading ? (
             <ActivityIndicator size="small" color="#f25842" />
           ) : (
             <>
               <Ionicons name="checkmark-circle-outline" size={24} color="#f25842" />
-              <Text style={styles.manualButtonText}>Confirm Manually</Text>
+              <Text style={styles.manualButtonText}>Confirm Booking</Text>
             </>
           )}
         </Pressable>

@@ -485,6 +485,23 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
 
+          {/* Notification Settings Link */}
+          <Pressable
+            style={styles.affiliateCard}
+            onPress={() => router.push('/settings/notifications')}
+          >
+            <View style={styles.affiliateCardContent}>
+              <Ionicons name="notifications" size={24} color="#f25842" />
+              <View style={styles.affiliateCardText}>
+                <Text style={styles.affiliateCardTitle}>Notification Settings</Text>
+                <Text style={styles.affiliateCardSubtitle}>
+                  Manage your notification preferences
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#6b7280" />
+            </View>
+          </Pressable>
+
           {/* Save Button */}
           <Pressable
             style={[styles.saveButton, saving && styles.saveButtonDisabled]}

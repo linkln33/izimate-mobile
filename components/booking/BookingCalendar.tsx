@@ -706,13 +706,16 @@ const styles = {
     gap: 12,
   },
   timeSlot: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#ffffff',
     borderRadius: 8,
-    padding: 12,
-    minWidth: 80,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    width: 70,
+    height: 44,
     alignItems: 'center' as const,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    justifyContent: 'center' as const,
+    borderWidth: 1.5,
+    borderColor: '#3b82f6',
   },
   timeSlotSelected: {
     backgroundColor: '#007AFF',
@@ -724,8 +727,8 @@ const styles = {
   },
   timeSlotText: {
     fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#333',
+    fontWeight: '700' as const,
+    color: '#1e40af',
   },
   timeSlotTextSelected: {
     color: 'white',

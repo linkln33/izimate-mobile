@@ -182,6 +182,7 @@ export class NativeCalendarService {
       notes?: string;
       location?: string;
       allDay?: boolean;
+      availability?: 'busy' | 'free' | 'tentative' | 'unavailable';
     }
   ): Promise<string> {
     if (!Calendar) {
@@ -193,6 +194,26 @@ export class NativeCalendarService {
         throw new Error('Calendar permissions not granted');
       }
 
+      // Map availability to expo-calendar format
+      let calendarAvailability = Calendar.Availability.BUSY;
+      if (event.availability) {
+        switch (event.availability) {
+          case 'free':
+            calendarAvailability = Calendar.Availability.FREE;
+            break;
+          case 'tentative':
+            calendarAvailability = Calendar.Availability.TENTATIVE;
+            break;
+          case 'unavailable':
+            calendarAvailability = Calendar.Availability.UNAVAILABLE;
+            break;
+          case 'busy':
+          default:
+            calendarAvailability = Calendar.Availability.BUSY;
+            break;
+        }
+      }
+
       const eventId = await Calendar.createEventAsync(calendarId, {
         title: event.title,
         startDate: event.startDate,
@@ -200,6 +221,7 @@ export class NativeCalendarService {
         notes: event.notes,
         location: event.location,
         allDay: event.allDay,
+        availability: calendarAvailability,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
 

@@ -136,7 +136,6 @@ export function NotificationSettings() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Notification Settings</Text>
         <Text style={styles.headerSubtitle}>
           Manage how you receive notifications from iZimate Job
         </Text>
@@ -239,15 +238,9 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#ffffff',
     padding: 20,
-    paddingTop: 60,
+    paddingTop: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 8,
   },
   headerSubtitle: {
     fontSize: 16,

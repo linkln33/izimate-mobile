@@ -45,37 +45,52 @@ export async function registerForPushNotifications(): Promise<string | null> {
     })
   }
 
-  if (Device.isDevice) {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync()
-    let finalStatus = existingStatus
-    
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync()
-      finalStatus = status
+  if (!Device.isDevice) {
+    // Running on simulator/emulator - push notifications not available
+    if (__DEV__) {
+      console.log('ℹ️ Push notifications require a physical device (not available on simulator/emulator)')
     }
-    
-    if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!')
-      return null
+    return null
+  }
+
+  // Check and request permissions
+  const { status: existingStatus } = await Notifications.getPermissionsAsync()
+  let finalStatus = existingStatus
+  
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync()
+    finalStatus = status
+  }
+  
+  if (finalStatus !== 'granted') {
+    if (__DEV__) {
+      console.log('⚠️ Push notification permissions not granted. User needs to enable notifications in device settings.')
     }
-    
-    try {
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId
-      if (!projectId) {
-        throw new Error('Project ID not found')
+    return null
+  }
+  
+  try {
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId
+    if (!projectId) {
+      if (__DEV__) {
+        console.warn('⚠️ Expo project ID not found. Push notifications may not work. Check app.json/eas.json configuration.')
       }
-      
-      token = (await Notifications.getExpoPushTokenAsync({
-        projectId,
-      })).data
-      
-      console.log('Push token:', token)
-    } catch (e) {
-      console.error('Error getting push token:', e)
       return null
     }
-  } else {
-    console.log('Must use physical device for Push Notifications')
+    
+    token = (await Notifications.getExpoPushTokenAsync({
+      projectId,
+    })).data
+    
+    if (__DEV__) {
+      console.log('✅ Push token obtained successfully:', token?.substring(0, 20) + '...')
+    }
+  } catch (e) {
+    console.error('❌ Error getting push token:', e)
+    if (__DEV__) {
+      console.warn('This is normal if running on web or simulator. Push notifications require a physical device with proper Expo/EAS configuration.')
+    }
+    return null
   }
 
   return token

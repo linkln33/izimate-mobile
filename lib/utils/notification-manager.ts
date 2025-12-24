@@ -142,28 +142,43 @@ export function useNotificationManager() {
  */
 export function useNotificationPreferences() {
   const updateNotificationPreferences = async (preferences: {
-    pushEnabled: boolean
-    bookingReminders: boolean
-    messageNotifications: boolean
-    matchNotifications: boolean
+    pushEnabled?: boolean
+    bookingReminders?: boolean
+    messageNotifications?: boolean
+    matchNotifications?: boolean
+    bookingConfirmations?: boolean
+    bookingRequests?: boolean
+    marketingEmails?: boolean
   }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      // Get current preferences and merge with new ones
+      const { data: currentUser } = await supabase
+        .from('users')
+        .select('notification_preferences')
+        .eq('id', user.id)
+        .single()
+
+      const currentPrefs = currentUser?.notification_preferences || {}
+      const mergedPrefs = { ...currentPrefs, ...preferences }
+
       const { error } = await supabase
-        .from('user_preferences')
-        .upsert({
-          user_id: user.id,
-          notification_preferences: preferences,
+        .from('users')
+        .update({
+          notification_preferences: mergedPrefs,
           updated_at: new Date().toISOString(),
         })
+        .eq('id', user.id)
 
       if (error) {
         console.error('Error updating notification preferences:', error)
+        throw error
       }
     } catch (error) {
       console.error('Exception updating notification preferences:', error)
+      throw error
     }
   }
 
@@ -173,9 +188,9 @@ export function useNotificationPreferences() {
       if (!user) return null
 
       const { data, error } = await supabase
-        .from('user_preferences')
+        .from('users')
         .select('notification_preferences')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .single()
 
       if (error) {
@@ -183,11 +198,16 @@ export function useNotificationPreferences() {
         return null
       }
 
-      return data?.notification_preferences || {
-        pushEnabled: true,
-        bookingReminders: true,
-        messageNotifications: true,
-        matchNotifications: true,
+      // Return merged preferences with defaults
+      const savedPrefs = data?.notification_preferences || {}
+      return {
+        pushEnabled: savedPrefs.pushEnabled ?? true,
+        bookingReminders: savedPrefs.bookingReminders ?? true,
+        messageNotifications: savedPrefs.messageNotifications ?? true,
+        matchNotifications: savedPrefs.matchNotifications ?? true,
+        bookingConfirmations: savedPrefs.bookingConfirmations ?? true,
+        bookingRequests: savedPrefs.bookingRequests ?? true,
+        marketingEmails: savedPrefs.marketingEmails ?? false,
       }
     } catch (error) {
       console.error('Exception getting notification preferences:', error)

@@ -47,6 +47,7 @@ export const InAppBookingCalendar: React.FC<InAppBookingCalendarProps> = ({
   const [loading, setLoading] = useState(false);
   const [showTimeSlots, setShowTimeSlots] = useState(false);
   const [selectedService, setSelectedService] = useState<{id: string; serviceName: string; price: string} | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
 
   // Generate calendar days for current month
   const generateCalendarDays = () => {
@@ -108,10 +109,14 @@ export const InAppBookingCalendar: React.FC<InAppBookingCalendarProps> = ({
   const handleTimeSlotSelect = (slot: TimeSlot) => {
     if (!slot.isAvailable || !selectedDate) return;
     
+    // Set selected slot for visual feedback
+    setSelectedSlot(slot)
+    
     // For price_list type, require service selection
     if (listing.budget_type === 'price_list' && listing.price_list && listing.price_list.length > 0) {
       if (!selectedService) {
         Alert.alert('Select Service', 'Please select a service from the price list first.');
+        setSelectedSlot(null)
         return;
       }
       
@@ -300,6 +305,7 @@ export const InAppBookingCalendar: React.FC<InAppBookingCalendarProps> = ({
                     styles.timeSlot,
                     !slot.isAvailable && styles.timeSlotUnavailable,
                     listing.budget_type === 'price_list' && !selectedService && styles.timeSlotDisabled,
+                    selectedSlot?.id === slot.id && styles.timeSlotSelected,
                   ]}
                   onPress={() => handleTimeSlotSelect(slot)}
                   disabled={!slot.isAvailable || (listing.budget_type === 'price_list' && !selectedService)}
@@ -308,6 +314,7 @@ export const InAppBookingCalendar: React.FC<InAppBookingCalendarProps> = ({
                     style={[
                       styles.timeSlotText,
                       !slot.isAvailable && styles.timeSlotTextUnavailable,
+                      selectedSlot?.id === slot.id && styles.timeSlotTextSelected,
                     ]}
                   >
                     {slot.start}
@@ -482,32 +489,36 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   timeSlot: {
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    padding: 16,
-    marginRight: 12,
-    minWidth: 80,
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#3b82f6',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginRight: 8,
+    width: 70,
+    height: 44,
     alignItems: 'center',
+    justifyContent: 'center',
     position: 'relative',
   },
   timeSlotUnavailable: {
     backgroundColor: '#f3f4f6',
     borderColor: '#d1d5db',
+    opacity: 0.5,
   },
   timeSlotText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1e40af',
   },
   timeSlotTextUnavailable: {
-    color: '#9ca3af',
+    color: '#6b7280',
   },
   timeSlotPrice: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#f25842',
-    marginTop: 4,
+    marginTop: 2,
     fontWeight: '500',
   },
   timeSlotPriceUnavailable: {
@@ -602,5 +613,12 @@ const styles = StyleSheet.create({
   },
   timeSlotDisabled: {
     opacity: 0.5,
+  },
+  timeSlotSelected: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#2563eb',
+  },
+  timeSlotTextSelected: {
+    color: '#ffffff',
   },
 });

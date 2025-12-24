@@ -6,6 +6,8 @@ import { InAppBookingCalendar } from './InAppBookingCalendar'
 import { GuestCheckout } from './GuestCheckout'
 import { BiometricBookingConfirmation } from './BiometricBookingConfirmation'
 import { authenticateForBooking } from '@/lib/utils/biometric-auth'
+import { sendBookingConfirmation } from '@/lib/utils/booking-notifications'
+import { NativeCalendarService } from '@/lib/utils/native-calendar'
 import type { Listing, User } from '@/lib/types'
 
 interface BookingFlowManagerProps {
@@ -113,6 +115,62 @@ export function BookingFlowManager({
     try {
       setLoading(true)
       
+      // Get provider profile ID (bookings.provider_id references provider_profiles.id, not users.id)
+      // Use database function to get or create provider profile (bypasses RLS issues)
+      let providerProfileId: string | null = null
+      
+      try {
+        // Use database function to get or create provider profile
+        // This function runs with SECURITY DEFINER, so it can bypass RLS
+        const { data: profileData, error: functionError } = await supabase
+          .rpc('get_provider_profile_id', { p_user_id: listing.user_id })
+
+        if (functionError) {
+          console.error('❌ Error calling get_provider_profile_id function:', functionError)
+          // Fallback: try direct query
+          const { data: providerProfile, error: profileError } = await supabase
+            .from('provider_profiles')
+            .select('id')
+            .eq('user_id', listing.user_id)
+            .maybeSingle()
+
+          if (providerProfile) {
+            providerProfileId = providerProfile.id
+            console.log('✅ Found provider profile via direct query:', providerProfileId)
+          } else {
+            console.error('❌ Provider profile not found for user_id:', listing.user_id)
+            Alert.alert(
+              'Booking Error',
+              'The service provider needs to complete their profile setup. Please contact the provider or try booking a different service.'
+            )
+            return
+          }
+        } else {
+          providerProfileId = profileData as string
+          console.log('✅ Got provider profile ID from function:', providerProfileId)
+        }
+      } catch (error) {
+        console.error('❌ Unexpected error getting provider profile:', error)
+        Alert.alert('Error', 'Failed to process booking. Please try again.')
+        return
+      }
+
+      if (!providerProfileId) {
+        console.error('❌ No provider profile ID determined')
+        Alert.alert('Error', 'Unable to determine provider profile. Please contact support.')
+        return
+      }
+      
+      // Check if listing has auto_confirm enabled
+      const { data: serviceSettings } = await supabase
+        .from('service_settings')
+        .select('auto_confirm')
+        .eq('listing_id', listing.id)
+        .single()
+
+      const autoConfirm = serviceSettings?.auto_confirm ?? false
+      const bookingStatus = autoConfirm ? 'confirmed' : 'pending'
+      
       // Create booking for logged-in user
       const bookingDateTime = new Date(`${bookingSelection.date}T${bookingSelection.time}`)
       const endDateTime = new Date(bookingDateTime.getTime() + 60 * 60 * 1000) // Default 1 hour
@@ -121,14 +179,14 @@ export function BookingFlowManager({
         .from('bookings')
         .insert({
           listing_id: listing.id,
-          provider_id: provider.id,
+          provider_id: providerProfileId, // Use provider_profile.id, not user.id
           customer_id: currentUser.id,
           start_time: bookingDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
           service_name: bookingSelection.serviceName,
           service_price: bookingSelection.servicePrice,
           currency: bookingSelection.currency,
-          status: 'pending',
+          status: bookingStatus,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         })
         .select()
@@ -136,19 +194,92 @@ export function BookingFlowManager({
 
       if (error) throw error
 
-      Alert.alert(
-        'Booking Confirmed! 🎉',
-        `Your booking for "${bookingSelection.serviceName}" has been confirmed.`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              onComplete?.(booking.id)
-              setCurrentStep('complete')
-            }
+      // Send notifications to provider and customer
+      try {
+        if (bookingStatus === 'confirmed') {
+          await sendBookingConfirmation(
+            booking,
+            currentUser,
+            provider,
+            listing
+          )
+        } else {
+          // For pending bookings, send booking request notification
+          const { sendBookingRequest } = await import('@/lib/utils/booking-notifications')
+          await sendBookingRequest(
+            booking,
+            currentUser,
+            provider,
+            listing
+          )
+        }
+      } catch (notifError) {
+        console.warn('Failed to send booking notifications:', notifError)
+        // Don't fail booking if notification fails
+      }
+
+      // Save event to user's calendar
+      try {
+        const calendarService = NativeCalendarService.getInstance()
+        let hasPermission = await calendarService.hasPermissions()
+        
+        // Request permission if not granted
+        if (!hasPermission) {
+          hasPermission = await calendarService.requestPermissions()
+        }
+        
+        if (hasPermission) {
+          // Get user's calendars
+          const calendars = await calendarService.getCalendars()
+          
+          // Find primary calendar or use first available
+          const primaryCalendar = calendars.find(cal => cal.isPrimary) || calendars[0]
+          
+          if (primaryCalendar) {
+            const statusNote = bookingStatus === 'pending' 
+              ? '\n⚠️ Status: Pending - Waiting for provider confirmation'
+              : '\n✅ Status: Confirmed'
+            
+            // Save event as tentative if booking is pending, busy if confirmed
+            // This marks the event as "tentative" in the user's calendar when pending
+            const eventAvailability: 'tentative' | 'busy' = bookingStatus === 'pending' ? 'tentative' : 'busy'
+            
+            await calendarService.createEvent(primaryCalendar.id, {
+              title: `${bookingSelection.serviceName} with ${provider.name}${bookingStatus === 'pending' ? ' (Pending)' : ''}`,
+              startDate: bookingDateTime,
+              endDate: endDateTime,
+              notes: `Service: ${bookingSelection.serviceName}\nProvider: ${provider.name}\nPrice: ${bookingSelection.currency}${bookingSelection.servicePrice}\nBooking ID: ${booking.id}${statusNote}`,
+              location: listing.location_address || undefined,
+              allDay: false,
+              availability: eventAvailability, // Mark as tentative when pending
+            })
+            
+            console.log(`✅ Calendar event saved as ${eventAvailability} for ${bookingStatus} booking`)
           }
-        ]
-      )
+        }
+      } catch (calendarError) {
+        console.warn('Failed to save booking to calendar:', calendarError)
+        // Don't fail booking if calendar save fails
+      }
+
+      // Call onComplete callback
+      onComplete?.(booking.id)
+      
+      // Redirect to dashboard immediately
+      router.replace('/(tabs)/dashboard')
+      
+      // Show success message (non-blocking, after navigation)
+      const alertTitle = bookingStatus === 'confirmed' 
+        ? 'Booking Confirmed! 🎉' 
+        : 'Booking Request Sent! 📋'
+      const alertMessage = bookingStatus === 'confirmed'
+        ? `Your booking for "${bookingSelection.serviceName}" has been confirmed.`
+        : `Your booking request for "${bookingSelection.serviceName}" has been sent. The provider will review and confirm your request.`
+
+      // Show alert after navigation completes (non-blocking)
+      setTimeout(() => {
+        Alert.alert(alertTitle, alertMessage)
+      }, 300)
 
     } catch (error) {
       console.error('Error creating user booking:', error)
