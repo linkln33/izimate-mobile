@@ -96,6 +96,20 @@ export function ListingCard({
   userCurrency,
   userCountry,
 }: ListingCardProps) {
+  // Debug: Log button visibility conditions
+  if (__DEV__) {
+    console.log('🔘 ListingCard buttons check:', {
+      listingId: listing.id,
+      listingTitle: listing.title,
+      showLikeButtons,
+      isOwnListing,
+      shouldShow: showLikeButtons && !isOwnListing,
+      hasOnLike: !!onLike,
+      hasOnDislike: !!onDislike,
+      hasOnChat: !!onChat,
+    })
+  }
+  
   const router = useRouter()
   const [imageError, setImageError] = useState(false)
   const [internalExpanded, setInternalExpanded] = useState(false)
@@ -800,7 +814,7 @@ export function ListingCard({
                 style={styles.dislikeButton}
                 onPress={() => onDislike?.(listing.id)}
               >
-                <Ionicons name="close" size={18} color="#ef4444" />
+                <Ionicons name="close" size={24} color="#ef4444" />
               </Pressable>
               
               {/* Chat/Message Button */}
@@ -808,7 +822,7 @@ export function ListingCard({
                 style={styles.chatButton}
                 onPress={() => onChat?.(listing.id)}
               >
-                <Ionicons name="chatbubble-ellipses" size={18} color="#fbbf24" />
+                <Ionicons name="chatbubble-ellipses-outline" size={18} color="#f59e0b" />
               </Pressable>
               
               {/* Booking Button - for bookable services */}
@@ -821,7 +835,7 @@ export function ListingCard({
                   {listing.time_slots && listing.time_slots.length > 0 && (
                     <BlinkingIndicator />
                   )}
-                  <Ionicons name="calendar" size={18} color="#007AFF" />
+                  <Ionicons name="calendar-outline" size={18} color="#3b82f6" />
                 </Pressable>
               )}
               
@@ -830,7 +844,7 @@ export function ListingCard({
                 style={styles.likeButton}
                 onPress={() => onLike?.(listing.id)}
               >
-                <Ionicons name="heart" size={18} color="#10b981" />
+                <Ionicons name="heart-outline" size={18} color="#10b981" />
               </Pressable>
             </View>
           )}
