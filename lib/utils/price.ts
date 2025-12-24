@@ -31,12 +31,12 @@ export function formatPriceRange(
 
 /**
  * Format a budget display text
- * Handles different budget types (fixed, range, hourly)
+ * Handles different budget types (fixed, range, hourly, price_list)
  */
 export function formatBudget(
   budgetMin: number | string | null | undefined,
   budgetMax: number | string | null | undefined,
-  budgetType?: 'fixed' | 'range' | 'hourly' | null,
+  budgetType?: 'fixed' | 'range' | 'hourly' | 'price_list' | null,
   currencyCode?: CurrencyCode | string | null
 ): string {
   if (budgetType === 'fixed' && budgetMin) {
@@ -57,6 +57,10 @@ export function formatBudget(
 
   if (budgetType === 'hourly' && budgetMin) {
     return `${formatPrice(budgetMin, currencyCode)}/hour`
+  }
+
+  if (budgetType === 'price_list') {
+    return 'See price list'
   }
 
   return 'Price negotiable'

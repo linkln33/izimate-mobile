@@ -6,7 +6,7 @@ import { getMainPhoto } from '@/lib/utils/images'
 import { formatBudget, getCurrencyFromUser } from '@/lib/utils/price'
 import { formatDate, formatRelativeTime } from '@/lib/utils/date'
 import { getUserCurrency } from '@/lib/utils/currency'
-import { BookingCalendar } from '../booking/BookingCalendar'
+import { useRouter } from 'expo-router'
 
 const getDimensions = () => Dimensions.get('window')
 
@@ -79,11 +79,11 @@ export function ListingCard({
   userCurrency,
   userCountry,
 }: ListingCardProps) {
+  const router = useRouter()
   const [imageError, setImageError] = useState(false)
   const [internalExpanded, setInternalExpanded] = useState(false)
   const [dimensions, setDimensions] = useState(getDimensions())
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [showBookingCalendar, setShowBookingCalendar] = useState(false)
   const scrollViewRef = useRef<ScrollView>(null)
   
   // Listen for dimension changes (especially on web when window is resized)
@@ -146,6 +146,18 @@ export function ListingCard({
   // Get currency: listing currency > user currency > country-based detection > default GBP
   const currencyCode = listing.currency || 
     (userCurrency ? getUserCurrency(userCurrency, userCountry) : 'GBP')
+  
+  // Debug: Log listing data
+  useEffect(() => {
+    console.log('📋 ListingCard - Listing data:', {
+      id: listing.id,
+      budget_type: listing.budget_type,
+      price_list: listing.price_list,
+      booking_enabled: listing.booking_enabled,
+      service_name: listing.service_name,
+      time_slots: listing.time_slots,
+    });
+  }, [listing.id, listing.budget_type, listing.price_list, listing.booking_enabled]);
   
   // Format budget using shared utility
   const budgetText = formatBudget(
@@ -484,79 +496,127 @@ export function ListingCard({
                 </View>
               </View>
 
-              {/* Budget Breakdown Section */}
+              {/* Service Costs Section - Replaces Budget Details */}
               <View style={styles.expandedSection}>
                 <View style={styles.sectionHeader}>
                   <Ionicons name="wallet-outline" size={18} color="#f25842" />
-                  <Text style={styles.sectionTitle}>Budget Details</Text>
+                  <Text style={styles.sectionTitle}>Service Costs</Text>
                 </View>
                 
-                <View style={styles.budgetBreakdown}>
-                  <View style={styles.budgetItem}>
-                    <Text style={styles.budgetLabel}>Budget Range</Text>
-                    <Text style={styles.budgetValue}>{budgetText}</Text>
+                {listing.budget_type === 'price_list' && listing.price_list && listing.price_list.length > 0 ? (
+                  <View style={styles.priceListSection}>
+                    {listing.price_list.map((item: any, index: number) => (
+                      <View key={index} style={styles.priceListItem}>
+                        <Text style={styles.priceListServiceName}>{item.serviceName}</Text>
+                        <Text style={styles.priceListPrice}>£{item.price}</Text>
+                      </View>
+                    ))}
                   </View>
-                  {listing.budget_type && (
+                ) : (
+                  <View style={styles.budgetBreakdown}>
                     <View style={styles.budgetItem}>
-                      <Text style={styles.budgetLabel}>Payment Type</Text>
-                      <Text style={styles.budgetValue}>
+                      <Text style={styles.budgetLabel}>
                         {listing.budget_type === 'fixed' ? 'Fixed Price' : 
-                         listing.budget_type === 'hourly' ? 'Per Hour' : 
-                         listing.budget_type === 'daily' ? 'Per Day' : 'Negotiable'}
+                         listing.budget_type === 'range' ? 'Price Range' : 'Price'}
                       </Text>
+                      <Text style={styles.budgetValue}>{budgetText}</Text>
                     </View>
-                  )}
-                </View>
+                  </View>
+                )}
               </View>
 
-              {/* Activity & Stats Section */}
-              <View style={styles.expandedSection}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="analytics-outline" size={18} color="#f25842" />
-                  <Text style={styles.sectionTitle}>Activity</Text>
-                </View>
-                
-                <View style={styles.statsGrid}>
-                  {(listing.view_count || 0) > 0 && (
-                    <View style={styles.statCard}>
-                      <Ionicons name="eye-outline" size={16} color="#6b7280" />
-                      <Text style={styles.statNumber}>{listing.view_count || 0}</Text>
-                      <Text style={styles.statLabel}>Views</Text>
-                    </View>
-                  )}
+              {/* Booking Availability Section - Replaces Activity when booking is enabled */}
+              {listing.booking_enabled && listing.time_slots && listing.time_slots.length > 0 ? (
+                <View style={styles.expandedSection}>
+                  <View style={styles.sectionHeader}>
+                    <Ionicons name="calendar-outline" size={18} color="#f25842" />
+                    <Text style={styles.sectionTitle}>Available Time Slots</Text>
+                  </View>
                   
-                  {(listing.swipe_count || 0) > 0 && (
-                    <View style={styles.statCard}>
-                      <Ionicons name="heart-outline" size={16} color="#10b981" />
-                      <Text style={styles.statNumber}>{listing.swipe_count || 0}</Text>
-                      <Text style={styles.statLabel}>Likes</Text>
+                  <View style={styles.timeSlotsContainer}>
+                    {listing.service_name && (
+                      <Text style={styles.bookingServiceName}>
+                        Service: {listing.service_name}
+                      </Text>
+                    )}
+                    <Text style={styles.timeSlotsTitle}>Weekly Schedule:</Text>
+                    {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => {
+                      const daySlots = listing.time_slots?.filter((slot: any) => slot.day === day);
+                      if (!daySlots || daySlots.length === 0) return null;
+                      
+                      return (
+                        <View key={day} style={styles.daySlotRow}>
+                          <Text style={styles.dayName}>
+                            {day.charAt(0).toUpperCase() + day.slice(1)}:
+                          </Text>
+                          <View style={styles.slotsForDay}>
+                            {daySlots.map((slot: any, idx: number) => (
+                              <Text key={idx} style={styles.slotTime}>
+                                {slot.startTime} - {slot.endTime}
+                              </Text>
+                            ))}
+                          </View>
+                        </View>
+                      );
+                    })}
+                    <View style={styles.bookingAvailability}>
+                      <Ionicons name="checkmark-circle" size={16} color="#15803d" />
+                      <Text style={styles.bookingAvailabilityText}>
+                        Online booking available
+                      </Text>
                     </View>
-                  )}
-                  
-                  {(listing.match_count || 0) > 0 && (
-                    <View style={styles.statCard}>
-                      <Ionicons name="checkmark-circle-outline" size={16} color="#f25842" />
-                      <Text style={styles.statNumber}>{listing.match_count || 0}</Text>
-                      <Text style={styles.statLabel}>Matches</Text>
-                    </View>
-                  )}
-                  
-                  {/* Always show status */}
-                  <View style={styles.statCard}>
-                    <Ionicons 
-                      name={listing.status === 'active' ? 'checkmark-circle' : 'pause-circle'} 
-                      size={16} 
-                      color={listing.status === 'active' ? '#10b981' : '#f59e0b'} 
-                    />
-                    <Text style={styles.statNumber}>•</Text>
-                    <Text style={styles.statLabel}>
-                      {listing.status === 'active' ? 'Active' : 
-                       listing.status === 'paused' ? 'Paused' : 
-                       listing.status === 'completed' ? 'Done' : 'Draft'}
-                    </Text>
                   </View>
                 </View>
-              </View>
+              ) : (
+                /* Activity & Stats Section - Only show when booking is NOT enabled */
+                <View style={styles.expandedSection}>
+                  <View style={styles.sectionHeader}>
+                    <Ionicons name="analytics-outline" size={18} color="#f25842" />
+                    <Text style={styles.sectionTitle}>Activity</Text>
+                  </View>
+                  
+                  <View style={styles.statsGrid}>
+                    {(listing.view_count || 0) > 0 && (
+                      <View style={styles.statCard}>
+                        <Ionicons name="eye-outline" size={16} color="#6b7280" />
+                        <Text style={styles.statNumber}>{listing.view_count || 0}</Text>
+                        <Text style={styles.statLabel}>Views</Text>
+                      </View>
+                    )}
+                    
+                    {(listing.swipe_count || 0) > 0 && (
+                      <View style={styles.statCard}>
+                        <Ionicons name="heart-outline" size={16} color="#10b981" />
+                        <Text style={styles.statNumber}>{listing.swipe_count || 0}</Text>
+                        <Text style={styles.statLabel}>Likes</Text>
+                      </View>
+                    )}
+                    
+                    {(listing.match_count || 0) > 0 && (
+                      <View style={styles.statCard}>
+                        <Ionicons name="checkmark-circle-outline" size={16} color="#f25842" />
+                        <Text style={styles.statNumber}>{listing.match_count || 0}</Text>
+                        <Text style={styles.statLabel}>Matches</Text>
+                      </View>
+                    )}
+                    
+                    {/* Always show status */}
+                    <View style={styles.statCard}>
+                      <Ionicons 
+                        name={listing.status === 'active' ? 'checkmark-circle' : 'pause-circle'} 
+                        size={16} 
+                        color={listing.status === 'active' ? '#10b981' : '#f59e0b'} 
+                      />
+                      <Text style={styles.statNumber}>•</Text>
+                      <Text style={styles.statLabel}>
+                        {listing.status === 'active' ? 'Active' : 
+                         listing.status === 'paused' ? 'Paused' : 
+                         listing.status === 'completed' ? 'Done' : 'Draft'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
 
               {/* Contact & Location Details */}
               {(listing.location_lat && listing.location_lng) && (
@@ -689,7 +749,7 @@ export function ListingCard({
             <View style={styles.bookingButtonContainer}>
               <Pressable
                 style={styles.bookingButton}
-                onPress={() => setShowBookingCalendar(true)}
+                onPress={() => router.push(`/booking/${listing.id}`)}
               >
                 <Ionicons name="calendar" size={20} color="#ffffff" />
                 <Text style={styles.bookingButtonText}>Book Appointment</Text>
@@ -697,23 +757,8 @@ export function ListingCard({
             </View>
           )}
         </View>
-    </View>
 
-    {/* Booking Calendar Modal */}
-    {showBookingCalendar && listing.customer && (
-      <BookingCalendar
-        listingId={listing.id}
-        listingTitle={listing.title || 'Service'}
-        providerId={listing.user_id}
-        providerName={listing.customer.name || 'Provider'}
-        visible={showBookingCalendar}
-        onClose={() => setShowBookingCalendar(false)}
-        onBookingComplete={(bookingId) => {
-          setShowBookingCalendar(false)
-          onBookingComplete?.(bookingId)
-        }}
-      />
-    )}
+    </View>
   )
 }
 
@@ -1196,6 +1241,90 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1a1a1a',
     fontWeight: '600',
+  },
+  priceListSection: {
+    gap: 8,
+  },
+  priceListItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  priceListServiceName: {
+    fontSize: 15,
+    color: '#1a1a1a',
+    fontWeight: '600',
+  },
+  priceListPrice: {
+    fontSize: 16,
+    color: '#f25842',
+    fontWeight: '700',
+  },
+  timeSlotsContainer: {
+    gap: 12,
+  },
+  timeSlotsTitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  daySlotRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  dayName: {
+    fontSize: 14,
+    color: '#1a1a1a',
+    fontWeight: '600',
+    minWidth: 90,
+  },
+  slotsForDay: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  slotTime: {
+    fontSize: 13,
+    color: '#4b5563',
+    backgroundColor: '#f0fdf4',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  bookingAvailability: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#f0fdf4',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    marginTop: 8,
+  },
+  bookingAvailabilityText: {
+    fontSize: 14,
+    color: '#15803d',
+    fontWeight: '600',
+  },
+  bookingServiceName: {
+    fontSize: 14,
+    color: '#4b5563',
+    fontWeight: '500',
   },
   statsGrid: {
     flexDirection: 'row',

@@ -5,6 +5,97 @@ import { uploadMultipleImages } from '@/lib/utils/images'
 import { getCurrentLocation, reverseGeocode } from '@/lib/utils/location'
 import type { ListingFormState, ListingFormActions, Step } from './useListingForm'
 
+/**
+ * Save or update service_settings for a listing with simplified booking configuration
+ */
+async function saveServiceSettings(listingId: string, formState: ListingFormState) {
+  try {
+    console.log('💾 Saving simplified service_settings for listing:', listingId);
+    
+    // Convert time_slots to service_settings format
+    const workingHours: any = {};
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    
+    days.forEach(day => {
+      workingHours[day] = { enabled: false, start: '09:00', end: '17:00' };
+    });
+    
+    // Enable days that have time slots
+    if (formState.time_slots && formState.time_slots.length > 0) {
+      formState.time_slots.forEach((slot: any) => {
+        if (workingHours[slot.day]) {
+          workingHours[slot.day].enabled = true;
+          // Set the earliest start and latest end for each day
+          const currentStart = workingHours[slot.day].start;
+          const currentEnd = workingHours[slot.day].end;
+          workingHours[slot.day].start = slot.startTime < currentStart ? slot.startTime : currentStart;
+          workingHours[slot.day].end = slot.endTime > currentEnd ? slot.endTime : currentEnd;
+        }
+      });
+    }
+    
+    const serviceSettingsData = {
+      listing_id: listingId,
+      booking_enabled: formState.booking_enabled,
+      service_type: 'appointment', // Default type
+      default_duration_minutes: 60, // Default 1 hour
+      buffer_minutes: 15, // Default 15 min buffer
+      advance_booking_days: 30, // Default 30 days
+      same_day_booking: true,
+      auto_confirm: false, // Manual confirmation by default
+      cancellation_hours: 24,
+      working_hours: workingHours,
+      break_times: [],
+      service_options: formState.service_name ? [{
+        name: formState.service_name,
+        duration: 60,
+        price: parseFloat(formState.budgetMin || '50'),
+        currency: 'GBP'
+      }] : [],
+      calendar_connected: false,
+    };
+
+    // Check if service_settings already exists
+    const { data: existing } = await supabase
+      .from('service_settings')
+      .select('id')
+      .eq('listing_id', listingId)
+      .single();
+
+    if (existing) {
+      // Update existing
+      const { error } = await supabase
+        .from('service_settings')
+        .update(serviceSettingsData)
+        .eq('listing_id', listingId);
+
+      if (error) {
+        console.error('❌ Error updating service_settings:', error);
+        throw error;
+      }
+      console.log('✅ Service settings updated');
+    } else {
+      // Create new
+      const { error } = await supabase
+        .from('service_settings')
+        .insert(serviceSettingsData);
+
+      if (error) {
+        console.error('❌ Error creating service_settings:', error);
+        throw error;
+      }
+      console.log('✅ Service settings created');
+    }
+  } catch (error) {
+    console.error('❌ Failed to save service settings:', error);
+    // Don't throw - listing is already saved, this is supplementary
+    Alert.alert(
+      'Warning',
+      'Listing saved but booking settings may not be complete. Please edit the listing to update booking settings.'
+    );
+  }
+}
+
 export interface ListingHandlers {
   handlePickPhotos: () => Promise<void>
   handleDetectLocation: () => Promise<void>
@@ -195,23 +286,69 @@ export function createListingHandlers(
   }
 
   const handleNext = (currentStep: Step, formState: ListingFormState): Step | null => {
+    // Step 1: Basic Info
     if (currentStep === 1) {
       if (!formState.title.trim() || !formState.description.trim() || !formState.category) {
         Alert.alert('Required Fields', 'Please fill in title, description, and category')
         return null
       }
       return 2
-    } else if (currentStep === 2) {
-      if (formState.budgetType !== 'hourly' && !formState.budgetMin) {
-        Alert.alert('Required Fields', 'Please enter a minimum budget')
-        return null
+    } 
+    // Step 2: Services & Pricing
+    else if (currentStep === 2) {
+      console.log('🔍 Step 2 Validation:', {
+        budgetType: formState.budgetType,
+        budgetMin: formState.budgetMin,
+        budgetMax: formState.budgetMax,
+        price_list: formState.price_list,
+      });
+
+      if (formState.budgetType === 'fixed') {
+        if (!formState.budgetMin || formState.budgetMin.trim() === '') {
+          Alert.alert('Required Fields', 'Please enter a fixed price')
+          return null
+        }
       }
-      if (formState.budgetType === 'range' && !formState.budgetMax) {
-        Alert.alert('Required Fields', 'Please enter a maximum budget')
-        return null
+      else if (formState.budgetType === 'range') {
+        if (!formState.budgetMin || formState.budgetMin.trim() === '' || 
+            !formState.budgetMax || formState.budgetMax.trim() === '') {
+          Alert.alert('Required Fields', 'Please enter minimum and maximum prices')
+          return null
+        }
+        // Validate min < max
+        const min = parseFloat(formState.budgetMin);
+        const max = parseFloat(formState.budgetMax);
+        if (min >= max) {
+          Alert.alert('Invalid Range', 'Minimum price must be less than maximum price')
+          return null
+        }
       }
+      else if (formState.budgetType === 'price_list') {
+        if (!formState.price_list || formState.price_list.length === 0) {
+          Alert.alert('Required Fields', 'Please add at least one service to your price list')
+          return null
+        }
+        // Validate each price list item
+        const invalidItems = formState.price_list.filter(
+          item => !item.serviceName || !item.serviceName.trim() || 
+                  !item.price || !item.price.trim()
+        )
+        if (invalidItems.length > 0) {
+          Alert.alert('Invalid Price List', 'Please fill in all service names and prices')
+          return null
+        }
+      }
+      
+      console.log('✅ Step 2 validation passed, moving to step 3');
       return 3
-    } else if (currentStep === 3) {
+    }
+    // Step 3: Booking Slots (optional)
+    else if (currentStep === 3) {
+      // Booking is optional, no validation needed
+      return 4
+    }
+    // Step 4: Location
+    else if (currentStep === 4) {
       if (!formState.locationAddress.trim()) {
         Alert.alert('Required Fields', 'Please enter or detect a location')
         return null
@@ -223,7 +360,7 @@ export function createListingHandlers(
           return null
         }
       }
-      return 4
+      return 5
     }
     return null
   }
@@ -286,23 +423,19 @@ export function createListingHandlers(
         budget_type: formState.budgetType,
         budget_min: formState.budgetMin ? parseFloat(formState.budgetMin) : null,
         budget_max: formState.budgetMax ? parseFloat(formState.budgetMax) : null,
+        price_list: formState.price_list && formState.price_list.length > 0 ? formState.price_list : [],
         urgency: formState.urgency,
         preferred_date: formState.preferredDate || null,
         location_address: formState.locationAddress.trim(),
         location_lat: formState.locationLat,
         location_lng: formState.locationLng,
         show_exact_address: formState.showExactAddress,
-        // Temporarily commented out until PostgREST schema cache refreshes
-        // These columns exist in the database but PostgREST hasn't refreshed its cache yet
-        // Uncomment these lines in a few minutes once the cache refreshes:
-        // street_address: formState.showExactAddress ? formState.streetAddress.trim() : null,
-        // city: formState.showExactAddress ? formState.city.trim() : null,
-        // state: formState.showExactAddress ? formState.state.trim() : null,
-        // postal_code: formState.showExactAddress ? formState.postalCode.trim() : null,
-        // country: formState.showExactAddress ? formState.country.trim() : null,
-        // location_notes: formState.locationNotes.trim() || null,
         status: 'active',
         expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+        // Booking settings (Only include columns that exist in listings table)
+        booking_enabled: formState.booking_enabled || false,
+        service_name: formState.service_name || null,
+        time_slots: formState.time_slots && formState.time_slots.length > 0 ? formState.time_slots : [],
       }
 
       // Log the data being saved for debugging
@@ -339,6 +472,12 @@ export function createListingHandlers(
         }
 
         console.log('✅ Listing updated:', data)
+        
+        // Update or create service_settings if booking is enabled
+        if (formState.booking_enabled && data && data[0]) {
+          await saveServiceSettings(data[0].id, formState);
+        }
+        
         Alert.alert('Success', 'Listing updated successfully!')
       } else {
         // Create new listing
@@ -366,6 +505,12 @@ export function createListingHandlers(
         }
 
         console.log('✅ Listing created:', data)
+        
+        // Create service_settings if booking is enabled
+        if (formState.booking_enabled && data && data[0]) {
+          await saveServiceSettings(data[0].id, formState);
+        }
+        
         Alert.alert('Success', 'Listing created successfully!')
       }
 

@@ -10,6 +10,7 @@ import { Step1BasicInfo } from '@/components/listings/steps/Step1BasicInfo'
 import { Step2Budget } from '@/components/listings/steps/Step2Budget'
 import { Step3Location } from '@/components/listings/steps/Step3Location'
 import { Step4Review } from '@/components/listings/steps/Step4Review'
+import { Step5BookingSimplified } from '@/components/listings/steps/Step5BookingSimplified'
 import { createListingStyles } from '@/components/listings/createListingStyles'
 import type { Listing } from '@/lib/types'
 
@@ -218,6 +219,13 @@ function CreateListingScreenContent() {
     }
 
     if (isEditMode && id) {
+      // Check if we're loading a different listing
+      if (loadingListingIdRef.current !== id) {
+        console.log('📝 New listing to edit, resetting refs:', id)
+        hasLoadedListingRef.current = false
+        loadingListingIdRef.current = null
+      }
+      
       // Prevent loading the same listing multiple times
       if (hasLoadedListingRef.current && loadingListingIdRef.current === id) {
         console.log('⏭️ Skipping duplicate listing load:', id)
@@ -226,6 +234,8 @@ function CreateListingScreenContent() {
       
       console.log('📝 Edit mode: Loading existing listing:', id)
       loadExistingListing(id)
+      hasLoadedListingRef.current = true
+      loadingListingIdRef.current = id
       hasResetRef.current = true
       return
     }
@@ -292,6 +302,15 @@ function CreateListingScreenContent() {
   }
 
   const handleNext = () => {
+    // Special handling for Step 3 (Booking - now swapped) - call its validation
+    if (step === 3) {
+      const step5Validation = (window as any).__step5BookingValidation;
+      if (step5Validation) {
+        step5Validation();
+        return;
+      }
+    }
+    
     const nextStep = handlers.handleNext(step, formState)
     if (nextStep) {
       setStep(nextStep)
@@ -372,7 +391,7 @@ function CreateListingScreenContent() {
 
       {/* Progress */}
       <View style={createListingStyles.progress}>
-        {[1, 2, 3, 4].map((s) => (
+        {[1, 2, 3, 4, 5].map((s) => (
           <View
             key={s}
             style={[
@@ -404,6 +423,24 @@ function CreateListingScreenContent() {
         )}
 
         {step === 3 && (
+          <Step5BookingSimplified
+            formData={{
+              booking_enabled: formState.booking_enabled,
+              service_name: formState.service_name,
+              default_price: formState.budget_min, // Use budget_min as default price
+              time_slots: formState.time_slots,
+            }}
+            onUpdate={(bookingData) => {
+              // Update form state with simplified booking data
+              formActions.setBookingEnabled?.(bookingData.booking_enabled)
+              formActions.setServiceName?.(bookingData.service_name)
+              formActions.setTimeSlots?.(bookingData.time_slots)
+            }}
+            isLoading={loading}
+          />
+        )}
+
+        {step === 4 && (
           <Step3Location
             formState={formState}
             formActions={formActions}
@@ -412,7 +449,7 @@ function CreateListingScreenContent() {
           />
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <Step4Review
             formState={formState}
             quota={quota}
@@ -427,9 +464,9 @@ function CreateListingScreenContent() {
             <Text style={createListingStyles.backButtonText}>Back</Text>
           </Pressable>
         )}
-        {step < 4 ? (
+        {step < 5 ? (
           <Pressable style={createListingStyles.nextButton} onPress={handleNext}>
-            <Text style={createListingStyles.nextButtonText}>Next</Text>
+            <Text style={createListingStyles.nextButtonText}>Continue</Text>
           </Pressable>
         ) : (
           <Pressable

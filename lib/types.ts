@@ -21,6 +21,7 @@ export interface User {
   identity_verification_status?: 'pending' | 'processing' | 'verified' | 'failed' | 'rejected'
   referred_by_code?: string
   referral_code?: string
+  push_token?: string
   created_at: string
   last_active: string
 }
@@ -70,13 +71,14 @@ export interface Listing {
   listing_type?: 'service' | 'goods' | 'book' | 'pdf' | 'gated_content'
   budget_min?: number
   budget_max?: number
-  budget_type: 'fixed' | 'range' | 'hourly'
+  budget_type: 'fixed' | 'range' | 'hourly' | 'price_list'
+  price_list?: Array<{ id: string; serviceName: string; price: string }>
   location_lat: number
   location_lng: number
   location_address?: string
   show_exact_address: boolean
   photos: string[]
-  urgency: 'asap' | 'this_week' | 'flexible'
+  urgency: 'asap' | 'this_week' | 'flexible' | null
   preferred_date?: string
   status: 'active' | 'matched' | 'in_progress' | 'completed' | 'cancelled'
   expires_at: string
@@ -100,8 +102,18 @@ export interface Listing {
   // Booking system fields
   booking_enabled?: boolean
   service_type?: string
+  service_name?: string
+  time_slots?: Array<{
+    id: string
+    day: string
+    startTime: string
+    endTime: string
+    service?: string
+    notes?: string
+  }>
   timezone?: string
   booking_advance_days?: number
+  currency?: string
   created_at: string
   updated_at: string
 }
@@ -153,7 +165,7 @@ export interface Message {
 export interface Notification {
   id: string
   user_id: string
-  type: 'match' | 'interested' | 'message' | 'review' | 'pending_approval' | 'rejection' | 'liked'
+  type: 'match' | 'interested' | 'message' | 'review' | 'pending_approval' | 'rejection' | 'liked' | 'booking_confirmed' | 'booking_request' | 'booking_cancelled' | 'booking_completed' | 'booking_reminder' | 'booking_status_update'
   title: string
   message: string
   link?: string

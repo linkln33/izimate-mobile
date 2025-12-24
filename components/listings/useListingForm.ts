@@ -3,7 +3,7 @@ import type { Listing } from '@/lib/types'
 import { normalizePhotoUrls } from '@/lib/utils/images'
 
 export type Step = 1 | 2 | 3 | 4
-export type BudgetType = 'fixed' | 'range' | 'hourly'
+export type BudgetType = 'fixed' | 'range' | 'price_list'
 export type Urgency = 'asap' | 'this_week' | 'flexible'
 
 export interface ListingFormState {
@@ -22,6 +22,7 @@ export interface ListingFormState {
   budgetMax: string
   urgency: Urgency
   preferredDate: string
+  price_list?: any[] // Array of {serviceName, price} objects
   
   // Step 3: Location
   locationAddress: string
@@ -34,6 +35,11 @@ export interface ListingFormState {
   postalCode: string
   country: string
   locationNotes: string
+  
+  // Step 4: Booking Settings (Simplified)
+  booking_enabled?: boolean
+  service_name?: string
+  time_slots?: any[] // Array of TimeSlot objects
 }
 
 export interface ListingFormActions {
@@ -52,6 +58,7 @@ export interface ListingFormActions {
   setBudgetMax: (value: string) => void
   setUrgency: (value: Urgency) => void
   setPreferredDate: (value: string) => void
+  setPriceList?: (value: any[]) => void
   
   // Step 3
   setLocationAddress: (value: string) => void
@@ -64,6 +71,11 @@ export interface ListingFormActions {
   setPostalCode: (value: string) => void
   setCountry: (value: string) => void
   setLocationNotes: (value: string) => void
+  
+  // Step 4: Booking Settings (Simplified)
+  setBookingEnabled?: (value: boolean) => void
+  setServiceName?: (value: string) => void
+  setTimeSlots?: (value: any[]) => void
   
   // Reset
   resetForm: () => void
@@ -86,6 +98,7 @@ export function useListingForm(isEditMode: boolean) {
   const [budgetMax, setBudgetMax] = useState(() => '')
   const [urgency, setUrgency] = useState<Urgency>(() => 'flexible')
   const [preferredDate, setPreferredDate] = useState(() => '')
+  const [priceList, setPriceList] = useState<any[]>(() => [])
   
   // Step 3: Location
   const [locationAddress, setLocationAddress] = useState(() => '')
@@ -98,6 +111,11 @@ export function useListingForm(isEditMode: boolean) {
   const [postalCode, setPostalCode] = useState(() => '')
   const [country, setCountry] = useState(() => '')
   const [locationNotes, setLocationNotes] = useState(() => '')
+  
+  // Step 4: Booking Settings (Simplified)
+  const [bookingEnabled, setBookingEnabled] = useState(() => false)
+  const [serviceName, setServiceName] = useState(() => '')
+  const [timeSlots, setTimeSlots] = useState<any[]>(() => [])
 
   const resetForm = useCallback(() => {
     if (isEditMode) return // Don't reset if editing
@@ -197,6 +215,24 @@ export function useListingForm(isEditMode: boolean) {
     setUrgency((listing.urgency as any) || 'flexible')
     setPreferredDate(listing.preferred_date ? new Date(listing.preferred_date).toISOString().split('T')[0] : '')
     
+    // Load price_list
+    if (listingAny.price_list) {
+      if (Array.isArray(listingAny.price_list)) {
+        setPriceList(listingAny.price_list)
+      } else if (typeof listingAny.price_list === 'string') {
+        try {
+          const parsed = JSON.parse(listingAny.price_list)
+          setPriceList(Array.isArray(parsed) ? parsed : [])
+        } catch {
+          setPriceList([])
+        }
+      }
+    } else {
+      setPriceList([])
+    }
+    
+    console.log('💰 Loaded price_list:', listingAny.price_list)
+    
     // Step 3
     setLocationAddress(listing.location_address || '')
     setLocationLat(listing.location_lat || null)
@@ -213,6 +249,28 @@ export function useListingForm(isEditMode: boolean) {
     if (listingAny.postal_code) setPostalCode(listingAny.postal_code)
     if (listingAny.country) setCountry(listingAny.country)
     if (listingAny.location_notes) setLocationNotes(listingAny.location_notes)
+    
+    // Step 4: Booking Settings (Simplified)
+    setBookingEnabled(listingAny.booking_enabled || false)
+    setServiceName(listingAny.service_name || '')
+    
+    // Load time_slots
+    if (listingAny.time_slots) {
+      if (Array.isArray(listingAny.time_slots)) {
+        setTimeSlots(listingAny.time_slots)
+      } else if (typeof listingAny.time_slots === 'string') {
+        try {
+          const parsed = JSON.parse(listingAny.time_slots)
+          setTimeSlots(Array.isArray(parsed) ? parsed : [])
+        } catch {
+          setTimeSlots([])
+        }
+      }
+    } else {
+      setTimeSlots([])
+    }
+    
+    console.log('📅 Loaded time_slots:', listingAny.time_slots)
     
     console.log('✅ loadFromListing completed, form state updated')
   }, [
@@ -251,6 +309,7 @@ export function useListingForm(isEditMode: boolean) {
     budgetMax,
     urgency,
     preferredDate,
+    price_list: priceList,
     locationAddress,
     locationLat,
     locationLng,
@@ -261,6 +320,9 @@ export function useListingForm(isEditMode: boolean) {
     postalCode,
     country,
     locationNotes,
+    booking_enabled: bookingEnabled,
+    service_name: serviceName,
+    time_slots: timeSlots,
   }
 
   const actions: ListingFormActions = {
@@ -276,6 +338,7 @@ export function useListingForm(isEditMode: boolean) {
     setBudgetMax,
     setUrgency,
     setPreferredDate,
+    setPriceList,
     setLocationAddress,
     setLocationLat,
     setLocationLng,
@@ -286,6 +349,9 @@ export function useListingForm(isEditMode: boolean) {
     setPostalCode,
     setCountry,
     setLocationNotes,
+    setBookingEnabled,
+    setServiceName,
+    setTimeSlots,
     resetForm,
     loadFromListing,
   }

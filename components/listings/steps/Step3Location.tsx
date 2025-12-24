@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, Switch } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { LocationPickerMap } from '@/components/location/LocationPickerMap'
 import type { ListingFormState, ListingFormActions } from '../useListingForm'
@@ -77,26 +77,23 @@ export function Step3Location({
         </View>
       )}
 
-      {/* Add Manual Address Toggle - Always visible */}
+      {/* Add Manual Address Toggle */}
       <View style={styles.inputGroup}>
-        <Pressable
-          style={styles.toggleRow}
-          onPress={() => setShowExactAddress(!showExactAddress)}
-        >
+        <View style={styles.toggleRow}>
           <View style={styles.toggleLabelContainer}>
             <Text style={styles.label}>Add Manual Address</Text>
             <Text style={styles.toggleDescription}>
-              {showExactAddress 
-                ? 'Enter detailed address information manually' 
-                : 'Enable to enter detailed address information manually'}
+              Enable to enter detailed address information manually
             </Text>
           </View>
-          <View style={[styles.toggle, showExactAddress && styles.toggleActive, showExactAddress && styles.toggleActiveAlign]}>
-            {showExactAddress ? (
-              <View style={styles.toggleThumb} />
-            ) : null}
-          </View>
-        </Pressable>
+          <Switch
+            value={showExactAddress}
+            onValueChange={setShowExactAddress}
+            trackColor={{ false: '#e5e7eb', true: '#f25842' }}
+            thumbColor={showExactAddress ? '#ffffff' : '#f3f4f6'}
+            ios_backgroundColor="#e5e7eb"
+          />
+        </View>
       </View>
 
       {/* Manual Address Entry */}
@@ -238,7 +235,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: 4,
   },
   toggleLabelContainer: {
     flex: 1,
@@ -248,27 +245,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
     marginTop: 4,
-  },
-  toggle: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#e5e7eb',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-    alignItems: 'flex-start',
-  },
-  toggleActive: {
-    backgroundColor: '#f25842',
-  },
-  toggleActiveAlign: {
-    alignItems: 'flex-end',
-  },
-  toggleThumb: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#ffffff',
   },
   manualAddressBox: {
     backgroundColor: '#f9fafb',
