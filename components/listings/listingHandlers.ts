@@ -6,6 +6,81 @@ import { getCurrentLocation, reverseGeocode } from '@/lib/utils/location'
 import type { ListingFormState, ListingFormActions, Step } from './useListingForm'
 
 /**
+ * Save or update review incentive settings for a listing
+ */
+async function saveReviewIncentiveSettings(
+  listingId: string,
+  providerId: string,
+  formState: ListingFormState
+) {
+  try {
+    // Only save if review incentives are enabled
+    if (!formState.review_incentive_enabled) {
+      // Delete existing settings if disabled
+      await supabase
+        .from('review_incentive_settings')
+        .delete()
+        .eq('listing_id', listingId)
+        .eq('provider_id', providerId)
+      return
+    }
+
+    const settingsData = {
+      provider_id: providerId,
+      listing_id: listingId,
+      enabled: formState.review_incentive_enabled,
+      incentive_type: formState.review_incentive_type || 'discount',
+      discount_percentage: formState.review_discount_percentage || null,
+      discount_amount: formState.review_discount_amount || null,
+      min_rating: formState.review_min_rating || 4.0,
+      require_text_review: formState.review_require_text || false,
+      max_uses_per_customer: formState.review_max_uses_per_customer || 1,
+      auto_generate_coupon: formState.review_auto_generate_coupon ?? true,
+      coupon_code_prefix: formState.review_coupon_code_prefix || 'REVIEW',
+      coupon_valid_days: formState.review_coupon_valid_days || 30,
+      incentive_message: formState.review_incentive_message || 'Thank you for your review! Here\'s a discount for your next booking.',
+    }
+
+    // Check if settings already exist
+    const { data: existing } = await supabase
+      .from('review_incentive_settings')
+      .select('id')
+      .eq('listing_id', listingId)
+      .eq('provider_id', providerId)
+      .single()
+
+    if (existing) {
+      // Update existing
+      const { error } = await supabase
+        .from('review_incentive_settings')
+        .update(settingsData)
+        .eq('listing_id', listingId)
+        .eq('provider_id', providerId)
+
+      if (error) {
+        console.error('❌ Error updating review incentive settings:', error)
+        throw error
+      }
+      console.log('✅ Review incentive settings updated')
+    } else {
+      // Create new
+      const { error } = await supabase
+        .from('review_incentive_settings')
+        .insert(settingsData)
+
+      if (error) {
+        console.error('❌ Error creating review incentive settings:', error)
+        throw error
+      }
+      console.log('✅ Review incentive settings created')
+    }
+  } catch (error) {
+    console.error('❌ Failed to save review incentive settings:', error)
+    // Don't throw - listing is already saved, this is supplementary
+  }
+}
+
+/**
  * Save or update service_settings for a listing with simplified booking configuration
  */
 async function saveServiceSettings(listingId: string, formState: ListingFormState) {
@@ -43,15 +118,24 @@ async function saveServiceSettings(listingId: string, formState: ListingFormStat
       advance_booking_days: 30, // Default 30 days
       same_day_booking: true,
       auto_confirm: false, // Manual confirmation by default
-      cancellation_hours: 24,
+      cancellation_hours: formState.cancellation_hours || 24,
+      // Note: cancellation_fee and refund_policy would need to be added to service_settings table
+      // For now, we'll store cancellation_hours in service_settings
       working_hours: workingHours,
       break_times: [],
-      service_options: formState.service_name ? [{
-        name: formState.service_name,
-        duration: 60,
-        price: parseFloat(formState.budgetMin || '50'),
-        currency: 'GBP'
-      }] : [],
+      service_options: formState.budget_type === 'price_list' && formState.price_list && formState.price_list.length > 0
+        ? formState.price_list.map(item => ({
+            name: item.serviceName,
+            duration: 60, // Default duration, can be customized later
+            price: parseFloat(item.price),
+            currency: formState.currency || 'GBP'
+          }))
+        : formState.service_name ? [{
+            name: formState.service_name,
+            duration: 60,
+            price: parseFloat(formState.budgetMin || '50'),
+            currency: formState.currency || 'GBP'
+          }] : [],
       calendar_connected: false,
     };
 
@@ -320,8 +404,8 @@ export function createListingHandlers(
         const max = parseFloat(formState.budgetMax);
         if (min >= max) {
           Alert.alert('Invalid Range', 'Minimum price must be less than maximum price')
-          return null
-        }
+        return null
+      }
       }
       else if (formState.budgetType === 'price_list') {
         if (!formState.price_list || formState.price_list.length === 0) {
@@ -335,7 +419,7 @@ export function createListingHandlers(
         )
         if (invalidItems.length > 0) {
           Alert.alert('Invalid Price List', 'Please fill in all service names and prices')
-          return null
+        return null
         }
       }
       
@@ -361,6 +445,10 @@ export function createListingHandlers(
         }
       }
       return 5
+    }
+    // Step 5: Settings (optional, no validation needed)
+    else if (currentStep === 5) {
+      return 6
     }
     return null
   }
@@ -479,6 +567,11 @@ export function createListingHandlers(
           await saveServiceSettings(data[0].id, formState);
         }
         
+        // Save review incentive settings
+        if (data && data[0]) {
+          await saveReviewIncentiveSettings(data[0].id, user.id, formState);
+        }
+        
         Alert.alert('Success', 'Listing updated successfully!')
       } else {
         // Create new listing
@@ -510,6 +603,11 @@ export function createListingHandlers(
         // Create service_settings if booking is enabled
         if (formState.booking_enabled && data && data[0]) {
           await saveServiceSettings(data[0].id, formState);
+        }
+        
+        // Save review incentive settings
+        if (data && data[0]) {
+          await saveReviewIncentiveSettings(data[0].id, user.id, formState);
         }
         
         Alert.alert('Success', 'Listing created successfully!')

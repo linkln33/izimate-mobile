@@ -287,7 +287,7 @@ export const QuickEventForm: React.FC<QuickEventFormProps> = ({
           end_time: endDateTime,
           status: providerId && customerId !== userId ? 'pending' : 'confirmed',
           service_price: price ? parseFloat(price) : null,
-          currency: 'GBP',
+          currency: selectedService?.currency || 'GBP',
           customer_notes: description.trim() || null,
         });
 

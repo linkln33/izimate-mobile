@@ -373,22 +373,22 @@ export default function FindScreen() {
 
         {/* Search Box with Filter Button */}
         <View style={styles.searchWrapper}>
-          <View style={styles.searchContainer}>
+        <View style={styles.searchContainer}>
             <Ionicons name="search" size={20} color="#6b7280" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search listings..."
-              placeholderTextColor="#9ca3af"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search listings..."
+            placeholderTextColor="#9ca3af"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
               underlineColorAndroid="transparent"
               selectionColor="#f25842"
-            />
-            {searchQuery.length > 0 && (
+          />
+          {searchQuery.length > 0 && (
               <Pressable onPress={() => setSearchQuery('')}>
                 <Ionicons name="close-circle" size={20} color="#6b7280" />
-              </Pressable>
-            )}
+            </Pressable>
+          )}
           </View>
           <Pressable
             style={styles.filterIconButton}

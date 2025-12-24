@@ -328,13 +328,13 @@ export default function ProfileScreen() {
           {/* Avatar */}
           <View style={styles.avatarSection}>
             <Pressable onPress={handlePickAvatar} style={styles.avatarContainer}>
-              {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person" size={40} color="#6b7280" />
-                </View>
-              )}
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Ionicons name="person" size={40} color="#6b7280" />
+              </View>
+            )}
               {/* Camera icon overlay for changing photo */}
               <View style={styles.cameraIconOverlay}>
                 <Ionicons name="camera" size={20} color="#ffffff" />
@@ -343,11 +343,11 @@ export default function ProfileScreen() {
             
             {/* Display name with verified badge inline */}
             <View style={styles.nameRow}>
-              {name ? (
-                <Text style={styles.avatarName}>{name}</Text>
-              ) : (
-                <Text style={styles.avatarNamePlaceholder}>Add your name</Text>
-              )}
+            {name ? (
+              <Text style={styles.avatarName}>{name}</Text>
+            ) : (
+              <Text style={styles.avatarNamePlaceholder}>Add your name</Text>
+            )}
               {(() => {
                 console.log('Checking verification status:', {
                   hasUser: !!user,
@@ -355,10 +355,10 @@ export default function ProfileScreen() {
                   isVerified: user?.verification_status === 'verified'
                 });
                 return user?.verification_status === 'verified' && (
-                  <View style={styles.verifiedBadge}>
-                    <Ionicons name="shield-checkmark" size={14} color="#a855f7" />
-                    <Text style={styles.verifiedBadgeText}>Verified</Text>
-                  </View>
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="shield-checkmark" size={14} color="#a855f7" />
+                <Text style={styles.verifiedBadgeText}>Verified</Text>
+              </View>
                 );
               })()}
             </View>
@@ -374,18 +374,18 @@ export default function ProfileScreen() {
             />
 
             {providerProfile && providerProfile.verification_score !== undefined && (
-              <View style={styles.statCard}>
-                <View style={styles.statRow}>
-                  <Ionicons name="shield-checkmark" size={20} color="#10b981" />
-                  <Text style={styles.statLabel}>Verification Score</Text>
-                </View>
-                <View style={styles.statValueRow}>
-                  <Text style={styles.statValue}>{providerProfile.verification_score}</Text>
-                  <Text style={styles.statSubtext}>/ 100</Text>
-                </View>
-              </View>
-            )}
-          </View>
+                    <View style={styles.statCard}>
+                      <View style={styles.statRow}>
+                        <Ionicons name="shield-checkmark" size={20} color="#10b981" />
+                        <Text style={styles.statLabel}>Verification Score</Text>
+                      </View>
+                      <View style={styles.statValueRow}>
+                        <Text style={styles.statValue}>{providerProfile.verification_score}</Text>
+                        <Text style={styles.statSubtext}>/ 100</Text>
+                      </View>
+                    </View>
+              )}
+            </View>
 
           {/* Profile Information */}
           <Text style={styles.sectionTitle}>Profile Information</Text>

@@ -18,6 +18,8 @@ import { supabase } from '@/lib/supabase'
 import { sendBookingConfirmation } from '@/lib/utils/booking-notifications'
 import { BiometricBookingConfirmation } from './BiometricBookingConfirmation'
 import { authenticateForBooking } from '@/lib/utils/biometric-auth'
+import { formatCurrency } from '@/lib/utils/currency'
+import { TrustSignals } from './TrustSignals'
 import type { Listing, User } from '@/lib/types'
 
 interface GuestCheckoutProps {
@@ -46,10 +48,11 @@ export function GuestCheckout({
   selectedTime,
   serviceName,
   servicePrice,
-  currency = 'USD',
+  currency,
   onBookingComplete,
   onCancel
 }: GuestCheckoutProps) {
+  const finalCurrency = currency || listing.currency || 'GBP';
   const router = useRouter()
   const [guestInfo, setGuestInfo] = useState<GuestInfo>({
     name: '',
@@ -146,7 +149,7 @@ export function GuestCheckout({
           end_time: endDateTime.toISOString(),
           service_name: serviceName,
           service_price: servicePrice,
-          currency: currency,
+          currency: finalCurrency,
           status: 'pending',
           customer_notes: guestInfo.notes,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -247,7 +250,10 @@ export function GuestCheckout({
           
           <View style={styles.summaryItem}>
             <Ionicons name="person-outline" size={20} color="#6b7280" />
-            <Text style={styles.summaryText}>with {provider.name}</Text>
+            <View style={styles.providerInfoContainer}>
+              <Text style={styles.summaryText}>with {provider.name}</Text>
+              <TrustSignals provider={provider} />
+            </View>
           </View>
           
           <View style={styles.summaryItem}>
@@ -262,7 +268,7 @@ export function GuestCheckout({
           
           <View style={styles.summaryItem}>
             <Ionicons name="card-outline" size={20} color="#6b7280" />
-            <Text style={styles.summaryPrice}>${servicePrice}</Text>
+            <Text style={styles.summaryPrice}>{formatCurrency(servicePrice, finalCurrency)}</Text>
           </View>
         </View>
 
@@ -406,7 +412,7 @@ export function GuestCheckout({
               <Text style={styles.confirmationTitle}>{serviceName}</Text>
               <Text style={styles.confirmationProvider}>with {provider.name}</Text>
               <Text style={styles.confirmationDateTime}>{date} at {time}</Text>
-              <Text style={styles.confirmationPrice}>${servicePrice}</Text>
+              <Text style={styles.confirmationPrice}>{formatCurrency(servicePrice, finalCurrency)}</Text>
             </View>
 
             <View style={styles.confirmationDetails}>
@@ -463,7 +469,7 @@ export function GuestCheckout({
           serviceName={serviceName}
           providerName={provider.name}
           price={servicePrice}
-          currency={currency}
+          currency={finalCurrency}
           date={formatDateTime().date}
           time={formatDateTime().time}
           onConfirm={handleCompleteBooking}
@@ -533,6 +539,10 @@ const styles = StyleSheet.create({
   summaryText: {
     fontSize: 16,
     color: '#374151',
+  },
+  providerInfoContainer: {
+    flex: 1,
+    gap: 4,
   },
   summaryPrice: {
     fontSize: 18,

@@ -513,17 +513,17 @@ export function ListingCard({
                     ))}
                   </View>
                 ) : (
-                  <View style={styles.budgetBreakdown}>
-                    <View style={styles.budgetItem}>
+                <View style={styles.budgetBreakdown}>
+                  <View style={styles.budgetItem}>
                       <Text style={styles.budgetLabel}>
                         {listing.budget_type === 'fixed' ? 'Fixed Price' : 
                          listing.budget_type === 'range' ? 'Price Range' : 'Price'}
                       </Text>
                       <Text style={styles.budgetValue}>{budgetText}</Text>
                     </View>
-                  </View>
-                )}
-              </View>
+                    </View>
+                  )}
+                </View>
 
               {/* Booking Availability Section - Replaces Activity when booking is enabled */}
               {listing.booking_enabled && listing.time_slots && listing.time_slots.length > 0 ? (
@@ -531,8 +531,8 @@ export function ListingCard({
                   <View style={styles.sectionHeader}>
                     <Ionicons name="calendar-outline" size={18} color="#f25842" />
                     <Text style={styles.sectionTitle}>Available Time Slots</Text>
-                  </View>
-                  
+              </View>
+
                   <View style={styles.timeSlotsContainer}>
                     {listing.service_name && (
                       <Text style={styles.bookingServiceName}>
@@ -569,53 +569,53 @@ export function ListingCard({
                 </View>
               ) : (
                 /* Activity & Stats Section - Only show when booking is NOT enabled */
-                <View style={styles.expandedSection}>
-                  <View style={styles.sectionHeader}>
-                    <Ionicons name="analytics-outline" size={18} color="#f25842" />
-                    <Text style={styles.sectionTitle}>Activity</Text>
-                  </View>
-                  
-                  <View style={styles.statsGrid}>
-                    {(listing.view_count || 0) > 0 && (
-                      <View style={styles.statCard}>
-                        <Ionicons name="eye-outline" size={16} color="#6b7280" />
-                        <Text style={styles.statNumber}>{listing.view_count || 0}</Text>
-                        <Text style={styles.statLabel}>Views</Text>
-                      </View>
-                    )}
-                    
-                    {(listing.swipe_count || 0) > 0 && (
-                      <View style={styles.statCard}>
-                        <Ionicons name="heart-outline" size={16} color="#10b981" />
-                        <Text style={styles.statNumber}>{listing.swipe_count || 0}</Text>
-                        <Text style={styles.statLabel}>Likes</Text>
-                      </View>
-                    )}
-                    
-                    {(listing.match_count || 0) > 0 && (
-                      <View style={styles.statCard}>
-                        <Ionicons name="checkmark-circle-outline" size={16} color="#f25842" />
-                        <Text style={styles.statNumber}>{listing.match_count || 0}</Text>
-                        <Text style={styles.statLabel}>Matches</Text>
-                      </View>
-                    )}
-                    
-                    {/* Always show status */}
+              <View style={styles.expandedSection}>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="analytics-outline" size={18} color="#f25842" />
+                  <Text style={styles.sectionTitle}>Activity</Text>
+                </View>
+                
+                <View style={styles.statsGrid}>
+                  {(listing.view_count || 0) > 0 && (
                     <View style={styles.statCard}>
-                      <Ionicons 
-                        name={listing.status === 'active' ? 'checkmark-circle' : 'pause-circle'} 
-                        size={16} 
-                        color={listing.status === 'active' ? '#10b981' : '#f59e0b'} 
-                      />
-                      <Text style={styles.statNumber}>•</Text>
-                      <Text style={styles.statLabel}>
-                        {listing.status === 'active' ? 'Active' : 
-                         listing.status === 'paused' ? 'Paused' : 
-                         listing.status === 'completed' ? 'Done' : 'Draft'}
-                      </Text>
+                      <Ionicons name="eye-outline" size={16} color="#6b7280" />
+                      <Text style={styles.statNumber}>{listing.view_count || 0}</Text>
+                      <Text style={styles.statLabel}>Views</Text>
                     </View>
+                  )}
+                  
+                  {(listing.swipe_count || 0) > 0 && (
+                    <View style={styles.statCard}>
+                      <Ionicons name="heart-outline" size={16} color="#10b981" />
+                      <Text style={styles.statNumber}>{listing.swipe_count || 0}</Text>
+                      <Text style={styles.statLabel}>Likes</Text>
+                    </View>
+                  )}
+                  
+                  {(listing.match_count || 0) > 0 && (
+                    <View style={styles.statCard}>
+                      <Ionicons name="checkmark-circle-outline" size={16} color="#f25842" />
+                      <Text style={styles.statNumber}>{listing.match_count || 0}</Text>
+                      <Text style={styles.statLabel}>Matches</Text>
+                    </View>
+                  )}
+                  
+                  {/* Always show status */}
+                  <View style={styles.statCard}>
+                    <Ionicons 
+                      name={listing.status === 'active' ? 'checkmark-circle' : 'pause-circle'} 
+                      size={16} 
+                      color={listing.status === 'active' ? '#10b981' : '#f59e0b'} 
+                    />
+                    <Text style={styles.statNumber}>•</Text>
+                    <Text style={styles.statLabel}>
+                      {listing.status === 'active' ? 'Active' : 
+                       listing.status === 'paused' ? 'Paused' : 
+                       listing.status === 'completed' ? 'Done' : 'Draft'}
+                    </Text>
                   </View>
                 </View>
+              </View>
               )}
 
               {/* Contact & Location Details */}

@@ -93,7 +93,7 @@ export function Step3Location({
             thumbColor={showExactAddress ? '#ffffff' : '#f3f4f6'}
             ios_backgroundColor="#e5e7eb"
           />
-        </View>
+          </View>
       </View>
 
       {/* Manual Address Entry */}

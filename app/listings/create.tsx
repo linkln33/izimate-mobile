@@ -11,6 +11,7 @@ import { Step2Budget } from '@/components/listings/steps/Step2Budget'
 import { Step3Location } from '@/components/listings/steps/Step3Location'
 import { Step4Review } from '@/components/listings/steps/Step4Review'
 import { Step5BookingSimplified } from '@/components/listings/steps/Step5BookingSimplified'
+import { Step6Settings } from '@/components/listings/steps/Step6Settings'
 import { createListingStyles } from '@/components/listings/createListingStyles'
 import type { Listing } from '@/lib/types'
 
@@ -133,6 +134,19 @@ function CreateListingScreenContent() {
         return
       }
 
+      // Fetch service_settings for cancellation settings
+      const { data: serviceSettings } = await supabase
+        .from('service_settings')
+        .select('cancellation_hours')
+        .eq('listing_id', listingId)
+        .single()
+
+      // Attach service_settings to listing for loadFromListing
+      const listingWithSettings = {
+        ...listing,
+        service_settings: serviceSettings || null,
+      }
+
       console.log('✅ Listing loaded:', listing.id, 'Title:', listing.title)
       console.log('📋 Listing data:', {
         title: listing.title,
@@ -140,10 +154,11 @@ function CreateListingScreenContent() {
         photos: listing.photos,
         budget_type: listing.budget_type,
         location_address: listing.location_address,
+        service_settings: serviceSettings,
       })
 
       // Load data into form
-      formActions.loadFromListing(listing)
+      formActions.loadFromListing(listingWithSettings as any)
       console.log('✅ Form data loaded from listing')
       
       // Mark as loaded to prevent re-loading
@@ -392,7 +407,7 @@ function CreateListingScreenContent() {
 
       {/* Progress */}
       <View style={createListingStyles.progress}>
-        {[1, 2, 3, 4, 5].map((s) => (
+        {[1, 2, 3, 4, 5, 6].map((s) => (
           <View
             key={s}
             style={[
@@ -451,6 +466,14 @@ function CreateListingScreenContent() {
         )}
 
         {step === 5 && (
+          <Step6Settings
+            formState={formState}
+            formActions={formActions}
+            listingId={id}
+          />
+        )}
+
+        {step === 6 && (
           <Step4Review
             formState={formState}
             quota={quota}
@@ -465,7 +488,7 @@ function CreateListingScreenContent() {
             <Text style={createListingStyles.backButtonText}>Back</Text>
           </Pressable>
         )}
-        {step < 5 ? (
+        {step < 6 ? (
           <Pressable style={createListingStyles.nextButton} onPress={handleNext}>
             <Text style={createListingStyles.nextButtonText}>Continue</Text>
           </Pressable>

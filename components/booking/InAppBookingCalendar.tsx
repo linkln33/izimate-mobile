@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { getAvailableTimeSlots, type TimeSlot } from '@/lib/utils/booking-slots';
+import { getCurrencySymbol } from '@/lib/utils/currency';
 import type { Listing, User } from '@/lib/types';
 
 const { width } = Dimensions.get('window');
@@ -45,6 +46,7 @@ export const InAppBookingCalendar: React.FC<InAppBookingCalendarProps> = ({
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(false);
   const [showTimeSlots, setShowTimeSlots] = useState(false);
+  const [selectedService, setSelectedService] = useState<{id: string; serviceName: string; price: string} | null>(null);
 
   // Generate calendar days for current month
   const generateCalendarDays = () => {
@@ -106,14 +108,41 @@ export const InAppBookingCalendar: React.FC<InAppBookingCalendarProps> = ({
   const handleTimeSlotSelect = (slot: TimeSlot) => {
     if (!slot.isAvailable || !selectedDate) return;
     
-    onBookingSelect({
-      date: selectedDate,
-      time: slot.start,
-      serviceName: slot.serviceName || listing.title,
-      servicePrice: slot.price || listing.budget_min || 0,
-      currency: 'USD',
-      durationMinutes: slot.duration || 60,
-    });
+    // For price_list type, require service selection
+    if (listing.budget_type === 'price_list' && listing.price_list && listing.price_list.length > 0) {
+      if (!selectedService) {
+        Alert.alert('Select Service', 'Please select a service from the price list first.');
+        return;
+      }
+      
+      onBookingSelect({
+        date: selectedDate,
+        time: slot.start,
+        serviceName: selectedService.serviceName,
+        servicePrice: parseFloat(selectedService.price),
+        currency: listing.currency || 'GBP',
+        durationMinutes: slot.duration || 60,
+      });
+    } else {
+      // For fixed or range pricing
+      let servicePrice = 0;
+      if (listing.budget_type === 'fixed' && listing.budget_min) {
+        servicePrice = listing.budget_min;
+      } else if (listing.budget_type === 'range' && listing.budget_min) {
+        servicePrice = listing.budget_min;
+      } else if (slot.price) {
+        servicePrice = slot.price;
+      }
+      
+      onBookingSelect({
+        date: selectedDate,
+        time: slot.start,
+        serviceName: slot.serviceName || listing.service_name || listing.title,
+        servicePrice: servicePrice,
+        currency: listing.currency || 'GBP',
+        durationMinutes: slot.duration || 60,
+      });
+    }
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -197,6 +226,46 @@ export const InAppBookingCalendar: React.FC<InAppBookingCalendarProps> = ({
         ))}
       </View>
 
+      {/* Service Selection for Price List */}
+      {showTimeSlots && listing.budget_type === 'price_list' && listing.price_list && listing.price_list.length > 0 && (
+        <View style={styles.serviceSelectionContainer}>
+          <Text style={styles.serviceSelectionTitle}>Select Service</Text>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.serviceList}
+          >
+            {listing.price_list.map((service) => (
+              <Pressable
+                key={service.id}
+                style={[
+                  styles.serviceOption,
+                  selectedService?.id === service.id && styles.serviceOptionSelected,
+                ]}
+                onPress={() => setSelectedService(service)}
+              >
+                <Text
+                  style={[
+                    styles.serviceOptionName,
+                    selectedService?.id === service.id && styles.serviceOptionNameSelected,
+                  ]}
+                >
+                  {service.serviceName}
+                </Text>
+                <Text
+                  style={[
+                    styles.serviceOptionPrice,
+                    selectedService?.id === service.id && styles.serviceOptionPriceSelected,
+                  ]}
+                >
+                  {listing.currency ? getCurrencySymbol(listing.currency) : '£'}{service.price}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       {/* Time Slots */}
       {showTimeSlots && selectedDate && (
         <View style={styles.timeSlotsContainer}>
@@ -207,6 +276,11 @@ export const InAppBookingCalendar: React.FC<InAppBookingCalendarProps> = ({
               day: 'numeric'
             })}
           </Text>
+          {listing.budget_type === 'price_list' && !selectedService && (
+            <Text style={styles.serviceSelectionHint}>
+              Please select a service above to see available times
+            </Text>
+          )}
           
           {loading ? (
             <View style={styles.loadingContainer}>
@@ -225,9 +299,10 @@ export const InAppBookingCalendar: React.FC<InAppBookingCalendarProps> = ({
                   style={[
                     styles.timeSlot,
                     !slot.isAvailable && styles.timeSlotUnavailable,
+                    listing.budget_type === 'price_list' && !selectedService && styles.timeSlotDisabled,
                   ]}
                   onPress={() => handleTimeSlotSelect(slot)}
-                  disabled={!slot.isAvailable}
+                  disabled={!slot.isAvailable || (listing.budget_type === 'price_list' && !selectedService)}
                 >
                   <Text
                     style={[
@@ -237,14 +312,14 @@ export const InAppBookingCalendar: React.FC<InAppBookingCalendarProps> = ({
                   >
                     {slot.start}
                   </Text>
-                  {slot.price && (
+                  {slot.price && listing.budget_type !== 'price_list' && (
                     <Text
                       style={[
                         styles.timeSlotPrice,
                         !slot.isAvailable && styles.timeSlotPriceUnavailable,
                       ]}
                     >
-                      ${slot.price}
+                      {listing.currency ? getCurrencySymbol(listing.currency) : '£'}{slot.price}
                     </Text>
                   )}
                   {!slot.isAvailable && (
@@ -472,5 +547,60 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  serviceSelectionContainer: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    backgroundColor: '#f9fafb',
+  },
+  serviceSelectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 12,
+  },
+  serviceSelectionHint: {
+    fontSize: 14,
+    color: '#f25842',
+    fontStyle: 'italic',
+    marginBottom: 12,
+  },
+  serviceList: {
+    paddingBottom: 8,
+  },
+  serviceOption: {
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    padding: 12,
+    marginRight: 12,
+    minWidth: 120,
+    alignItems: 'center',
+  },
+  serviceOptionSelected: {
+    borderColor: '#f25842',
+    backgroundColor: '#fef2f2',
+  },
+  serviceOptionName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  serviceOptionNameSelected: {
+    color: '#f25842',
+  },
+  serviceOptionPrice: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  serviceOptionPriceSelected: {
+    color: '#f25842',
+  },
+  timeSlotDisabled: {
+    opacity: 0.5,
   },
 });

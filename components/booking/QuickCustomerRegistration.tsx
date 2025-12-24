@@ -171,6 +171,11 @@ export const QuickCustomerRegistration: React.FC<QuickCustomerRegistrationProps>
         }
       }
 
+      // Get currency from first listing or default to GBP
+      const defaultCurrency = listings.length > 0 && listings[0].currency 
+        ? listings[0].currency 
+        : 'GBP';
+
       // Create booking
       const bookingData: any = {
         start_time: startDateTime.toISOString(),
@@ -178,7 +183,7 @@ export const QuickCustomerRegistration: React.FC<QuickCustomerRegistrationProps>
         provider_id: providerProfile.id,
         service_name: serviceName.trim(),
         service_price: price ? parseFloat(price) : null,
-        currency: 'GBP',
+        currency: defaultCurrency,
         duration_minutes: parseInt(duration),
         provider_notes: notes.trim() || null,
         status: 'confirmed',

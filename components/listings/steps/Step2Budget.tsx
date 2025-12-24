@@ -35,7 +35,9 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
     setCurrency,
   } = formActions
 
-  // Common currencies
+  const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false)
+
+  // Comprehensive list of currencies
   const currencies = [
     { code: 'GBP', symbol: '£', name: 'British Pound' },
     { code: 'USD', symbol: '$', name: 'US Dollar' },
@@ -45,6 +47,37 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
     { code: 'CHF', symbol: 'CHF', name: 'Swiss Franc' },
     { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
     { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
+    { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+    { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
+    { code: 'HKD', symbol: 'HK$', name: 'Hong Kong Dollar' },
+    { code: 'NZD', symbol: 'NZ$', name: 'New Zealand Dollar' },
+    { code: 'KRW', symbol: '₩', name: 'South Korean Won' },
+    { code: 'MXN', symbol: 'MX$', name: 'Mexican Peso' },
+    { code: 'BRL', symbol: 'R$', name: 'Brazilian Real' },
+    { code: 'ZAR', symbol: 'R', name: 'South African Rand' },
+    { code: 'RUB', symbol: '₽', name: 'Russian Ruble' },
+    { code: 'TRY', symbol: '₺', name: 'Turkish Lira' },
+    { code: 'SEK', symbol: 'kr', name: 'Swedish Krona' },
+    { code: 'NOK', symbol: 'kr', name: 'Norwegian Krone' },
+    { code: 'DKK', symbol: 'kr', name: 'Danish Krone' },
+    { code: 'PLN', symbol: 'zł', name: 'Polish Zloty' },
+    { code: 'THB', symbol: '฿', name: 'Thai Baht' },
+    { code: 'IDR', symbol: 'Rp', name: 'Indonesian Rupiah' },
+    { code: 'MYR', symbol: 'RM', name: 'Malaysian Ringgit' },
+    { code: 'PHP', symbol: '₱', name: 'Philippine Peso' },
+    { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham' },
+    { code: 'SAR', symbol: '﷼', name: 'Saudi Riyal' },
+    { code: 'ILS', symbol: '₪', name: 'Israeli Shekel' },
+    { code: 'EGP', symbol: 'E£', name: 'Egyptian Pound' },
+    { code: 'NGN', symbol: '₦', name: 'Nigerian Naira' },
+    { code: 'ARS', symbol: '$', name: 'Argentine Peso' },
+    { code: 'CLP', symbol: '$', name: 'Chilean Peso' },
+    { code: 'COP', symbol: '$', name: 'Colombian Peso' },
+    { code: 'PEN', symbol: 'S/', name: 'Peruvian Sol' },
+    { code: 'VND', symbol: '₫', name: 'Vietnamese Dong' },
+    { code: 'PKR', symbol: '₨', name: 'Pakistani Rupee' },
+    { code: 'BDT', symbol: '৳', name: 'Bangladeshi Taka' },
+    { code: 'LKR', symbol: 'Rs', name: 'Sri Lankan Rupee' },
   ]
 
   const selectedCurrency = currencies.find(c => c.code === currency) || currencies[0]
@@ -93,30 +126,53 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
         Choose how you want to price your services
       </Text>
 
-      {/* Currency Selector */}
+      {/* Currency Dropdown */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Currency</Text>
-        <View style={styles.currencyButtons}>
-          {currencies.map((curr) => (
-            <Pressable
-              key={curr.code}
-              style={[
-                styles.currencyButton,
-                currency === curr.code && styles.currencyButtonActive,
-              ]}
-              onPress={() => setCurrency?.(curr.code)}
-            >
-              <Text
-                style={[
-                  styles.currencyButtonText,
-                  currency === curr.code && styles.currencyButtonTextActive,
-                ]}
-              >
-                {curr.symbol} {curr.code}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <Pressable
+          style={styles.currencyDropdownButton}
+          onPress={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
+        >
+          <Text style={styles.currencyDropdownText}>
+            {selectedCurrency ? `${selectedCurrency.symbol} ${selectedCurrency.code} - ${selectedCurrency.name}` : 'Select currency'}
+          </Text>
+          <Ionicons
+            name={currencyDropdownOpen ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color="#6b7280"
+          />
+        </Pressable>
+        {currencyDropdownOpen && (
+          <View style={styles.currencyDropdownMenu}>
+            <ScrollView style={styles.currencyDropdownScroll} nestedScrollEnabled={true}>
+              {currencies.map((curr) => (
+                <Pressable
+                  key={curr.code}
+                  style={[
+                    styles.currencyDropdownItem,
+                    currency === curr.code && styles.currencyDropdownItemActive,
+                  ]}
+                  onPress={() => {
+                    setCurrency?.(curr.code)
+                    setCurrencyDropdownOpen(false)
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.currencyDropdownItemText,
+                      currency === curr.code && styles.currencyDropdownItemTextActive,
+                    ]}
+                  >
+                    {curr.symbol} {curr.code} - {curr.name}
+                  </Text>
+                  {currency === curr.code && (
+                    <Ionicons name="checkmark" size={20} color="#f25842" />
+                  )}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        )}
         <Text style={styles.inputHelp}>
           Select the currency for your pricing
         </Text>
@@ -180,12 +236,12 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
               placeholderTextColor="#9ca3af"
             />
           </View>
-          <View style={styles.inputGroup}>
+        <View style={styles.inputGroup}>
             <Text style={styles.label}>Maximum Price ({selectedCurrency.symbol})</Text>
-            <TextInput
-              style={styles.input}
-              value={budgetMax}
-              onChangeText={setBudgetMax}
+          <TextInput
+            style={styles.input}
+            value={budgetMax}
+            onChangeText={setBudgetMax}
               placeholder="100"
               keyboardType="numeric"
               placeholderTextColor="#9ca3af"
@@ -225,7 +281,7 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
                     value={item.price}
                     onChangeText={(value) => handleUpdateService(item.id, 'price', value)}
                     placeholder="50"
-                    keyboardType="numeric"
+            keyboardType="numeric"
                     placeholderTextColor="#9ca3af"
                   />
                 </View>
@@ -433,32 +489,57 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#3b82f6',
   },
-  currencyButtons: {
+  currencyDropdownButton: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  currencyButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    minWidth: 80,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  currencyDropdownText: {
+    fontSize: 16,
+    color: '#1a1a1a',
+    flex: 1,
+  },
+  currencyDropdownMenu: {
+    marginTop: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    maxHeight: 300,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  currencyDropdownScroll: {
+    maxHeight: 300,
+  },
+  currencyDropdownItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
   },
-  currencyButtonActive: {
-    backgroundColor: '#dbeafe',
-    borderColor: '#3b82f6',
+  currencyDropdownItemActive: {
+    backgroundColor: '#fee2e2',
   },
-  currencyButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#6b7280',
+  currencyDropdownItemText: {
+    fontSize: 15,
+    color: '#1a1a1a',
+    flex: 1,
   },
-  currencyButtonTextActive: {
-    color: '#3b82f6',
+  currencyDropdownItemTextActive: {
+    color: '#f25842',
     fontWeight: '600',
   },
   urgencyButtons: {

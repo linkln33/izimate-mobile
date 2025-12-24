@@ -22,6 +22,7 @@ export default function RootLayout() {
         <Stack.Screen name="listings/create" options={{ headerShown: false }} />
         <Stack.Screen name="swipe-view" options={{ headerShown: false }} />
         <Stack.Screen name="booking/[listingId]" options={{ headerShown: false }} />
+        <Stack.Screen name="bookings/[id]" options={{ headerShown: false }} />
         {/* Offer screen is accessed through (tabs)/offer to show tab bar */}
       </Stack>
       <StatusBar style="dark" />

@@ -200,8 +200,7 @@ export function BookingHistory({ userId, showQuickActions = true }: BookingHisto
   }
 
   const handleViewBookingDetails = (booking: BookingHistoryItem) => {
-    setSelectedBooking(booking)
-    setShowBookingModal(true)
+    router.push(`/bookings/${booking.id}`)
   }
 
   const handleContactProvider = (providerId: string) => {

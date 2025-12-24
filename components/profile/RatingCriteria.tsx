@@ -137,7 +137,7 @@ export function RatingCriteria({ ratings, totalReviews }: RatingCriteriaProps) {
           style={styles.criteriaHeader}
           onPress={() => setIsExpanded(!isExpanded)}
         >
-          <Text style={styles.criteriaTitle}>Rating Breakdown</Text>
+        <Text style={styles.criteriaTitle}>Rating Breakdown</Text>
           <Ionicons 
             name={isExpanded ? "chevron-up" : "chevron-down"} 
             size={24} 
@@ -147,45 +147,45 @@ export function RatingCriteria({ ratings, totalReviews }: RatingCriteriaProps) {
         
         {isExpanded && (
           <View style={styles.criteriaContent}>
-            {criteriaList.map((criteria) => (
-              <View key={criteria.key} style={styles.criteriaItem}>
+        {criteriaList.map((criteria) => (
+          <View key={criteria.key} style={styles.criteriaItem}>
                 <View style={styles.criteriaItemHeader}>
-                  <View style={styles.criteriaLabelRow}>
-                    <Ionicons 
-                      name={criteria.icon as any} 
-                      size={16} 
-                      color={criteria.color} 
-                    />
-                    <Text style={styles.criteriaLabel}>{criteria.label}</Text>
-                  </View>
-                  <View style={styles.criteriaValueRow}>
-                    <Text style={styles.criteriaValue}>{criteria.value.toFixed(1)}</Text>
-                    <Text style={styles.criteriaPercentage}>
-                      {getPercentage(criteria.value)}%
-                    </Text>
-                  </View>
-                </View>
-                
-                {/* Progress Bar */}
-                <View style={styles.progressBar}>
-                  <View 
-                    style={[
-                      styles.progressFill, 
-                      { 
-                        width: `${getPercentage(criteria.value)}%`,
-                        backgroundColor: criteria.color 
-                      }
-                    ]} 
-                  />
-                </View>
-                
-                {/* Star Rating */}
-                <View style={styles.criteriaStars}>
-                  {renderStars(criteria.value)}
-                </View>
+              <View style={styles.criteriaLabelRow}>
+                <Ionicons 
+                  name={criteria.icon as any} 
+                  size={16} 
+                  color={criteria.color} 
+                />
+                <Text style={styles.criteriaLabel}>{criteria.label}</Text>
               </View>
-            ))}
+              <View style={styles.criteriaValueRow}>
+                <Text style={styles.criteriaValue}>{criteria.value.toFixed(1)}</Text>
+                <Text style={styles.criteriaPercentage}>
+                  {getPercentage(criteria.value)}%
+                </Text>
+              </View>
+            </View>
+            
+            {/* Progress Bar */}
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { 
+                    width: `${getPercentage(criteria.value)}%`,
+                    backgroundColor: criteria.color 
+                  }
+                ]} 
+              />
+            </View>
+            
+            {/* Star Rating */}
+            <View style={styles.criteriaStars}>
+              {renderStars(criteria.value)}
+            </View>
           </View>
+        ))}
+      </View>
         )}
       </View>
     </View>

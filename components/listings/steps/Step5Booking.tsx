@@ -104,7 +104,7 @@ export const Step5Booking: React.FC<Step5BookingProps> = ({
       ...formData,
       calendar_connected: connected,
     });
-
+      
     // If connecting, show calendar connection flow
     if (connected && currentUserId) {
       const authUrl = googleCalendar.getAuthUrl(currentUserId);

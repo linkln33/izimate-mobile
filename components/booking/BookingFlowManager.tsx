@@ -78,7 +78,7 @@ export function BookingFlowManager({
       time: selection.time,
       serviceName: selection.serviceName,
       servicePrice: selection.servicePrice,
-      currency: selection.currency || 'USD'
+      currency: selection.currency || listing.currency || 'GBP'
     })
 
     // If user is logged in, go to biometric confirmation, otherwise guest checkout
@@ -191,7 +191,7 @@ export function BookingFlowManager({
               time: selection.time,
               serviceName: selection.serviceName,
               servicePrice: selection.servicePrice,
-              currency: selection.currency || 'USD',
+              currency: selection.currency || listing.currency || 'GBP',
               durationMinutes: selection.durationMinutes || 60
             });
           }}

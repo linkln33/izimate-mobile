@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import type { Listing } from '@/lib/types'
 import { normalizePhotoUrls } from '@/lib/utils/images'
 
-export type Step = 1 | 2 | 3 | 4
+export type Step = 1 | 2 | 3 | 4 | 5 | 6
 export type BudgetType = 'fixed' | 'range' | 'price_list'
 export type Urgency = 'asap' | 'this_week' | 'flexible'
 
@@ -41,6 +41,26 @@ export interface ListingFormState {
   booking_enabled?: boolean
   service_name?: string
   time_slots?: any[] // Array of TimeSlot objects
+  
+  // Step 5: Settings (Cancellation & Review Incentives)
+  cancellation_hours?: number // Hours before booking that cancellation is allowed
+  cancellation_fee_enabled?: boolean
+  cancellation_fee_percentage?: number // Percentage of booking price
+  cancellation_fee_amount?: number // Fixed fee amount
+  refund_policy?: string // 'full', 'partial', 'none'
+  
+  // Review Incentive Settings
+  review_incentive_enabled?: boolean
+  review_incentive_type?: 'discount' | 'credit' | 'points'
+  review_discount_percentage?: number
+  review_discount_amount?: number
+  review_min_rating?: number // Minimum rating to get incentive
+  review_require_text?: boolean
+  review_max_uses_per_customer?: number
+  review_auto_generate_coupon?: boolean
+  review_coupon_code_prefix?: string
+  review_coupon_valid_days?: number
+  review_incentive_message?: string
 }
 
 export interface ListingFormActions {
@@ -78,6 +98,25 @@ export interface ListingFormActions {
   setBookingEnabled?: (value: boolean) => void
   setServiceName?: (value: string) => void
   setTimeSlots?: (value: any[]) => void
+  
+  // Step 5: Settings
+  setCancellationHours?: (value: number) => void
+  setCancellationFeeEnabled?: (value: boolean) => void
+  setCancellationFeePercentage?: (value: number) => void
+  setCancellationFeeAmount?: (value: number) => void
+  setRefundPolicy?: (value: string) => void
+  
+  setReviewIncentiveEnabled?: (value: boolean) => void
+  setReviewIncentiveType?: (value: 'discount' | 'credit' | 'points') => void
+  setReviewDiscountPercentage?: (value: number) => void
+  setReviewDiscountAmount?: (value: number) => void
+  setReviewMinRating?: (value: number) => void
+  setReviewRequireText?: (value: boolean) => void
+  setReviewMaxUsesPerCustomer?: (value: number) => void
+  setReviewAutoGenerateCoupon?: (value: boolean) => void
+  setReviewCouponCodePrefix?: (value: string) => void
+  setReviewCouponValidDays?: (value: number) => void
+  setReviewIncentiveMessage?: (value: string) => void
   
   // Reset
   resetForm: () => void
@@ -119,6 +158,25 @@ export function useListingForm(isEditMode: boolean) {
   const [bookingEnabled, setBookingEnabled] = useState(() => false)
   const [serviceName, setServiceName] = useState(() => '')
   const [timeSlots, setTimeSlots] = useState<any[]>(() => [])
+  
+  // Step 5: Settings
+  const [cancellationHours, setCancellationHours] = useState(() => 24)
+  const [cancellationFeeEnabled, setCancellationFeeEnabled] = useState(() => false)
+  const [cancellationFeePercentage, setCancellationFeePercentage] = useState(() => 0)
+  const [cancellationFeeAmount, setCancellationFeeAmount] = useState(() => 0)
+  const [refundPolicy, setRefundPolicy] = useState(() => 'full')
+  
+  const [reviewIncentiveEnabled, setReviewIncentiveEnabled] = useState(() => false)
+  const [reviewIncentiveType, setReviewIncentiveType] = useState<'discount' | 'credit' | 'points'>(() => 'discount')
+  const [reviewDiscountPercentage, setReviewDiscountPercentage] = useState(() => 0)
+  const [reviewDiscountAmount, setReviewDiscountAmount] = useState(() => 0)
+  const [reviewMinRating, setReviewMinRating] = useState(() => 4.0)
+  const [reviewRequireText, setReviewRequireText] = useState(() => false)
+  const [reviewMaxUsesPerCustomer, setReviewMaxUsesPerCustomer] = useState(() => 1)
+  const [reviewAutoGenerateCoupon, setReviewAutoGenerateCoupon] = useState(() => true)
+  const [reviewCouponCodePrefix, setReviewCouponCodePrefix] = useState(() => 'REVIEW')
+  const [reviewCouponValidDays, setReviewCouponValidDays] = useState(() => 30)
+  const [reviewIncentiveMessage, setReviewIncentiveMessage] = useState(() => 'Thank you for your review! Here\'s a discount for your next booking.')
 
   const resetForm = useCallback(() => {
     if (isEditMode) return // Don't reset if editing
@@ -152,6 +210,30 @@ export function useListingForm(isEditMode: boolean) {
     setPostalCode('')
     setCountry('')
     setLocationNotes('')
+    
+    // Step 4
+    setBookingEnabled(false)
+    setServiceName('')
+    setTimeSlots([])
+    
+    // Step 5: Settings
+    setCancellationHours(24)
+    setCancellationFeeEnabled(false)
+    setCancellationFeePercentage(0)
+    setCancellationFeeAmount(0)
+    setRefundPolicy('full')
+    
+    setReviewIncentiveEnabled(false)
+    setReviewIncentiveType('discount')
+    setReviewDiscountPercentage(0)
+    setReviewDiscountAmount(0)
+    setReviewMinRating(4.0)
+    setReviewRequireText(false)
+    setReviewMaxUsesPerCustomer(1)
+    setReviewAutoGenerateCoupon(true)
+    setReviewCouponCodePrefix('REVIEW')
+    setReviewCouponValidDays(30)
+    setReviewIncentiveMessage('Thank you for your review! Here\'s a discount for your next booking.')
   }, [isEditMode])
 
   const loadFromListing = useCallback((listing: Listing) => {
@@ -280,6 +362,19 @@ export function useListingForm(isEditMode: boolean) {
     
     console.log('📅 Loaded time_slots:', listingAny.time_slots)
     
+    // Step 5: Settings - Load from service_settings and review_incentive_settings
+    // Cancellation settings from service_settings
+    if (listingAny.service_settings?.cancellation_hours) {
+      setCancellationHours(listingAny.service_settings.cancellation_hours)
+    } else {
+      // Default to 24 hours if not set
+      setCancellationHours(24)
+    }
+    // Note: cancellation fee and refund policy might need to be added to service_settings table
+    // For now, defaults are set in state initialization
+    
+    // Review incentive settings - loaded separately in Step6Settings component
+    
     console.log('✅ loadFromListing completed, form state updated')
   }, [
     setTitle,
@@ -332,6 +427,22 @@ export function useListingForm(isEditMode: boolean) {
     booking_enabled: bookingEnabled,
     service_name: serviceName,
     time_slots: timeSlots,
+    cancellation_hours: cancellationHours,
+    cancellation_fee_enabled: cancellationFeeEnabled,
+    cancellation_fee_percentage: cancellationFeePercentage,
+    cancellation_fee_amount: cancellationFeeAmount,
+    refund_policy: refundPolicy,
+    review_incentive_enabled: reviewIncentiveEnabled,
+    review_incentive_type: reviewIncentiveType,
+    review_discount_percentage: reviewDiscountPercentage,
+    review_discount_amount: reviewDiscountAmount,
+    review_min_rating: reviewMinRating,
+    review_require_text: reviewRequireText,
+    review_max_uses_per_customer: reviewMaxUsesPerCustomer,
+    review_auto_generate_coupon: reviewAutoGenerateCoupon,
+    review_coupon_code_prefix: reviewCouponCodePrefix,
+    review_coupon_valid_days: reviewCouponValidDays,
+    review_incentive_message: reviewIncentiveMessage,
   }
 
   const actions: ListingFormActions = {
@@ -362,6 +473,22 @@ export function useListingForm(isEditMode: boolean) {
     setBookingEnabled,
     setServiceName,
     setTimeSlots,
+    setCancellationHours,
+    setCancellationFeeEnabled,
+    setCancellationFeePercentage,
+    setCancellationFeeAmount,
+    setRefundPolicy,
+    setReviewIncentiveEnabled,
+    setReviewIncentiveType,
+    setReviewDiscountPercentage,
+    setReviewDiscountAmount,
+    setReviewMinRating,
+    setReviewRequireText,
+    setReviewMaxUsesPerCustomer,
+    setReviewAutoGenerateCoupon,
+    setReviewCouponCodePrefix,
+    setReviewCouponValidDays,
+    setReviewIncentiveMessage,
     resetForm,
     loadFromListing,
   }
