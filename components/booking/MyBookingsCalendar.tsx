@@ -57,6 +57,14 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
     loadBookings();
   }, [userId, currentDate]);
 
+  // Helper function to format date as YYYY-MM-DD using local date components
+  const formatLocalDateString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1; // getMonth() is 0-indexed
+    const day = date.getDate();
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  };
+
   const loadBookings = async () => {
     try {
       setLoading(true);
@@ -79,6 +87,7 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
           .eq('customer_id', userId)
           .gte('start_time', startOfMonth.toISOString())
           .lte('start_time', endOfMonth.toISOString())
+          .not('status', 'eq', 'cancelled') // Exclude cancelled bookings
           .order('start_time', { ascending: true });
 
         if (customerError) console.error('Customer bookings error:', customerError);
@@ -110,6 +119,7 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
           .eq('listing.user_id', userId)
           .gte('start_time', startOfMonth.toISOString())
           .lte('start_time', endOfMonth.toISOString())
+          .not('status', 'eq', 'cancelled') // Exclude cancelled bookings
           .order('start_time', { ascending: true });
 
         if (providerError) console.error('Provider bookings error:', providerError);
@@ -161,12 +171,19 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
       
       const isCurrentMonth = date.getMonth() === month;
       const isToday = date.toDateString() === today.toDateString();
-      const dateString = date.toISOString().split('T')[0];
+      // Use local date components to create dateString (YYYY-MM-DD format)
+      const dateYear = date.getFullYear();
+      const dateMonth = date.getMonth() + 1; // getMonth() is 0-indexed
+      const dateDay = date.getDate();
+      const dateString = `${dateYear}-${String(dateMonth).padStart(2, '0')}-${String(dateDay).padStart(2, '0')}`;
       
-      // Check if this date has bookings
-      const hasBookings = bookings.some(booking => 
-        booking.start.toISOString().split('T')[0] === dateString
-      );
+      // Check if this date has bookings (compare using local date components)
+      const hasBookings = bookings.some(booking => {
+        const bookingDate = booking.start;
+        return bookingDate.getFullYear() === dateYear &&
+               bookingDate.getMonth() === dateMonth - 1 && // getMonth() is 0-indexed
+               bookingDate.getDate() === dateDay;
+      });
       
       days.push({
         date: date.getDate(),
@@ -184,10 +201,14 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
   const handleDateSelect = (dateString: string) => {
     setSelectedDate(dateString);
     
-    // Filter bookings for selected date
-    const selectedBookings = bookings.filter(booking => 
-      booking.start.toISOString().split('T')[0] === dateString
-    );
+    // Filter bookings for selected date (compare using local date components)
+    const [dateYear, dateMonth, dateDay] = dateString.split('-').map(Number);
+    const selectedBookings = bookings.filter(booking => {
+      const bookingDate = booking.start;
+      return bookingDate.getFullYear() === dateYear &&
+             bookingDate.getMonth() === dateMonth - 1 && // getMonth() is 0-indexed
+             bookingDate.getDate() === dateDay;
+    });
     setDayBookings(selectedBookings);
     
     // Show day view modal
@@ -248,56 +269,15 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
 
   const handleExternalCalendarSync = async (provider: 'google' | 'outlook' | 'icloud') => {
     try {
-      switch (provider) {
-        case 'google':
-          Alert.alert(
-            'Google Calendar',
-            'Connect with Google Calendar to sync your bookings',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { 
-                text: 'Connect', 
-                onPress: () => {
-                  // TODO: Implement Google Calendar OAuth
-                  Alert.alert('Coming Soon', 'Google Calendar integration will be available soon!');
-                }
-              }
-            ]
-          );
-          break;
-        case 'outlook':
-          Alert.alert(
-            'Outlook Calendar',
-            'Connect with Outlook Calendar to sync your bookings',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { 
-                text: 'Connect', 
-                onPress: () => {
-                  // TODO: Implement Outlook Calendar OAuth
-                  Alert.alert('Coming Soon', 'Outlook Calendar integration will be available soon!');
-                }
-              }
-            ]
-          );
-          break;
-        case 'icloud':
-          Alert.alert(
-            'iCloud Calendar',
-            'Connect with iCloud Calendar to sync your bookings',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { 
-                text: 'Connect', 
-                onPress: () => {
-                  // TODO: Implement iCloud Calendar integration
-                  Alert.alert('Coming Soon', 'iCloud Calendar integration will be available soon!');
-                }
-              }
-            ]
-          );
-          break;
-      }
+      // Direct users to use the CalendarIntegration component for full calendar management
+      // This is a simplified handler - full integration is available in CalendarIntegration component
+      Alert.alert(
+        'Calendar Integration',
+        `To connect your ${provider === 'google' ? 'Google' : provider === 'outlook' ? 'Outlook' : 'iCloud'} Calendar, please use the Calendar Integration settings in your dashboard or listing settings.`,
+        [
+          { text: 'OK' }
+        ]
+      );
     } catch (error) {
       console.error('External calendar sync error:', error);
       Alert.alert('Error', 'Failed to connect to external calendar');
@@ -425,14 +405,14 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
       <View style={styles.dayViewActions}>
         <Pressable 
           style={styles.createEventButton}
-          onPress={() => handleCreateEvent(currentDate.toISOString().split('T')[0])}
+          onPress={() => handleCreateEvent(formatLocalDateString(currentDate))}
         >
           <Ionicons name="add" size={20} color="#ffffff" />
           <Text style={styles.createEventButtonText}>New Event</Text>
         </Pressable>
       </View>
       
-      {renderDayBookings(currentDate.toISOString().split('T')[0])}
+      {renderDayBookings(formatLocalDateString(currentDate))}
     </View>
   );
 
@@ -467,9 +447,14 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
         <View style={styles.weekDaysHeader}>
           {weekDays.map((day, index) => {
             const isToday = day.toDateString() === new Date().toDateString();
-            const dayBookings = bookings.filter(booking => 
-              booking.start.toISOString().split('T')[0] === day.toISOString().split('T')[0]
-            );
+            // Compare using local date components
+            const dayBookings = bookings.filter(booking => {
+              const bookingDate = booking.start;
+              const dayDate = day;
+              return bookingDate.getFullYear() === dayDate.getFullYear() &&
+                     bookingDate.getMonth() === dayDate.getMonth() &&
+                     bookingDate.getDate() === dayDate.getDate();
+            });
             
             return (
               <View key={index} style={styles.weekDayColumn}>
@@ -528,7 +513,7 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
           <Text style={styles.noBookingsText}>No bookings found</Text>
           <Pressable 
             style={styles.createFirstEventButton}
-            onPress={() => handleCreateEvent(new Date().toISOString().split('T')[0])}
+            onPress={() => handleCreateEvent(formatLocalDateString(new Date()))}
           >
             <Ionicons name="add" size={20} color="#ffffff" />
             <Text style={styles.createEventButtonText}>Create Your First Event</Text>
@@ -592,7 +577,7 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
           {/* Floating Action Button */}
           <Pressable 
             style={styles.floatingActionButton}
-            onPress={() => handleCreateEvent(new Date().toISOString().split('T')[0])}
+            onPress={() => handleCreateEvent(formatLocalDateString(new Date()))}
           >
             <Ionicons name="add" size={24} color="#ffffff" />
           </Pressable>
@@ -602,9 +587,15 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
   );
 
   const renderDayBookings = (dateString: string) => {
-    const dayBookings = bookings.filter(booking => 
-      booking.start.toISOString().split('T')[0] === dateString
-    );
+    // Parse the dateString to get year, month, day for comparison
+    const [dateYear, dateMonth, dateDay] = dateString.split('-').map(Number);
+    
+    const dayBookings = bookings.filter(booking => {
+      const bookingDate = booking.start;
+      return bookingDate.getFullYear() === dateYear &&
+             bookingDate.getMonth() === dateMonth - 1 && // getMonth() is 0-indexed
+             bookingDate.getDate() === dateDay;
+    });
 
     return (
       <View style={styles.dayBookingsContainer}>

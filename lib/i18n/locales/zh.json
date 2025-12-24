@@ -1,0 +1,48 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "close": "关闭",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功"
+  },
+  "settings": {
+    "title": "设置",
+    "profile": "个人资料",
+    "preferences": "偏好设置",
+    "notifications": "通知",
+    "paymentSettings": "支付设置",
+    "language": "语言",
+    "selectLanguage": "选择语言"
+  },
+  "payment": {
+    "title": "支付方式",
+    "connectRevolut": "连接 Revolut",
+    "connectPayPal": "连接 PayPal",
+    "connectBank": "连接银行账户",
+    "disconnect": "断开连接",
+    "connected": "已连接",
+    "notConnected": "未连接",
+    "revolutDescription": "关联您的 Revolut 账户以接收付款",
+    "paypalDescription": "关联您的 PayPal 账户以接收付款",
+    "bankDescription": "添加您的银行账户详细信息以进行直接转账",
+    "addBankAccount": "添加银行账户",
+    "accountHolder": "账户持有人姓名",
+    "accountNumber": "账户号码",
+    "routingNumber": "路由号码",
+    "iban": "IBAN",
+    "swift": "SWIFT/BIC 代码",
+    "bankName": "银行名称",
+    "saveBankDetails": "保存银行详细信息"
+  },
+  "profile": {
+    "name": "姓名",
+    "bio": "简介",
+    "phone": "电话号码",
+    "location": "位置",
+    "avatar": "头像"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "close": "إغلاق",
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "success": "نجح"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "profile": "الملف الشخصي",
+    "preferences": "التفضيلات",
+    "notifications": "الإشعارات",
+    "paymentSettings": "إعدادات الدفع",
+    "language": "اللغة",
+    "selectLanguage": "اختر اللغة"
+  },
+  "payment": {
+    "title": "طرق الدفع",
+    "connectRevolut": "ربط Revolut",
+    "connectPayPal": "ربط PayPal",
+    "connectBank": "ربط حساب بنكي",
+    "disconnect": "قطع الاتصال",
+    "connected": "متصل",
+    "notConnected": "غير متصل",
+    "revolutDescription": "اربط حساب Revolut الخاص بك لاستلام المدفوعات",
+    "paypalDescription": "اربط حساب PayPal الخاص بك لاستلام المدفوعات",
+    "bankDescription": "أضف تفاصيل حسابك البنكي للتحويلات المباشرة",
+    "addBankAccount": "إضافة حساب بنكي",
+    "accountHolder": "اسم صاحب الحساب",
+    "accountNumber": "رقم الحساب",
+    "routingNumber": "رقم التوجيه",
+    "iban": "IBAN",
+    "swift": "رمز SWIFT/BIC",
+    "bankName": "اسم البنك",
+    "saveBankDetails": "حفظ تفاصيل البنك"
+  },
+  "profile": {
+    "name": "الاسم",
+    "bio": "السيرة الذاتية",
+    "phone": "رقم الهاتف",
+    "location": "الموقع",
+    "avatar": "صورة الملف الشخصي"
+  }
+}
+

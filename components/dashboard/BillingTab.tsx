@@ -1,21 +1,72 @@
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert, Linking } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { supabase } from '@/lib/supabase'
 import type { User } from '@/lib/types'
 
 interface Props {
   user: User | null
 }
 
+interface Subscription {
+  plan: 'free' | 'pro' | 'business'
+  status: 'active' | 'cancelled' | 'past_due' | 'trialing'
+  current_period_end?: string
+  cancel_at_period_end?: boolean
+}
+
 export function BillingTab({ user }: Props) {
-  const [subscription, setSubscription] = useState<{ plan: 'free' | 'pro' | 'business'; status: string } | null>(null)
+  const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // TODO: Load subscription from database/Stripe
-    setSubscription({ plan: 'free', status: 'active' })
-    setLoading(false)
+    loadSubscription()
   }, [user?.id])
+
+  const loadSubscription = async () => {
+    if (!user?.id) {
+      setLoading(false)
+      return
+    }
+
+    try {
+      // Try to load from subscriptions table first
+      const { data: subscriptionData, error: subError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle()
+
+      if (!subError && subscriptionData) {
+        setSubscription({
+          plan: subscriptionData.plan_type as 'free' | 'pro' | 'business',
+          status: subscriptionData.status,
+          current_period_end: subscriptionData.current_period_end,
+          cancel_at_period_end: subscriptionData.cancel_at_period_end,
+        })
+        setLoading(false)
+        return
+      }
+
+      // Fallback: Check user's verification_status for plan tier
+      // Pro users have verification_status = 'pro'
+      if (user.verification_status === 'pro') {
+        setSubscription({ plan: 'pro', status: 'active' })
+      } else if (user.verification_status === 'verified') {
+        // Could be business, but defaulting to free for now
+        setSubscription({ plan: 'free', status: 'active' })
+      } else {
+        setSubscription({ plan: 'free', status: 'active' })
+      }
+    } catch (error) {
+      console.error('Failed to load subscription:', error)
+      // Default to free plan on error
+      setSubscription({ plan: 'free', status: 'active' })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleUpgrade = async (plan: 'pro' | 'business') => {
     const API_URL = process.env.EXPO_PUBLIC_SITE_URL || 'https://izimate.com'

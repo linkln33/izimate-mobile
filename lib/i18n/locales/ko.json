@@ -1,0 +1,49 @@
+{
+  "common": {
+    "save": "저장",
+    "cancel": "취소",
+    "delete": "삭제",
+    "edit": "편집",
+    "close": "닫기",
+    "loading": "로딩 중...",
+    "error": "오류",
+    "success": "성공"
+  },
+  "settings": {
+    "title": "설정",
+    "profile": "프로필",
+    "preferences": "환경 설정",
+    "notifications": "알림",
+    "paymentSettings": "결제 설정",
+    "language": "언어",
+    "selectLanguage": "언어 선택"
+  },
+  "payment": {
+    "title": "결제 방법",
+    "connectRevolut": "Revolut 연결",
+    "connectPayPal": "PayPal 연결",
+    "connectBank": "은행 계좌 연결",
+    "disconnect": "연결 해제",
+    "connected": "연결됨",
+    "notConnected": "연결 안 됨",
+    "revolutDescription": "Revolut 계정을 연결하여 결제를 받으세요",
+    "paypalDescription": "PayPal 계정을 연결하여 결제를 받으세요",
+    "bankDescription": "직접 이체를 위해 은행 계좌 정보를 추가하세요",
+    "addBankAccount": "은행 계좌 추가",
+    "accountHolder": "계좌 소유자 이름",
+    "accountNumber": "계좌 번호",
+    "routingNumber": "라우팅 번호",
+    "iban": "IBAN",
+    "swift": "SWIFT/BIC 코드",
+    "bankName": "은행 이름",
+    "saveBankDetails": "은행 세부 정보 저장"
+  },
+  "profile": {
+    "name": "이름",
+    "bio": "자기소개",
+    "phone": "전화번호",
+    "location": "위치",
+    "avatar": "프로필 사진"
+  }
+}
+

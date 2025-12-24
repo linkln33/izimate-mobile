@@ -7,12 +7,14 @@ import { getUnreadNotificationCount } from '@/lib/utils/notifications'
 import { BillingTab } from '@/components/dashboard/BillingTab'
 import { AffiliateTab } from '@/components/dashboard/AffiliateTab'
 import { VerificationTab } from '@/components/dashboard/VerificationTab'
+import { SettingsTab } from '@/components/dashboard/SettingsTab'
 import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { QuickRebookingWidget } from '@/components/booking/QuickRebookingWidget'
 import { UnifiedBookingsTab } from '@/components/booking/UnifiedBookingsTab'
 import { BusinessBookingsTab } from '@/components/booking/BusinessBookingsTab'
 import type { Listing, Match, User } from '@/lib/types'
+import { useTranslation } from 'react-i18next'
 
 interface DashboardStats {
   totalListings: number
@@ -25,7 +27,10 @@ interface DashboardStats {
 
 
 export default function DashboardScreen() {
+  const { t } = useTranslation()
   const router = useRouter()
+  const params = useLocalSearchParams()
+  const [activeSettingsSection, setActiveSettingsSection] = useState<'profile' | 'payment' | 'language'>('profile')
   
   const [user, setUser] = useState<User | null>(null)
   const [listings, setListings] = useState<Listing[]>([])
@@ -44,6 +49,15 @@ export default function DashboardScreen() {
   useEffect(() => {
     loadDashboardData()
   }, [])
+
+  // Handle section from query params
+  useEffect(() => {
+    if (params.section === 'payment') {
+      setActiveSettingsSection('payment')
+    } else if (params.section === 'language') {
+      setActiveSettingsSection('language')
+    }
+  }, [params.section])
 
   const loadDashboardData = async () => {
     try {
@@ -165,7 +179,7 @@ export default function DashboardScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#f25842" />
-        <Text style={styles.loadingText}>Loading dashboard...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     )
   }
@@ -175,7 +189,7 @@ export default function DashboardScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Welcome back,</Text>
+          <Text style={styles.greeting}>{t('dashboard.welcomeBack')}</Text>
           <Text style={styles.userName}>{user?.name || 'User'}</Text>
         </View>
         <View style={styles.headerActions}>
@@ -195,7 +209,7 @@ export default function DashboardScreen() {
       >
         {/* Overview Section - Combined listings, messages, liked, and approvals */}
         <CollapsibleSection
-          title="Overview"
+          title={t('dashboard.overview')}
           icon="home"
           defaultExpanded={true}
         >
@@ -211,7 +225,7 @@ export default function DashboardScreen() {
 
         {/* Billing Section */}
         <CollapsibleSection
-          title="Billing & Subscription"
+          title={t('dashboard.billing')}
           icon="card"
         >
           <BillingTab user={user} />
@@ -219,24 +233,41 @@ export default function DashboardScreen() {
 
         {/* Affiliate Section */}
         <CollapsibleSection
-          title="Affiliate Program"
+          title={t('dashboard.affiliate')}
           icon="people"
+          defaultExpanded={params.section === 'affiliate'}
         >
           <AffiliateTab user={user} />
         </CollapsibleSection>
 
         {/* Verification Section */}
         <CollapsibleSection
-          title="Verification"
+          title={t('dashboard.verification')}
           icon="shield-checkmark"
         >
           <VerificationTab user={user} />
         </CollapsibleSection>
 
+        {/* Settings Section */}
+        {user && (
+        <CollapsibleSection
+          title={t('dashboard.settings')}
+          icon="settings"
+          defaultExpanded={params.section === 'payment' || params.section === 'language'}
+        >
+          <SettingsTab 
+            user={user} 
+            onUserUpdate={setUser}
+            initialSection={activeSettingsSection}
+            onSectionChange={setActiveSettingsSection}
+          />
+        </CollapsibleSection>
+        )}
+
         {/* Unified Bookings Section */}
         {user && (
         <CollapsibleSection
-            title="My Bookings"
+            title={t('dashboard.bookings')}
           icon="calendar"
         >
             <UnifiedBookingsTab 
@@ -248,7 +279,7 @@ export default function DashboardScreen() {
         {/* Business Bookings Section - Only show if user has active listings */}
         {user && listings.length > 0 && (
         <CollapsibleSection
-            title="Business Bookings"
+            title={t('dashboard.bookings')}
           icon="briefcase"
         >
             <BusinessBookingsTab 
@@ -272,6 +303,7 @@ export default function DashboardScreen() {
 
 // Overview Tab Component
 function OverviewTab({ user, listings, matches, stats, router }: any) {
+  const { t } = useTranslation()
   // Calculate active listings (assuming max 5 listings per user)
   const activeListings = listings?.filter((listing: any) => listing.status === 'active').length || 0
   const maxListings = 5
@@ -336,7 +368,7 @@ function OverviewTab({ user, listings, matches, stats, router }: any) {
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{activeListings}/{maxListings}</Text>
           <Pressable onPress={handleNavigateToListings}>
-            <Text style={styles.statLabelLink}>Active Listings</Text>
+            <Text style={styles.statLabelLink}>{t('dashboard.activeListings')}</Text>
           </Pressable>
         </View>
         
@@ -346,21 +378,21 @@ function OverviewTab({ user, listings, matches, stats, router }: any) {
             <Ionicons name="star" size={20} color="#fbbf24" style={styles.starIcon} />
           </View>
           <Pressable onPress={handleNavigateToRating}>
-            <Text style={styles.statLabelLink}>Positive</Text>
+            <Text style={styles.statLabelLink}>{t('dashboard.positive')}</Text>
           </Pressable>
         </View>
         
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{stats.unreadMessages}</Text>
           <Pressable onPress={handleNavigateToMessages}>
-            <Text style={styles.statLabelLink}>Messages</Text>
+            <Text style={styles.statLabelLink}>{t('dashboard.messages')}</Text>
           </Pressable>
         </View>
         
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{stats.pendingLikes}</Text>
           <Pressable onPress={handleNavigateToLiked}>
-            <Text style={styles.statLabelLink}>Liked</Text>
+            <Text style={styles.statLabelLink}>{t('dashboard.liked')}</Text>
           </Pressable>
         </View>
       </View>

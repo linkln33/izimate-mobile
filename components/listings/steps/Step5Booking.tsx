@@ -13,7 +13,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { googleCalendar } from '../../../lib/utils/google-calendar';
+import { GoogleCalendarService } from '../../../lib/utils/google-calendar';
 import { slotCalculator } from '../../../lib/utils/slot-calculator';
 import { CalendarIntegration } from '../../booking/CalendarIntegration';
 import { supabase } from '../../../lib/supabase';
@@ -107,7 +107,8 @@ export const Step5Booking: React.FC<Step5BookingProps> = ({
       
     // If connecting, show calendar connection flow
     if (connected && currentUserId) {
-      const authUrl = googleCalendar.getAuthUrl(currentUserId);
+      const googleService = GoogleCalendarService.getInstance();
+      const authUrl = googleService.getAuthUrl(currentUserId);
       
       Alert.alert(
         'Connect Google Calendar',

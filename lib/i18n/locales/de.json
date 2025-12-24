@@ -1,0 +1,48 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "close": "Schließen",
+    "loading": "Lädt...",
+    "error": "Fehler",
+    "success": "Erfolg"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "profile": "Profil",
+    "preferences": "Einstellungen",
+    "notifications": "Benachrichtigungen",
+    "paymentSettings": "Zahlungseinstellungen",
+    "language": "Sprache",
+    "selectLanguage": "Sprache auswählen"
+  },
+  "payment": {
+    "title": "Zahlungsmethoden",
+    "connectRevolut": "Revolut verbinden",
+    "connectPayPal": "PayPal verbinden",
+    "connectBank": "Bankkonto verbinden",
+    "disconnect": "Trennen",
+    "connected": "Verbunden",
+    "notConnected": "Nicht verbunden",
+    "revolutDescription": "Verknüpfen Sie Ihr Revolut-Konto, um Zahlungen zu erhalten",
+    "paypalDescription": "Verknüpfen Sie Ihr PayPal-Konto, um Zahlungen zu erhalten",
+    "bankDescription": "Fügen Sie Ihre Bankverbindung für direkte Überweisungen hinzu",
+    "addBankAccount": "Bankkonto hinzufügen",
+    "accountHolder": "Kontoinhaber",
+    "accountNumber": "Kontonummer",
+    "routingNumber": "Bankleitzahl",
+    "iban": "IBAN",
+    "swift": "SWIFT/BIC-Code",
+    "bankName": "Bankname",
+    "saveBankDetails": "Bankdaten speichern"
+  },
+  "profile": {
+    "name": "Name",
+    "bio": "Biografie",
+    "phone": "Telefonnummer",
+    "location": "Standort",
+    "avatar": "Profilbild"
+  }
+}

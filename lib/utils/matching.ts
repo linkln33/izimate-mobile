@@ -250,6 +250,58 @@ export async function getOrCreateMatchForChat(
 }
 
 /**
+ * Create or get a direct match between two users (without a listing)
+ * Useful for profile-to-profile messaging
+ */
+export async function getOrCreateDirectMatch(
+  currentUserId: string,
+  otherUserId: string
+): Promise<{ success: boolean; match?: Match; error?: string }> {
+  try {
+    // Check if match already exists between these two users
+    const { data: existingMatch } = await supabase
+      .from('matches')
+      .select('*')
+      .or(`and(customer_id.eq.${currentUserId},provider_id.eq.${otherUserId}),and(customer_id.eq.${otherUserId},provider_id.eq.${currentUserId})`)
+      .maybeSingle()
+
+    if (existingMatch) {
+      return { success: true, match: existingMatch }
+    }
+
+    // Create new match without listing (listing_id can be null)
+    const { data: newMatch, error: matchError } = await supabase
+      .from('matches')
+      .insert({
+        listing_id: null,
+        customer_id: currentUserId,
+        provider_id: otherUserId,
+        status: 'pending',
+      })
+      .select()
+      .single()
+
+    if (matchError || !newMatch) {
+      return { success: false, error: matchError?.message || 'Failed to create match' }
+    }
+
+    // Send notification to the other user
+    await createNotification(
+      otherUserId,
+      'match',
+      'New Message',
+      'Someone wants to chat with you',
+      `/chat/${newMatch.id}`
+    )
+
+    return { success: true, match: newMatch }
+  } catch (error: any) {
+    console.error('Error getting or creating direct match:', error)
+    return { success: false, error: error.message || 'Failed to create match' }
+  }
+}
+
+/**
  * Get super like quota for a user
  */
 export async function getSuperLikeQuota(userId: string): Promise<{

@@ -7,16 +7,36 @@ import { supabase } from '@/lib/supabase'
 import { uploadImage } from '@/lib/utils/images'
 import { getCurrentLocation, reverseGeocode } from '@/lib/utils/location'
 import type { User } from '@/lib/types'
+import { useTranslation } from 'react-i18next'
+import { PaymentSettings } from '@/components/settings/PaymentSettings'
+import { LanguageSelector } from '@/components/settings/LanguageSelector'
 
 interface Props {
   user: User | null
   onUserUpdate: (user: User) => void
+  initialSection?: 'profile' | 'payment' | 'language'
+  onSectionChange?: (section: 'profile' | 'payment' | 'language') => void
 }
 
-export function SettingsTab({ user, onUserUpdate }: Props) {
+export function SettingsTab({ user, onUserUpdate, initialSection = 'profile', onSectionChange }: Props) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [saving, setSaving] = useState(false)
-  const [activeSection, setActiveSection] = useState<'profile' | 'preferences' | 'notifications'>('profile')
+  const [activeSection, setActiveSection] = useState<'profile' | 'preferences' | 'notifications' | 'payment' | 'language'>(initialSection)
+
+  // Update active section when initialSection changes
+  useEffect(() => {
+    if (initialSection) {
+      setActiveSection(initialSection)
+    }
+  }, [initialSection])
+
+  const handleSectionChange = (section: 'profile' | 'preferences' | 'notifications' | 'payment' | 'language') => {
+    setActiveSection(section)
+    if (onSectionChange && (section === 'payment' || section === 'language')) {
+      onSectionChange(section)
+    }
+  }
 
   // Profile form state
   const [name, setName] = useState('')
@@ -24,7 +44,6 @@ export function SettingsTab({ user, onUserUpdate }: Props) {
   const [phone, setPhone] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [location, setLocation] = useState('')
-  const [currency, setCurrency] = useState('GBP')
 
   useEffect(() => {
     if (user) {
@@ -33,7 +52,6 @@ export function SettingsTab({ user, onUserUpdate }: Props) {
       setPhone(user.phone || '')
       setAvatarUrl(user.avatar_url || '')
       setLocation(user.location_address || '')
-      setCurrency(user.currency || 'GBP')
     }
   }, [user])
 
@@ -108,7 +126,6 @@ export function SettingsTab({ user, onUserUpdate }: Props) {
       if (bio.trim()) updateData.bio = bio.trim()
       if (phone.trim()) updateData.phone = phone.trim()
       if (avatarUrl) updateData.avatar_url = avatarUrl
-      if (currency) updateData.currency = currency
       
       const { error, data } = await supabase
         .from('users')
@@ -137,18 +154,26 @@ export function SettingsTab({ user, onUserUpdate }: Props) {
       <View style={styles.sectionTabs}>
         <Pressable
           style={[styles.sectionTab, activeSection === 'profile' && styles.sectionTabActive]}
-          onPress={() => setActiveSection('profile')}
+          onPress={() => handleSectionChange('profile')}
         >
           <Text style={[styles.sectionTabText, activeSection === 'profile' && styles.sectionTabTextActive]}>
             Profile
           </Text>
         </Pressable>
         <Pressable
-          style={[styles.sectionTab, activeSection === 'preferences' && styles.sectionTabActive]}
-          onPress={() => setActiveSection('preferences')}
+          style={[styles.sectionTab, activeSection === 'payment' && styles.sectionTabActive]}
+          onPress={() => handleSectionChange('payment')}
         >
-          <Text style={[styles.sectionTabText, activeSection === 'preferences' && styles.sectionTabTextActive]}>
-            Preferences
+          <Text style={[styles.sectionTabText, activeSection === 'payment' && styles.sectionTabTextActive]}>
+            {t('settings.paymentSettings')}
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.sectionTab, activeSection === 'language' && styles.sectionTabActive]}
+          onPress={() => handleSectionChange('language')}
+        >
+          <Text style={[styles.sectionTabText, activeSection === 'language' && styles.sectionTabTextActive]}>
+            {t('settings.language')}
           </Text>
         </Pressable>
       </View>
@@ -237,47 +262,15 @@ export function SettingsTab({ user, onUserUpdate }: Props) {
         </View>
       )}
 
-      {activeSection === 'preferences' && (
+      {activeSection === 'payment' && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
+          <PaymentSettings />
+        </View>
+      )}
 
-          {/* Currency */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Currency</Text>
-            <View style={styles.currencyButtons}>
-              {['GBP', 'USD', 'EUR'].map((curr) => (
-                <Pressable
-                  key={curr}
-                  style={[
-                    styles.currencyButton,
-                    currency === curr && styles.currencyButtonActive,
-                  ]}
-                  onPress={() => setCurrency(curr)}
-                >
-                  <Text
-                    style={[
-                      styles.currencyButtonText,
-                      currency === curr && styles.currencyButtonTextActive,
-                    ]}
-                  >
-                    {curr}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          <Pressable
-            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-            onPress={handleSaveProfile}
-            disabled={saving}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <Text style={styles.saveButtonText}>Save Settings</Text>
-            )}
-          </Pressable>
+      {activeSection === 'language' && (
+        <View style={styles.section}>
+          <LanguageSelector />
         </View>
       )}
     </ScrollView>

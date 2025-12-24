@@ -393,6 +393,7 @@ function CreateListingScreenContent() {
   const categories = [
     'Plumbing', 'Electrical', 'Handyman', 'Cleaning', 'Carpentry',
     'HVAC', 'Painting', 'Roofing', 'Landscaping', 'Flooring',
+    'Other', 'Custom', 'Adult',
   ]
 
   return (

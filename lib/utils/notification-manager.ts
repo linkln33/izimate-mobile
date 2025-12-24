@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { AppState, AppStateStatus } from 'react-native'
 import { useRouter } from 'expo-router'
-import * as Notifications from 'expo-notifications'
+import Constants from 'expo-constants'
 import { 
   registerForPushNotifications, 
   savePushToken, 
@@ -9,6 +9,29 @@ import {
   clearAllNotifications 
 } from './push-notifications'
 import { supabase } from '../supabase'
+
+// Check if running in Expo Go (where push notifications are not available in SDK 53+)
+const isExpoGo = Constants.executionEnvironment === 'storeClient'
+
+// Lazy load notifications module only when needed (not in Expo Go)
+let NotificationsModule: typeof import('expo-notifications') | null = null
+
+async function getNotificationsModule(): Promise<typeof import('expo-notifications') | null> {
+  if (isExpoGo) return null
+  
+  if (!NotificationsModule) {
+    try {
+      NotificationsModule = await import('expo-notifications')
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('⚠️ Could not load expo-notifications:', error)
+      }
+      return null
+    }
+  }
+  
+  return NotificationsModule
+}
 
 /**
  * Hook to manage push notifications throughout the app lifecycle
@@ -22,11 +45,13 @@ export function useNotificationManager() {
     // Initialize push notifications
     initializePushNotifications()
 
-    // Set up notification listeners
-    notificationListener.current = setupNotificationListeners(
+    // Set up notification listeners (async)
+    setupNotificationListeners(
       handleNotificationReceived,
       handleNotificationResponse
-    )
+    ).then(cleanup => {
+      notificationListener.current = cleanup
+    })
 
     // Handle app state changes
     const subscription = AppState.addEventListener('change', handleAppStateChange)
@@ -49,15 +74,19 @@ export function useNotificationManager() {
     }
   }
 
-  const handleNotificationReceived = (notification: Notifications.Notification) => {
-    console.log('📱 Notification received while app is open:', notification)
+  const handleNotificationReceived = (notification: any) => {
+    if (__DEV__) {
+      console.log('📱 Notification received while app is open:', notification)
+    }
     
     // You can customize behavior when notification is received while app is open
     // For example, show an in-app banner or update a badge count
   }
 
-  const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
-    console.log('👆 User tapped notification:', response)
+  const handleNotificationResponse = (response: any) => {
+    if (__DEV__) {
+      console.log('👆 User tapped notification:', response)
+    }
     
     const { notification } = response
     const data = notification.request.content.data
@@ -123,9 +152,17 @@ export function useNotificationManager() {
 
   const handleAppStateChange = (nextAppState: AppStateStatus) => {
     if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-      console.log('App has come to the foreground!')
-      // Clear notification badge when app becomes active
-      Notifications.setBadgeCountAsync(0)
+      if (__DEV__) {
+        console.log('App has come to the foreground!')
+      }
+      // Clear notification badge when app becomes active (if notifications available)
+      getNotificationsModule().then(Notifications => {
+        if (Notifications) {
+          Notifications.setBadgeCountAsync(0).catch(() => {
+            // Silently fail if notifications not available
+          })
+        }
+      })
     }
 
     appState.current = nextAppState
@@ -226,6 +263,9 @@ export function useNotificationPreferences() {
  */
 export function useNotificationBadge() {
   const updateBadgeCount = async () => {
+    const Notifications = await getNotificationsModule()
+    if (!Notifications) return // Not available in Expo Go
+    
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
@@ -238,22 +278,31 @@ export function useNotificationBadge() {
         .eq('is_read', false)
 
       if (error) {
-        console.error('Error getting unread count:', error)
+        if (__DEV__) {
+          console.error('Error getting unread count:', error)
+        }
         return
       }
 
       const unreadCount = data?.length || 0
       await Notifications.setBadgeCountAsync(unreadCount)
     } catch (error) {
-      console.error('Error updating badge count:', error)
+      if (__DEV__) {
+        console.error('Error updating badge count:', error)
+      }
     }
   }
 
   const clearBadge = async () => {
+    const Notifications = await getNotificationsModule()
+    if (!Notifications) return // Not available in Expo Go
+    
     try {
       await Notifications.setBadgeCountAsync(0)
     } catch (error) {
-      console.error('Error clearing badge:', error)
+      if (__DEV__) {
+        console.error('Error clearing badge:', error)
+      }
     }
   }
 

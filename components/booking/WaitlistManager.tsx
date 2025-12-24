@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { scheduleBookingReminder } from '../../lib/utils/push-notifications';
 
 interface WaitlistEntry {
   id: string;
@@ -117,7 +118,8 @@ export const WaitlistManager: React.FC<WaitlistManagerProps> = ({
 
       if (error) throw error;
 
-      // TODO: Send notification to customer
+      // Send notification to customer
+      await sendWaitlistNotification(entryId, customerId);
       Alert.alert('Success', 'Customer has been notified');
       await loadWaitlist();
     } catch (error) {
@@ -171,6 +173,70 @@ export const WaitlistManager: React.FC<WaitlistManagerProps> = ({
     const ampm = hour >= 12 ? 'PM' : 'AM';
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${minutes} ${ampm}`;
+  };
+
+  const sendWaitlistNotification = async (entryId: string, customerId: string) => {
+    try {
+      // Get waitlist entry details
+      const { data: entry, error: entryError } = await supabase
+        .from('booking_waitlist')
+        .select(`
+          *,
+          listing:listings(id, title),
+          customer:users!customer_id(id, name, push_token)
+        `)
+        .eq('id', entryId)
+        .single();
+
+      if (entryError || !entry) {
+        throw new Error('Failed to load waitlist entry');
+      }
+
+      // Create notification in database
+      const { error: notifError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: customerId,
+          type: 'waitlist_available',
+          title: 'Slot Available!',
+          message: `A slot is now available for ${entry.listing?.title || entry.service_name}. Book now!`,
+          data: {
+            waitlist_entry_id: entryId,
+            listing_id: entry.listing_id,
+            service_name: entry.service_name,
+          },
+          read: false,
+        });
+
+      if (notifError) {
+        console.error('Failed to create notification:', notifError);
+      }
+
+      // Send push notification if customer has push token
+      if (entry.customer?.push_token) {
+        try {
+          await scheduleBookingReminder(
+            entry.customer.push_token,
+            {
+              title: 'Slot Available!',
+              body: `A slot is now available for ${entry.listing?.title || entry.service_name}. Book now!`,
+              data: {
+                type: 'waitlist_available',
+                waitlist_entry_id: entryId,
+                listing_id: entry.listing_id,
+              },
+            },
+            new Date(Date.now() + 1000) // Send immediately (1 second delay)
+          );
+        } catch (pushError) {
+          console.error('Failed to send push notification:', pushError);
+          // Don't fail the whole operation if push fails
+        }
+      }
+    } catch (error) {
+      console.error('Failed to send waitlist notification:', error);
+      // Don't throw - notification is best effort
+    }
   };
 
   if (loading) {

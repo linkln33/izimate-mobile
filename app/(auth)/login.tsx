@@ -4,8 +4,10 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { signInWithOAuth } from '@/lib/auth'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 
 export default function LoginScreen() {
+  const { t } = useTranslation()
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -13,7 +15,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields')
+      Alert.alert(t('common.error'), t('auth.pleaseFillAllFields'))
       return
     }
 
@@ -26,7 +28,7 @@ export default function LoginScreen() {
     setLoading(false)
 
     if (error) {
-      Alert.alert('Error', error.message)
+      Alert.alert(t('common.error'), error.message)
     } else {
       router.replace('/(tabs)/dashboard')
     }
@@ -43,7 +45,7 @@ export default function LoginScreen() {
       console.error('OAuth login error:', error)
       // Don't show alert for user cancellation
       if (!error.message?.includes('cancelled') && !error.message?.includes('dismissed')) {
-        Alert.alert('Error', error.message || 'Failed to sign in')
+        Alert.alert(t('common.error'), error.message || t('auth.failedToSignIn'))
       }
     } finally {
       setLoading(false)
@@ -52,12 +54,12 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome Back</Text>
-      <Text style={styles.subtitle}>Sign in to continue</Text>
+      <Text style={styles.title}>{t('auth.welcomeBack')}</Text>
+      <Text style={styles.subtitle}>{t('auth.signInToContinue')}</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder={t('auth.email')}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -67,7 +69,7 @@ export default function LoginScreen() {
 
       <TextInput
         style={styles.input}
-        placeholder="Password"
+        placeholder={t('auth.password')}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -79,12 +81,12 @@ export default function LoginScreen() {
         onPress={handleLogin}
         disabled={loading}
       >
-        <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
+        <Text style={styles.buttonText}>{loading ? t('auth.signingIn') : t('auth.signIn')}</Text>
       </Pressable>
 
       <View style={styles.divider}>
         <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>OR</Text>
+        <Text style={styles.dividerText}>{t('auth.or')}</Text>
         <View style={styles.dividerLine} />
       </View>
 
@@ -107,7 +109,7 @@ export default function LoginScreen() {
       </View>
 
       <Pressable onPress={() => router.push('/(auth)/signup')}>
-        <Text style={styles.linkText}>Don't have an account? Sign up</Text>
+        <Text style={styles.linkText}>{t('auth.dontHaveAccount')}</Text>
       </Pressable>
     </View>
   )

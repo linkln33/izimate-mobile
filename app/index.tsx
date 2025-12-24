@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import { useSupabase } from '@/lib/supabase'
 import { signInWithOAuth } from '@/lib/auth'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 
 export default function Index() {
+  const { t } = useTranslation()
   const router = useRouter()
   const { session, loading } = useSupabase()
   const [oauthLoading, setOauthLoading] = useState(false)
@@ -31,7 +33,7 @@ export default function Index() {
       console.error('OAuth login error:', error)
       // Don't show alert for user cancellation
       if (!error.message?.includes('cancelled') && !error.message?.includes('dismissed')) {
-        Alert.alert('Error', error.message || 'Failed to sign in')
+        Alert.alert(t('common.error'), error.message || t('auth.failedToSignIn'))
       }
     } finally {
       setOauthLoading(false)
@@ -61,9 +63,9 @@ export default function Index() {
             resizeMode="contain"
           />
           
-          <Text style={styles.subtitle}>Swipe to find local services</Text>
+          <Text style={styles.subtitle}>{t('landing.subtitle')}</Text>
           <Text style={styles.description}>
-            Connect with service providers in your area. Swipe right to like, left to pass.
+            {t('landing.description')}
           </Text>
           
           {/* Sign In and Sign Up buttons side by side */}
@@ -72,14 +74,14 @@ export default function Index() {
               style={[styles.buttonHalf, styles.primaryButton]}
               onPress={() => router.push('/(auth)/login')}
             >
-              <Text style={styles.primaryButtonText}>Sign In</Text>
+              <Text style={styles.primaryButtonText}>{t('auth.signIn')}</Text>
             </Pressable>
             
             <Pressable
               style={[styles.buttonHalf, styles.secondaryButton]}
               onPress={() => router.push('/(auth)/signup')}
             >
-              <Text style={styles.secondaryButtonText}>Sign Up</Text>
+              <Text style={styles.secondaryButtonText}>{t('auth.signUp')}</Text>
             </Pressable>
           </View>
 
@@ -104,7 +106,7 @@ export default function Index() {
 
           {/* Social Links */}
           <View style={styles.socialContainer}>
-            <Text style={styles.socialTitle}>Follow Us</Text>
+            <Text style={styles.socialTitle}>{t('landing.followUs')}</Text>
             <View style={styles.socialIcons}>
               {socialLinks.map((social) => (
                 <Pressable
@@ -126,8 +128,8 @@ export default function Index() {
   // Show loading screen while checking auth
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>iZimate Job</Text>
-      <Text style={styles.subtitle}>Loading...</Text>
+      <Text style={styles.title}>{t('landing.title')}</Text>
+      <Text style={styles.subtitle}>{t('common.loading')}</Text>
     </View>
   )
 }

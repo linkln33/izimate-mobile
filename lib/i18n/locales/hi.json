@@ -1,0 +1,49 @@
+{
+  "common": {
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "delete": "हटाएं",
+    "edit": "संपादित करें",
+    "close": "बंद करें",
+    "loading": "लोड हो रहा है...",
+    "error": "त्रुटि",
+    "success": "सफल"
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "profile": "प्रोफ़ाइल",
+    "preferences": "प्राथमिकताएं",
+    "notifications": "सूचनाएं",
+    "paymentSettings": "भुगतान सेटिंग्स",
+    "language": "भाषा",
+    "selectLanguage": "भाषा चुनें"
+  },
+  "payment": {
+    "title": "भुगतान विधियां",
+    "connectRevolut": "Revolut कनेक्ट करें",
+    "connectPayPal": "PayPal कनेक्ट करें",
+    "connectBank": "बैंक खाता कनेक्ट करें",
+    "disconnect": "डिस्कनेक्ट करें",
+    "connected": "कनेक्टेड",
+    "notConnected": "कनेक्ट नहीं",
+    "revolutDescription": "भुगतान प्राप्त करने के लिए अपना Revolut खाता लिंक करें",
+    "paypalDescription": "भुगतान प्राप्त करने के लिए अपना PayPal खाता लिंक करें",
+    "bankDescription": "प्रत्यक्ष स्थानांतरण के लिए अपने बैंक खाते का विवरण जोड़ें",
+    "addBankAccount": "बैंक खाता जोड़ें",
+    "accountHolder": "खाता धारक का नाम",
+    "accountNumber": "खाता संख्या",
+    "routingNumber": "रूटिंग नंबर",
+    "iban": "IBAN",
+    "swift": "SWIFT/BIC कोड",
+    "bankName": "बैंक का नाम",
+    "saveBankDetails": "बैंक विवरण सहेजें"
+  },
+  "profile": {
+    "name": "नाम",
+    "bio": "जीवनी",
+    "phone": "फोन नंबर",
+    "location": "स्थान",
+    "avatar": "प्रोफ़ाइल चित्र"
+  }
+}
+

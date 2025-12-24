@@ -234,17 +234,23 @@ export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWid
   const formatUpcomingDate = (dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
-    const diffMs = date.getTime() - now.getTime()
+    
+    // Use local date components for accurate day calculation
+    const dateLocal = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    const nowLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const diffMs = dateLocal.getTime() - nowLocal.getTime()
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    
+    // For hours calculation, use actual time difference
+    const diffHours = Math.floor((date.getTime() - now.getTime()) / (1000 * 60 * 60))
 
     if (diffHours < 1) return 'Starting soon'
-    if (diffHours < 24) return `In ${diffHours} hour${diffHours > 1 ? 's' : ''}`
+    if (diffHours < 24 && diffDays === 0) return `In ${diffHours} hour${diffHours > 1 ? 's' : ''}`
     if (diffDays === 1) return 'Tomorrow'
     if (diffDays < 7) return `In ${diffDays} days`
     if (diffDays < 30) return `In ${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''}`
     
-    // Format as date
+    // Format as date using local date components
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 

@@ -206,18 +206,18 @@ export function ListingCard({
     ? 'Flexible'
     : 'Flexible' // Default fallback for null/undefined
 
-  // Calculate responsive image height
-  const imageHeight = Platform.OS === 'web' 
-    ? Math.min(dimensions.height * 0.4, dimensions.width * 0.6, 400)
-    : dimensions.height * 0.4
-  const minImageHeight = Platform.OS === 'web' ? 200 : dimensions.height * 0.3
-  const maxImageHeight = Platform.OS === 'web' ? 400 : dimensions.height * 0.5
-  const finalImageHeight = Math.max(minImageHeight, Math.min(maxImageHeight, imageHeight))
-
   // Calculate responsive card width
   const cardMaxWidth = Platform.OS === 'web' 
     ? Math.min(600, dimensions.width - 32) 
     : dimensions.width - 32
+
+  // Calculate responsive image height using a 3:4 aspect ratio (portrait-friendly)
+  // This shows more of portrait images which are common in listings
+  const aspectRatio = 3 / 4 // Portrait-friendly aspect ratio
+  const imageHeight = cardMaxWidth / aspectRatio
+  const minImageHeight = Platform.OS === 'web' ? 350 : dimensions.height * 0.45
+  const maxImageHeight = Platform.OS === 'web' ? 700 : dimensions.height * 0.65
+  const finalImageHeight = Math.max(minImageHeight, Math.min(maxImageHeight, imageHeight))
 
   // Navigation functions for image arrows
   const goToPreviousImage = () => {
@@ -364,7 +364,10 @@ export function ListingCard({
         <View style={styles.listingContent}>
           {/* Customer Profile Section */}
           {listing.customer && (
-            <View style={styles.customerSection}>
+            <Pressable
+              style={styles.customerSection}
+              onPress={() => router.push(`/user/${listing.customer?.id}`)}
+            >
               <View style={styles.customerInfo}>
                 {listing.customer.avatar_url ? (
                   <Image 
@@ -398,8 +401,9 @@ export function ListingCard({
                     )}
                   </View>
                 </View>
+                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
               </View>
-            </View>
+            </Pressable>
           )}
 
           {/* Title */}
@@ -888,6 +892,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
     flexShrink: 0,
     width: '100%',
+    overflow: 'hidden',
   },
   imageScrollView: {
     width: '100%',
@@ -978,9 +983,12 @@ const styles = StyleSheet.create({
   },
   customerSection: {
     marginBottom: 12,
+    padding: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+    borderRadius: 8,
+    backgroundColor: '#f9fafb',
   },
   customerInfo: {
     flexDirection: 'row',

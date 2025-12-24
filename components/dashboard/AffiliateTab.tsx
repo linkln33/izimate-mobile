@@ -555,14 +555,6 @@ export function AffiliateTab({ user }: Props) {
           <Text style={styles.statValue}>£{affiliate.total_earnings.toFixed(2)}</Text>
           <Text style={styles.statLabel}>Total Earnings</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>£{affiliate.pending_earnings.toFixed(2)}</Text>
-          <Text style={styles.statLabel}>Pending</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>£{affiliate.paid_earnings.toFixed(2)}</Text>
-          <Text style={styles.statLabel}>Paid Out</Text>
-        </View>
       </View>
 
       {/* Earnings Breakdown */}

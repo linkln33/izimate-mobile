@@ -1,0 +1,49 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "close": "閉じる",
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功"
+  },
+  "settings": {
+    "title": "設定",
+    "profile": "プロフィール",
+    "preferences": "設定",
+    "notifications": "通知",
+    "paymentSettings": "支払い設定",
+    "language": "言語",
+    "selectLanguage": "言語を選択"
+  },
+  "payment": {
+    "title": "支払い方法",
+    "connectRevolut": "Revolut を接続",
+    "connectPayPal": "PayPal を接続",
+    "connectBank": "銀行口座を接続",
+    "disconnect": "切断",
+    "connected": "接続済み",
+    "notConnected": "未接続",
+    "revolutDescription": "Revolut アカウントをリンクして支払いを受信",
+    "paypalDescription": "PayPal アカウントをリンクして支払いを受信",
+    "bankDescription": "直接振込用に銀行口座の詳細を追加",
+    "addBankAccount": "銀行口座を追加",
+    "accountHolder": "口座名義人",
+    "accountNumber": "口座番号",
+    "routingNumber": "ルーティング番号",
+    "iban": "IBAN",
+    "swift": "SWIFT/BIC コード",
+    "bankName": "銀行名",
+    "saveBankDetails": "銀行詳細を保存"
+  },
+  "profile": {
+    "name": "名前",
+    "bio": "自己紹介",
+    "phone": "電話番号",
+    "location": "場所",
+    "avatar": "プロフィール写真"
+  }
+}
+

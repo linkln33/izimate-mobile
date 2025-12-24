@@ -130,7 +130,7 @@ export interface Swipe {
 
 export interface Match {
   id: string
-  listing_id: string
+  listing_id: string | null
   customer_id: string
   provider_id: string
   status: 'pending' | 'negotiating' | 'booked' | 'in_progress' | 'completed' | 'cancelled'

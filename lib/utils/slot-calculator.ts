@@ -4,7 +4,17 @@
  */
 
 import { supabase } from '../supabase';
-import { googleCalendar } from './google-calendar';
+import { GoogleCalendarService } from './google-calendar';
+import { OutlookCalendarService } from './outlook-calendar';
+
+// Conditionally import native calendar service
+let NativeCalendarService: any = null;
+try {
+  const nativeCalendarModule = require('./native-calendar');
+  NativeCalendarService = nativeCalendarModule.NativeCalendarService;
+} catch (error) {
+  // Native calendar service not available
+}
 
 export interface ServiceOption {
   name: string;
@@ -64,7 +74,7 @@ export interface BusyTime {
   start_time: string; // ISO datetime
   end_time: string; // ISO datetime
   title: string;
-  source: 'booking' | 'google' | 'manual';
+  source: 'booking' | 'google' | 'outlook' | 'apple' | 'android' | 'samsung' | 'manual';
 }
 
 export class SlotCalculator {
@@ -150,7 +160,7 @@ export class SlotCalculator {
           start_time: busy.start_time,
           end_time: busy.end_time,
           title: busy.title,
-          source: busy.source as 'google' | 'manual'
+          source: busy.source as 'booking' | 'google' | 'outlook' | 'apple' | 'android' | 'samsung' | 'manual'
         });
       });
     }
@@ -370,22 +380,55 @@ export class SlotCalculator {
 
     if (!listing) return;
 
-    // Get active calendar connections
-    const connections = await googleCalendar.getCalendarConnections(listing.user_id);
-    
-    for (const connection of connections) {
-      if (connection.sync_enabled && connection.is_active) {
-        try {
-          await googleCalendar.syncBusyTimes(
-            listing.user_id,
-            listingId,
-            connection,
-            `${startDate}T00:00:00Z`,
-            `${endDate}T23:59:59Z`
-          );
-        } catch (error) {
-          console.error(`Failed to sync calendar ${connection.calendar_name}:`, error);
+    const userId = listing.user_id;
+    const googleService = GoogleCalendarService.getInstance();
+    const outlookService = OutlookCalendarService.getInstance();
+    const nativeService = NativeCalendarService ? NativeCalendarService.getInstance() : null;
+
+    // Get all active calendar connections from database
+    const { data: allConnections } = await supabase
+      .from('calendar_connections')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('sync_enabled', true)
+      .eq('is_active', true);
+
+    if (!allConnections || allConnections.length === 0) return;
+
+    // Sync each calendar connection based on provider
+    for (const connection of allConnections) {
+      try {
+        if (connection.provider === 'google') {
+          const googleConnections = await googleService.getCalendarConnections(userId);
+          const googleConnection = googleConnections.find(c => c.id === connection.id);
+          if (googleConnection) {
+            await googleService.syncBusyTimes(
+              userId,
+              listingId,
+              googleConnection,
+              `${startDate}T00:00:00Z`,
+              `${endDate}T23:59:59Z`
+            );
+          }
+        } else if (connection.provider === 'outlook') {
+          const outlookConnections = await outlookService.getCalendarConnections(userId);
+          const outlookConnection = outlookConnections.find(c => c.id === connection.id);
+          if (outlookConnection) {
+            await outlookService.syncBusyTimes(
+              userId,
+              listingId,
+              outlookConnection,
+              startDate,
+              endDate
+            );
+          }
+        } else if (['apple', 'android', 'samsung'].includes(connection.provider) && nativeService) {
+          // Native calendars are synced differently - they read directly from device
+          // The busy times are already in provider_busy_times from native calendar reads
+          // No additional sync needed here as native calendars are read on-demand
         }
+      } catch (error) {
+        console.error(`Failed to sync ${connection.provider} calendar ${connection.calendar_name}:`, error);
       }
     }
   }

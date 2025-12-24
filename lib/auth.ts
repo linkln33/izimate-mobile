@@ -18,8 +18,15 @@ export async function signInWithOAuth(provider: 'google' | 'facebook') {
   // For development, use localhost. For production, use the production domain
   
   // Generate the mobile deep link first
+  // For Expo Go, use exp:// scheme. For production builds, use custom scheme
   const mobileDeepLink = AuthSession.makeRedirectUri({
     scheme: 'izimate-job',
+    path: 'auth/callback',
+  })
+  
+  // Also generate exp:// link for Expo Go
+  const expoGoDeepLink = AuthSession.makeRedirectUri({
+    scheme: 'exp',
     path: 'auth/callback',
   })
   
@@ -27,9 +34,24 @@ export async function signInWithOAuth(provider: 'google' | 'facebook') {
   
   // Get the current origin (hostname + port) if available
   // This works for both localhost and network IPs (e.g., 192.168.1.100:8083)
+  // NOTE: In tunnel mode, the hostname changes when tunnel reconnects, which breaks OAuth
+  // For stable OAuth, prefer LAN mode with a fixed IP address
   let currentOrigin: string | null = null
   if (typeof window !== 'undefined' && window.location) {
-    currentOrigin = `${window.location.protocol}//${window.location.host}`
+    const hostname = window.location.hostname
+    // Check if we're in tunnel mode (ngrok URLs contain .exp.direct or .ngrok.io)
+    const isTunnelMode = hostname.includes('.exp.direct') || hostname.includes('.ngrok.io')
+    
+    if (isTunnelMode && isDevelopment) {
+      // Tunnel mode is unstable for OAuth - prefer using Next.js callback or LAN mode
+      console.log('⚠️ Tunnel mode detected - OAuth redirects may be unstable')
+      console.log('💡 Tip: Use LAN mode (--lan) for more stable OAuth redirects')
+      // Still use the tunnel URL, but warn that it may change
+      currentOrigin = `${window.location.protocol}//${window.location.host}`
+    } else {
+      // LAN mode or production - use the origin
+      currentOrigin = `${window.location.protocol}//${window.location.host}`
+    }
   }
   
   // Check if we're in a browser (even on mobile devices accessing Expo web)
@@ -66,31 +88,44 @@ export async function signInWithOAuth(provider: 'google' | 'facebook') {
   
   // If running in Expo web (browser), use the current origin for redirect
   // This works for both localhost and network IPs
-  // For native Expo, use the Next.js callback route which will deep link
-  // Otherwise, use the Next.js callback-mobile route which will deep link
+  // For native Expo, we need to use a web URL that Google/Facebook accept,
+  // but we'll try to use the deep link if possible
   let webRedirectUrl: string
+  let redirectTo: string
+  
   if (isExpoWeb && currentOrigin) {
     // Direct redirect to Expo web app using current origin (works for localhost and network IP)
     webRedirectUrl = `${currentOrigin}/auth/callback`
+    redirectTo = webRedirectUrl
     console.log('🌐 Using current origin for redirect:', webRedirectUrl)
   } else if (isExpoNative) {
-    // For native Expo, use Next.js callback which will deep link
-    webRedirectUrl = isDevelopment 
-      ? `http://localhost:3000/auth/callback-mobile?mobile=true`
-      : 'https://izimate.com/auth/callback-mobile?mobile=true'
+    // For native Expo apps, use the Expo callback URL directly
+    // This is the stable network IP that works for OAuth redirects
+    if (isDevelopment) {
+      // Use the specific network IP for development
+      webRedirectUrl = `http://192.168.1.100:8083/auth/callback`
+      redirectTo = webRedirectUrl
+      console.log('📱 Native app detected, using Expo callback URL:', webRedirectUrl)
+    } else {
+      // Production: use production callback URL
+      webRedirectUrl = 'https://izimate.com/auth/callback-mobile?mobile=true'
+      redirectTo = webRedirectUrl
+      console.log('📱 Native app detected, using production callback:', webRedirectUrl)
+    }
+    console.log('📱 Deep link will be:', expoGoDeepLink)
   } else if (isDevelopment) {
     // Use Next.js callback route which will deep link to native app
     webRedirectUrl = `http://localhost:3000/auth/callback-mobile?mobile=true`
+    redirectTo = webRedirectUrl
   } else {
     // Production: use production callback route
     webRedirectUrl = 'https://izimate.com/auth/callback-mobile?mobile=true'
+    redirectTo = webRedirectUrl
   }
 
   console.log('OAuth web redirect URL (for Google/Facebook):', webRedirectUrl)
   console.log('Mobile deep link (final destination):', mobileDeepLink)
-  
-  // Use the web URL for OAuth (Google/Facebook will accept this)
-  const redirectTo = webRedirectUrl
+  console.log('Expo Go deep link:', expoGoDeepLink)
   
   // IMPORTANT: This exact URL must be added to Supabase Dashboard:
   // Authentication → URL Configuration → Redirect URLs
@@ -488,35 +523,36 @@ export async function signInWithOAuth(provider: 'google' | 'facebook') {
     } else if (result.type === 'cancel') {
       throw new Error('OAuth flow was cancelled by user')
     } else if (result.type === 'dismiss') {
-      // For Expo web, 'dismiss' might occur even when redirect completes
+      // 'dismiss' might occur even when redirect completes
       // The callback route might have already handled the OAuth flow
-      if (isExpoWeb) {
-        console.log('⚠️ OAuth dismissed in Expo web, checking for session...')
-        // Wait a moment for the callback route to process
-        // The callback route should have already processed the redirect
-        await new Promise(resolve => setTimeout(resolve, 2000))
+      // This can happen on both web and native when the browser/auth popup closes
+      console.log('⚠️ OAuth dismissed, waiting for callback route to process...')
+      console.log('⚠️ The redirect may have still occurred - checking for session...')
+      
+      // Wait and check multiple times - callback route might still be processing
+      // The redirect URL with tokens might be processed by the callback route
+      for (let i = 0; i < 15; i++) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
         
         // Check if a session was created by the callback route
-        console.log('Checking for session after dismiss...')
+        console.log(`Checking for session after dismiss (attempt ${i + 1}/15)...`)
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (session) {
+          console.log(`✅ Session found after dismiss (attempt ${i + 1}), OAuth succeeded`)
+          return { session, user: session.user }
+        }
         
         if (sessionError) {
           console.error('Session check error after dismiss:', sessionError)
-          throw new Error('OAuth flow was dismissed and no session found')
-        }
-        
-        if (session) {
-          console.log('✅ Session found after dismiss, OAuth succeeded')
-          return { session, user: session.user }
-        } else {
-          console.log('❌ No session found after dismiss')
-          // Don't throw immediately - the callback route might still be processing
-          // Return null and let the callback route handle navigation
-          return { session: null, user: null }
         }
       }
       
-      throw new Error('OAuth flow was dismissed')
+      console.log('❌ No session found after dismiss - callback route may still be processing')
+      // Don't throw immediately - the callback route might still be processing
+      // Return null and let the callback route handle navigation
+      // The user can manually open the callback URL if needed
+      return { session: null, user: null }
     } else {
       console.error('Unexpected OAuth result:', result)
       throw new Error('OAuth flow failed unexpectedly')

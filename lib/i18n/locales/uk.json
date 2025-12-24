@@ -1,0 +1,49 @@
+{
+  "common": {
+    "save": "Зберегти",
+    "cancel": "Скасувати",
+    "delete": "Видалити",
+    "edit": "Редагувати",
+    "close": "Закрити",
+    "loading": "Завантаження...",
+    "error": "Помилка",
+    "success": "Успішно"
+  },
+  "settings": {
+    "title": "Налаштування",
+    "profile": "Профіль",
+    "preferences": "Уподобання",
+    "notifications": "Сповіщення",
+    "paymentSettings": "Налаштування платежів",
+    "language": "Мова",
+    "selectLanguage": "Виберіть мову"
+  },
+  "payment": {
+    "title": "Способи оплати",
+    "connectRevolut": "Підключити Revolut",
+    "connectPayPal": "Підключити PayPal",
+    "connectBank": "Підключити банківський рахунок",
+    "disconnect": "Відключити",
+    "connected": "Підключено",
+    "notConnected": "Не підключено",
+    "revolutDescription": "Прив'яжіть свій акаунт Revolut для отримання платежів",
+    "paypalDescription": "Прив'яжіть свій акаунт PayPal для отримання платежів",
+    "bankDescription": "Додайте дані банківського рахунку для прямих переказів",
+    "addBankAccount": "Додати банківський рахунок",
+    "accountHolder": "Ім'я власника рахунку",
+    "accountNumber": "Номер рахунку",
+    "routingNumber": "Маршрутний номер",
+    "iban": "IBAN",
+    "swift": "SWIFT/BIC код",
+    "bankName": "Назва банку",
+    "saveBankDetails": "Зберегти банківські дані"
+  },
+  "profile": {
+    "name": "Ім'я",
+    "bio": "Про себе",
+    "phone": "Номер телефону",
+    "location": "Місцезнаходження",
+    "avatar": "Фото профілю"
+  }
+}
+

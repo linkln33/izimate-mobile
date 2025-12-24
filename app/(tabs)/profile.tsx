@@ -9,9 +9,16 @@ import { getCurrentLocation, reverseGeocode } from '@/lib/utils/location'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { RatingCriteria } from '@/components/profile/RatingCriteria'
 import type { User, ProviderProfile } from '@/lib/types'
+import { useTranslation } from 'react-i18next'
+import { PaymentSettings } from '@/components/settings/PaymentSettings'
+import { LanguageSelector } from '@/components/settings/LanguageSelector'
+import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection'
+import { AffiliateTab } from '@/components/dashboard/AffiliateTab'
+import { NotificationSettings } from '@/components/notifications/NotificationSettings'
 
 export default function ProfileScreen() {
   const router = useRouter()
+  const { t } = useTranslation()
   const [user, setUser] = useState<User | null>(null)
   const [providerProfile, setProviderProfile] = useState<ProviderProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -23,7 +30,6 @@ export default function ProfileScreen() {
   const [phone, setPhone] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [location, setLocation] = useState('')
-  const [currency, setCurrency] = useState('GBP')
 
   // Ratings and feedback
   const [userRating, setUserRating] = useState<number | null>(null)
@@ -70,7 +76,6 @@ export default function ProfileScreen() {
         setPhone(userData.phone || '')
         setAvatarUrl(userData.avatar_url || '')
         setLocation(userData.location_address || '')
-        setCurrency(userData.currency || 'GBP')
       }
 
       // Load provider profile if exists
@@ -153,7 +158,7 @@ export default function ProfileScreen() {
       console.log('📸 Permission status:', status)
       
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow access to photos')
+        Alert.alert(t('settings.permissionRequired'), t('settings.pleaseAllowAccess'))
         return
       }
 
@@ -201,25 +206,25 @@ export default function ProfileScreen() {
           if (updateError) {
             console.error('📸 Database update error:', updateError)
             // Image was uploaded but DB update failed - still show success for image
-            Alert.alert('Partial Success', 'Profile picture uploaded but failed to save to profile. Please try again.')
+            Alert.alert(t('settings.partialSuccess'), t('settings.profilePictureUploaded'))
             return
           }
           console.log('📸 Database update successful:', updateData)
         }
         
-        Alert.alert('Success', 'Profile picture updated successfully')
+        Alert.alert(t('common.success'), t('settings.imageUploaded'))
       } catch (uploadError: any) {
         console.error('📸 Upload error:', uploadError)
         Alert.alert(
-          'Upload Failed', 
-          uploadError?.message || 'Failed to upload image. Please check your internet connection and try again.'
+          t('common.error'), 
+          uploadError?.message || t('settings.failedToUpload')
         )
       }
       
       setSaving(false)
     } catch (error: any) {
       console.error('📸 handlePickAvatar error:', error)
-      Alert.alert('Error', error?.message || 'Failed to pick image. Please try again.')
+      Alert.alert(t('common.error'), error?.message || t('settings.failedToUpload'))
       setSaving(false)
     }
   }
@@ -246,10 +251,10 @@ export default function ProfileScreen() {
         }
       }
       
-      Alert.alert('Success', 'Location detected successfully')
+      Alert.alert(t('common.success'), t('settings.locationDetected'))
     } catch (error) {
       console.error('📍 Location detection error:', error)
-      Alert.alert('Error', 'Failed to get location')
+      Alert.alert(t('common.error'), t('settings.failedToGetLocation'))
     } finally {
       setSaving(false)
     }
@@ -270,7 +275,6 @@ export default function ProfileScreen() {
       if (bio.trim()) updateData.bio = bio.trim()
       if (phone.trim()) updateData.phone = phone.trim()
       if (avatarUrl) updateData.avatar_url = avatarUrl
-      if (currency) updateData.currency = currency
       
       console.log('💾 Saving profile:', { userId: user.id, updateData })
       
@@ -292,10 +296,10 @@ export default function ProfileScreen() {
         setUser(data[0])
       }
 
-      Alert.alert('Success', 'Profile updated successfully')
+      Alert.alert(t('common.success'), t('settings.profileUpdated'))
     } catch (error: any) {
       console.error('💾 Profile save failed:', error)
-      Alert.alert('Error', error?.message || 'Failed to update profile')
+      Alert.alert(t('common.error'), error?.message || t('settings.failedToUpdate'))
     } finally {
       setSaving(false)
     }
@@ -442,65 +446,39 @@ export default function ProfileScreen() {
             />
           </View>
 
-          {/* Currency */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Currency</Text>
-            <View style={styles.currencyButtons}>
-              {['GBP', 'USD', 'EUR'].map((curr) => (
-                <Pressable
-                  key={curr}
-                  style={[
-                    styles.currencyButton,
-                    currency === curr && styles.currencyButtonActive,
-                  ]}
-                  onPress={() => setCurrency(curr)}
-                >
-                  <Text
-                    style={[
-                      styles.currencyButtonText,
-                      currency === curr && styles.currencyButtonTextActive,
-                    ]}
-                  >
-                    {curr}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          {/* Affiliate Program Link */}
-          <Pressable
-            style={styles.affiliateCard}
-            onPress={() => router.push('/(tabs)/dashboard')}
+          {/* Payment Settings */}
+          <CollapsibleSection
+            title={t('settings.paymentSettings')}
+            icon="wallet-outline"
           >
-            <View style={styles.affiliateCardContent}>
-              <Ionicons name="people" size={24} color="#f25842" />
-              <View style={styles.affiliateCardText}>
-                <Text style={styles.affiliateCardTitle}>Affiliate Program</Text>
-                <Text style={styles.affiliateCardSubtitle}>
-                  Earn money by referring friends
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#6b7280" />
-            </View>
-          </Pressable>
+            <PaymentSettings />
+          </CollapsibleSection>
 
-          {/* Notification Settings Link */}
-          <Pressable
-            style={styles.affiliateCard}
-            onPress={() => router.push('/settings/notifications')}
+          {/* Language Settings */}
+          <CollapsibleSection
+            title={t('settings.language')}
+            icon="language-outline"
           >
-            <View style={styles.affiliateCardContent}>
-              <Ionicons name="notifications" size={24} color="#f25842" />
-              <View style={styles.affiliateCardText}>
-                <Text style={styles.affiliateCardTitle}>Notification Settings</Text>
-                <Text style={styles.affiliateCardSubtitle}>
-                  Manage your notification preferences
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#6b7280" />
-            </View>
-          </Pressable>
+            <LanguageSelector />
+          </CollapsibleSection>
+
+          {/* Affiliate Program */}
+          {user && (
+            <CollapsibleSection
+              title="Affiliate Program"
+              icon="people"
+            >
+              <AffiliateTab user={user} />
+            </CollapsibleSection>
+          )}
+
+          {/* Notification Settings */}
+          <CollapsibleSection
+            title="Notification Settings"
+            icon="notifications"
+          >
+            <NotificationSettings />
+          </CollapsibleSection>
 
           {/* Save Button */}
           <Pressable
@@ -755,6 +733,42 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  settingsCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  settingsCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  settingsCardText: {
+    flex: 1,
+  },
+  settingsCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  settingsCardSubtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+  },
+  settingsContent: {
+    backgroundColor: '#f9fafb',
+    borderLeftWidth: 2,
+    borderLeftColor: '#f25842',
+    padding: 16,
+    marginBottom: 12,
+    marginTop: -12,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   affiliateCard: {
     backgroundColor: '#ffffff',

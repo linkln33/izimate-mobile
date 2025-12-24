@@ -1,0 +1,6 @@
+{
+  "common": {"save": "Kaydet", "cancel": "İptal", "delete": "Sil", "edit": "enle", "close": "Kapat", "loading": "Yükleniyor...", "error": "Hata", "success": "Başarılı"},
+  "settings": {"title": "Ayarlar", "profile": "Profil", "preferences": "Tercihler", "notifications": "Bildirimler", "paymentSett": "Ödeme Ayarları", "language": "Dil", "selectLanguage": "Dil seçin"},
+  "payment": {"title": "Ödeme Yöntemleri", "connectRevolut": "Revolut Bağla", "connectPayPal": "PayPal Bağla", "connectBank": "Banka Hesabı Bağla", "disconnect": "Bağlantıyı Kes", "connected": "Bağlı", "notConnected": "Bağlı Değil", "revolutDescription": "Ödemeleri almak için Revolut hesabınızı bağlayın", "paypalDescription": "Ödemeleri almak için PayPal hesabınızı bağlayın", "bankDescription": "Doğrudan transferler için banka hesap bilgilerinizi ekleyin", "addBankAccount": "Banka Hesabı Ekle", "accountHolder": "Hesap Sahibi Adı", "accountNumber": "Hesap Numarasıarası", "ian": "IBAN", "swift": "SWIFT/BIC Kodu", "bankName": "Banka Adı", "saveBankDetails": "Banka Detaylarını Kaydet"},
+  "profile": {"name": "Ad", "bio": "Biyografi", "phone": "Telefon Numarası", "location": "Konum", "avatar": "Profil Fotoğrafı"}
+}

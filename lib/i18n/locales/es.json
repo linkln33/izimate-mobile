@@ -1,0 +1,6 @@
+{
+  "common": {"save": "Guardar", "cancel": "Cancelar", "delete": "Eliminar", "edit": "Editar", "close": "Cerrar", "loading": "Cargando...", "error": "Error", "success": "Éxito"},
+  "settings": {"title": "Configuración", "profile": "Perfil", "preferences": "Preferencias", "notifications": "Notificaciones", "paymentSettings": "Configuración de pagos", "language": "Idioma", "selectLanguage": "Seleccionar idioma"},
+  "payment": {"title": "Métodos de pago", "connectRevolut": "Conectar Revolut", "connectPayPal": "Conectar PayPal", "connectBank": "Conectar cuenta bancaria", "disconnect": "Desconectar", "connected": "Conectado", "notConnected": "No conectado", "revolutDescription": "Vincula tu cuenta Revolut para recibir pagos", "paypalDescription": "Vincula tu cuenta PayPal para recibir pagos", "bankDescription": "Añade los datos de tu cuenta bancaria para transferencias directas", "addBankAccount": "A�cuenta bancaria", "accountHolder": "Nombre del titular", "accountNumber": "Número de cuenta", "routingNumber": "Número de ruta", "iban": "IBAN", "swift": "Código SWIFT/BIC", "bankName": "Nombre del banco", "saveBankDetails": "Guardar datos bancarios"},
+  "profile": {"name": "Nombre", "bio": "Biografía", "phone": "Número de teléfono", "location": "Ubicación", "avatar": "Foto de perfil"}
+}

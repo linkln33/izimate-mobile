@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { supabase } from '@/lib/supabase'
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, ActivityIndicator, Platform, Linking } from 'react-native'
+import * as AuthSession from 'expo-auth-session'
 
 /**
  * OAuth callback handler for mobile app
@@ -15,8 +16,14 @@ export default function AuthCallback() {
   const getParam = (key: string): string | undefined => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search)
-      const hashParams = new URLSearchParams(window.location.hash.substring(1))
-      return urlParams.get(key) || hashParams.get(key) || params[key] as string | undefined
+      // Parse hash fragment - tokens are in hash like: #access_token=...&refresh_token=...
+      const hash = window.location.hash.substring(1) // Remove #
+      const hashParams = new URLSearchParams(hash)
+      const value = urlParams.get(key) || hashParams.get(key) || params[key] as string | undefined
+      if (__DEV__ && value) {
+        console.log(`🔵 getParam(${key}):`, value.substring(0, 30) + (value.length > 30 ? '...' : ''))
+      }
+      return value
     }
     return params[key] as string | undefined
   }
@@ -26,6 +33,17 @@ export default function AuthCallback() {
   const refreshToken = getParam('refresh_token')
   const error = getParam('error')
   const referralCode = getParam('ref') || getParam('referral_code')
+  
+  // Debug: Log extracted tokens
+  if (__DEV__) {
+    console.log('🔵 Extracted tokens:', {
+      hasCode: !!code,
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+      accessTokenPreview: accessToken ? accessToken.substring(0, 20) + '...' : 'none',
+      refreshTokenPreview: refreshToken ? refreshToken.substring(0, 20) + '...' : 'none',
+    })
+  }
 
   useEffect(() => {
     async function handleCallback() {
@@ -48,6 +66,71 @@ export default function AuthCallback() {
       }
 
       try {
+        // First, check if Supabase already created a session (common with hash-based redirects)
+        const { data: { session: existingSession }, error: sessionCheckError } = await supabase.auth.getSession()
+        
+        if (existingSession && !sessionCheckError) {
+          console.log('✅ Found existing session from OAuth redirect')
+          
+          // Save referral code if present
+          if (referralCode && existingSession.user) {
+            try {
+              const { error: updateError } = await supabase
+                .from('users')
+                .update({ referred_by_code: referralCode })
+                .eq('id', existingSession.user.id)
+              
+              if (updateError) {
+                console.error('Error saving referral code:', updateError)
+              } else {
+                console.log('✅ Referral code saved:', referralCode)
+              }
+            } catch (err) {
+              console.error('Error processing referral code:', err)
+            }
+          }
+          
+          // If we're on web in a mobile browser, try to redirect to Expo app
+          if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            const userAgent = window.navigator.userAgent || ''
+            const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
+            
+            if (isMobile && existingSession) {
+              // Get the current hostname and port
+              const hostname = window.location.hostname
+              const port = window.location.port || '8083'
+              
+              // Try to redirect to Expo app using exp:// scheme
+              const expoDeepLink = `exp://${hostname}:${port}/--/auth/callback`
+              console.log('📱 Mobile browser detected, attempting to redirect to Expo app:', expoDeepLink)
+              
+              // Try to open in Expo app (this will work if Expo Go is installed)
+              try {
+                window.location.href = expoDeepLink
+                // Show a message while redirecting
+                setTimeout(() => {
+                  // If redirect didn't work, continue with web navigation
+                  try {
+                    router.replace('/(tabs)/dashboard')
+                  } catch (e) {
+                    console.error('Navigation error:', e)
+                  }
+                }, 2000)
+                return
+              } catch (linkError) {
+                console.log('⚠️ Could not redirect to app, continuing with web navigation')
+              }
+            }
+          }
+          
+          try {
+            router.replace('/(tabs)/dashboard')
+          } catch (e) {
+            console.error('Navigation error:', e)
+          }
+          return
+        }
+
         // If we have tokens directly, set them in Supabase
         if (accessToken && refreshToken) {
           console.log('Setting session from tokens...')
@@ -100,6 +183,93 @@ export default function AuthCallback() {
             }
           }
           return
+        }
+
+        // If we only have access_token (no refresh_token), try to set session with just access_token
+        // Or check if session was auto-created
+        if (accessToken && !refreshToken) {
+          console.log('🔵 Only access_token found, attempting to use it...')
+          console.log('🔵 Access token length:', accessToken.length)
+          
+          // First, try to set session with just access_token (Supabase might accept it)
+          try {
+            const { data: sessionData, error: tokenError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: '', // Empty refresh token
+            })
+            
+            if (tokenError) {
+              console.log('⚠️ setSession error:', tokenError.message)
+            }
+            
+            if (!tokenError && sessionData?.session) {
+              console.log('✅ Session created from access_token only')
+              
+              // Save referral code if present
+              if (referralCode && sessionData.session.user) {
+                try {
+                  const { error: updateError } = await supabase
+                    .from('users')
+                    .update({ referred_by_code: referralCode })
+                    .eq('id', sessionData.session.user.id)
+                  
+                  if (updateError) {
+                    console.error('Error saving referral code:', updateError)
+                  } else {
+                    console.log('✅ Referral code saved:', referralCode)
+                  }
+                } catch (err) {
+                  console.error('Error processing referral code:', err)
+                }
+              }
+              
+              try {
+                router.replace('/(tabs)/dashboard')
+              } catch (e) {
+                console.error('Navigation error:', e)
+              }
+              return
+            }
+          } catch (tokenErr) {
+            console.log('⚠️ Could not set session with access_token only, trying auto-created session check...')
+          }
+          
+          // If that didn't work, wait and check if Supabase auto-created the session
+          console.log('Checking for auto-created session...')
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          
+          const { data: { session: autoSession }, error: autoSessionError } = await supabase.auth.getSession()
+          
+          if (autoSession && !autoSessionError) {
+            console.log('✅ Session auto-created from access_token')
+            
+            // Save referral code if present
+            if (referralCode && autoSession.user) {
+              try {
+                const { error: updateError } = await supabase
+                  .from('users')
+                  .update({ referred_by_code: referralCode })
+                  .eq('id', autoSession.user.id)
+                
+                if (updateError) {
+                  console.error('Error saving referral code:', updateError)
+                } else {
+                  console.log('✅ Referral code saved:', referralCode)
+                }
+              } catch (err) {
+                console.error('Error processing referral code:', err)
+              }
+            }
+            
+            try {
+              router.replace('/(tabs)/dashboard')
+            } catch (e) {
+              console.error('Navigation error:', e)
+            }
+            return
+          } else {
+            console.error('❌ No session found after access_token redirect:', autoSessionError)
+          }
         }
 
         // If we have a code, exchange it for a session (most common case)

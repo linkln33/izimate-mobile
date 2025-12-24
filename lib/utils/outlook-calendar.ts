@@ -1,97 +1,67 @@
 /**
- * Google Calendar Integration for Izimate Booking System
+ * Outlook Calendar Integration for Izimate Booking System
  * Handles OAuth authentication, calendar sync, and event management
  */
 
 import { supabase } from '../supabase';
+import type { CalendarConnection } from './google-calendar';
 
-// Google Calendar API Configuration
-const GOOGLE_CALENDAR_CONFIG = {
-  clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET || '', // Server-side only
-  redirectUri: process.env.GOOGLE_REDIRECT_URI || 'exp://localhost:19000/--/auth/callback',
+// Outlook Calendar API Configuration
+const OUTLOOK_CALENDAR_CONFIG = {
+  clientId: process.env.EXPO_PUBLIC_OUTLOOK_CLIENT_ID || '',
+  clientSecret: process.env.EXPO_PUBLIC_OUTLOOK_CLIENT_SECRET || '', // Server-side only
+  redirectUri: process.env.EXPO_PUBLIC_OUTLOOK_REDIRECT_URI || 'exp://localhost:19000/--/auth/callback',
   scopes: [
-    'https://www.googleapis.com/auth/calendar.readonly',
-    'https://www.googleapis.com/auth/calendar.events',
-    'https://www.googleapis.com/auth/userinfo.email'
+    'https://graph.microsoft.com/Calendars.Read',
+    'https://graph.microsoft.com/Calendars.ReadWrite',
+    'https://graph.microsoft.com/User.Read'
   ]
 };
 
-export interface GoogleCalendarEvent {
+export interface OutlookCalendarEvent {
   id: string;
-  summary: string;
-  description?: string;
+  subject: string;
+  body?: {
+    contentType: string;
+    content: string;
+  };
   start: {
-    dateTime?: string;
-    date?: string;
-    timeZone?: string;
+    dateTime: string;
+    timeZone: string;
   };
   end: {
-    dateTime?: string;
-    date?: string;
-    timeZone?: string;
+    dateTime: string;
+    timeZone: string;
   };
-  status: 'confirmed' | 'tentative' | 'cancelled';
-  transparency?: 'opaque' | 'transparent'; // opaque = busy, transparent = free
+  isAllDay: boolean;
+  showAs: 'free' | 'tentative' | 'busy' | 'oof' | 'workingElsewhere' | 'unknown';
+  isCancelled: boolean;
 }
 
-export interface CalendarConnection {
-  id: string;
-  user_id: string;
-  provider: 'google' | 'apple' | 'samsung' | 'android' | 'outlook' | 'icloud';
-  calendar_id: string;
-  calendar_name: string;
-  access_token?: string;
-  refresh_token?: string;
-  token_expires_at?: string;
-  is_primary: boolean;
-  sync_enabled: boolean;
-  last_sync_at?: string;
-  is_active: boolean;
-}
-
-export class GoogleCalendarService {
-  private static instance: GoogleCalendarService;
+export class OutlookCalendarService {
+  private static instance: OutlookCalendarService;
   
-  public static getInstance(): GoogleCalendarService {
-    if (!GoogleCalendarService.instance) {
-      GoogleCalendarService.instance = new GoogleCalendarService();
+  public static getInstance(): OutlookCalendarService {
+    if (!OutlookCalendarService.instance) {
+      OutlookCalendarService.instance = new OutlookCalendarService();
     }
-    return GoogleCalendarService.instance;
+    return OutlookCalendarService.instance;
   }
 
   /**
-   * Generate Google OAuth URL for calendar access
+   * Generate Outlook OAuth URL for calendar access
    */
   getAuthUrl(userId: string): string {
     const params = new URLSearchParams({
-      client_id: GOOGLE_CALENDAR_CONFIG.clientId,
-      redirect_uri: GOOGLE_CALENDAR_CONFIG.redirectUri,
-      scope: GOOGLE_CALENDAR_CONFIG.scopes.join(' '),
+      client_id: OUTLOOK_CALENDAR_CONFIG.clientId,
+      redirect_uri: OUTLOOK_CALENDAR_CONFIG.redirectUri,
+      scope: OUTLOOK_CALENDAR_CONFIG.scopes.join(' '),
       response_type: 'code',
-      access_type: 'offline',
-      prompt: 'consent',
-      state: userId // Pass user ID for security
+      response_mode: 'query',
+      state: userId
     });
 
-    return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-  }
-
-  /**
-   * Static method to generate OAuth URL without instance
-   */
-  static getAuthUrl(userId?: string): string {
-    const params = new URLSearchParams({
-      client_id: GOOGLE_CALENDAR_CONFIG.clientId,
-      redirect_uri: GOOGLE_CALENDAR_CONFIG.redirectUri,
-      scope: GOOGLE_CALENDAR_CONFIG.scopes.join(' '),
-      response_type: 'code',
-      access_type: 'offline',
-      prompt: 'consent',
-      state: userId || 'test' // Pass user ID for security
-    });
-
-    return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`;
   }
 
   /**
@@ -102,17 +72,17 @@ export class GoogleCalendarService {
     refresh_token: string;
     expires_in: number;
   }> {
-    const response = await fetch('https://oauth2.googleapis.com/token', {
+    const response = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        client_id: GOOGLE_CALENDAR_CONFIG.clientId,
-        client_secret: GOOGLE_CALENDAR_CONFIG.clientSecret,
+        client_id: OUTLOOK_CALENDAR_CONFIG.clientId,
+        client_secret: OUTLOOK_CALENDAR_CONFIG.clientSecret,
         code,
         grant_type: 'authorization_code',
-        redirect_uri: GOOGLE_CALENDAR_CONFIG.redirectUri,
+        redirect_uri: OUTLOOK_CALENDAR_CONFIG.redirectUri,
       }),
     });
 
@@ -130,16 +100,17 @@ export class GoogleCalendarService {
     access_token: string;
     expires_in: number;
   }> {
-    const response = await fetch('https://oauth2.googleapis.com/token', {
+    const response = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        client_id: GOOGLE_CALENDAR_CONFIG.clientId,
-        client_secret: GOOGLE_CALENDAR_CONFIG.clientSecret,
+        client_id: OUTLOOK_CALENDAR_CONFIG.clientId,
+        client_secret: OUTLOOK_CALENDAR_CONFIG.clientSecret,
         refresh_token: refreshToken,
         grant_type: 'refresh_token',
+        redirect_uri: OUTLOOK_CALENDAR_CONFIG.redirectUri,
       }),
     });
 
@@ -155,11 +126,11 @@ export class GoogleCalendarService {
    */
   async getCalendarList(accessToken: string): Promise<Array<{
     id: string;
-    summary: string;
-    primary?: boolean;
-    accessRole: string;
+    name: string;
+    canEdit: boolean;
+    isDefaultCalendar?: boolean;
   }>> {
-    const response = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
+    const response = await fetch('https://graph.microsoft.com/v1.0/me/calendars', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
       },
@@ -170,31 +141,24 @@ export class GoogleCalendarService {
     }
 
     const data = await response.json();
-    return data.items || [];
+    return data.value || [];
   }
 
   /**
-   * Get busy times from Google Calendar for a date range
+   * Get busy times from Outlook Calendar for a date range
    */
   async getBusyTimes(
     accessToken: string,
     calendarId: string,
     startDate: string,
     endDate: string
-  ): Promise<GoogleCalendarEvent[]> {
-    const params = new URLSearchParams({
-      timeMin: startDate,
-      timeMax: endDate,
-      singleEvents: 'true',
-      orderBy: 'startTime',
-      maxResults: '250'
-    });
-
+  ): Promise<OutlookCalendarEvent[]> {
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
+      `https://graph.microsoft.com/v1.0/me/calendars/${calendarId}/calendarView?startDateTime=${encodeURIComponent(startDate)}&endDateTime=${encodeURIComponent(endDate)}&$orderby=start/dateTime`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
+          'Prefer': 'outlook.timezone="UTC"',
         },
       }
     );
@@ -204,46 +168,44 @@ export class GoogleCalendarService {
     }
 
     const data = await response.json();
-    return data.items || [];
+    return data.value || [];
   }
 
   /**
-   * Create a booking event in Google Calendar
+   * Create a booking event in Outlook Calendar
    */
   async createBookingEvent(
     accessToken: string,
     calendarId: string,
     event: {
-      summary: string;
-      description?: string;
+      subject: string;
+      body?: string;
       start: string; // ISO datetime
       end: string; // ISO datetime
-      attendees?: Array<{ email: string; displayName?: string }>;
+      attendees?: Array<{ emailAddress: { address: string; name?: string } }>;
     }
   ): Promise<string> {
     const eventData = {
-      summary: event.summary,
-      description: event.description,
+      subject: event.subject,
+      body: {
+        contentType: 'HTML',
+        content: event.body || '',
+      },
       start: {
         dateTime: event.start,
-        timeZone: 'Europe/London', // Should be dynamic based on listing timezone
+        timeZone: 'UTC',
       },
       end: {
         dateTime: event.end,
-        timeZone: 'Europe/London',
+        timeZone: 'UTC',
       },
       attendees: event.attendees,
-      reminders: {
-        useDefault: false,
-        overrides: [
-          { method: 'email', minutes: 24 * 60 }, // 1 day before
-          { method: 'popup', minutes: 30 }, // 30 minutes before
-        ],
-      },
+      isReminderOn: true,
+      reminderMinutesBeforeStart: 30,
     };
 
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
+      `https://graph.microsoft.com/v1.0/me/calendars/${calendarId}/events`,
       {
         method: 'POST',
         headers: {
@@ -263,38 +225,43 @@ export class GoogleCalendarService {
   }
 
   /**
-   * Update booking event in Google Calendar
+   * Update booking event in Outlook Calendar
    */
   async updateBookingEvent(
     accessToken: string,
     calendarId: string,
     eventId: string,
     updates: Partial<{
-      summary: string;
-      description: string;
+      subject: string;
+      body: string;
       start: string;
       end: string;
     }>
   ): Promise<void> {
     const eventData: any = {};
     
-    if (updates.summary) eventData.summary = updates.summary;
-    if (updates.description) eventData.description = updates.description;
+    if (updates.subject) eventData.subject = updates.subject;
+    if (updates.body) {
+      eventData.body = {
+        contentType: 'HTML',
+        content: updates.body,
+      };
+    }
     if (updates.start) {
       eventData.start = {
         dateTime: updates.start,
-        timeZone: 'Europe/London',
+        timeZone: 'UTC',
       };
     }
     if (updates.end) {
       eventData.end = {
         dateTime: updates.end,
-        timeZone: 'Europe/London',
+        timeZone: 'UTC',
       };
     }
 
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`,
+      `https://graph.microsoft.com/v1.0/me/calendars/${calendarId}/events/${eventId}`,
       {
         method: 'PATCH',
         headers: {
@@ -311,7 +278,7 @@ export class GoogleCalendarService {
   }
 
   /**
-   * Delete booking event from Google Calendar
+   * Delete booking event from Outlook Calendar
    */
   async deleteBookingEvent(
     accessToken: string,
@@ -319,7 +286,7 @@ export class GoogleCalendarService {
     eventId: string
   ): Promise<void> {
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`,
+      `https://graph.microsoft.com/v1.0/me/calendars/${calendarId}/events/${eventId}`,
       {
         method: 'DELETE',
         headers: {
@@ -353,7 +320,7 @@ export class GoogleCalendarService {
       .from('calendar_connections')
       .upsert({
         user_id: userId,
-        provider: 'google',
+        provider: 'outlook',
         calendar_id: calendarData.calendar_id,
         calendar_name: calendarData.calendar_name,
         access_token: calendarData.access_token,
@@ -379,6 +346,7 @@ export class GoogleCalendarService {
       .from('calendar_connections')
       .select('*')
       .eq('user_id', userId)
+      .eq('provider', 'outlook')
       .eq('is_active', true)
       .order('is_primary', { ascending: false });
 
@@ -390,7 +358,7 @@ export class GoogleCalendarService {
   }
 
   /**
-   * Sync busy times from Google Calendar to database
+   * Sync busy times from Outlook Calendar to database
    */
   async syncBusyTimes(
     userId: string,
@@ -401,10 +369,10 @@ export class GoogleCalendarService {
   ): Promise<void> {
     try {
       // Check if token needs refresh
-      const tokenExpiry = new Date(connection.token_expires_at);
+      const tokenExpiry = new Date(connection.token_expires_at || 0);
       let accessToken = connection.access_token;
 
-      if (tokenExpiry <= new Date()) {
+      if (tokenExpiry <= new Date() && connection.refresh_token) {
         const refreshed = await this.refreshAccessToken(connection.refresh_token);
         accessToken = refreshed.access_token;
 
@@ -418,20 +386,19 @@ export class GoogleCalendarService {
           .eq('id', connection.id);
       }
 
-      // Fetch events from Google Calendar
+      // Fetch events from Outlook Calendar
       const events = await this.getBusyTimes(
-        accessToken,
+        accessToken!,
         connection.calendar_id,
         startDate,
         endDate
       );
 
-      // Filter out transparent (free) events and cancelled events
+      // Filter out free events and cancelled events
       const busyEvents = events.filter(event => 
-        event.status !== 'cancelled' && 
-        event.transparency !== 'transparent' &&
-        event.start.dateTime && // Only timed events, not all-day
-        event.end.dateTime
+        !event.isCancelled && 
+        event.showAs !== 'free' &&
+        !event.isAllDay
       );
 
       // Clear existing busy times for this period
@@ -440,7 +407,7 @@ export class GoogleCalendarService {
         .delete()
         .eq('provider_id', userId)
         .eq('listing_id', listingId)
-        .eq('source', 'google')
+        .eq('source', 'outlook')
         .gte('start_time', startDate)
         .lte('end_time', endDate);
 
@@ -450,11 +417,11 @@ export class GoogleCalendarService {
           provider_id: userId,
           listing_id: listingId,
           external_event_id: event.id,
-          title: event.summary || 'Busy',
+          title: event.subject || 'Busy',
           start_time: event.start.dateTime,
           end_time: event.end.dateTime,
           is_all_day: false,
-          source: 'google',
+          source: 'outlook',
           calendar_id: connection.calendar_id,
           is_active: true,
         }));
@@ -512,8 +479,9 @@ export class GoogleCalendarService {
       .from('provider_busy_times')
       .update({ is_active: false })
       .eq('provider_id', userId)
-      .eq('source', 'google');
+      .eq('source', 'outlook');
   }
 }
 
-export const googleCalendar = GoogleCalendarService.getInstance();
+export const outlookCalendar = OutlookCalendarService.getInstance();
+
