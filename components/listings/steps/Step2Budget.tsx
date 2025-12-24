@@ -22,6 +22,7 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
     urgency,
     preferredDate,
     price_list,
+    currency,
   } = formState
 
   const {
@@ -31,7 +32,22 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
     setUrgency,
     setPreferredDate,
     setPriceList,
+    setCurrency,
   } = formActions
+
+  // Common currencies
+  const currencies = [
+    { code: 'GBP', symbol: '£', name: 'British Pound' },
+    { code: 'USD', symbol: '$', name: 'US Dollar' },
+    { code: 'EUR', symbol: '€', name: 'Euro' },
+    { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+    { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
+    { code: 'CHF', symbol: 'CHF', name: 'Swiss Franc' },
+    { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+    { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
+  ]
+
+  const selectedCurrency = currencies.find(c => c.code === currency) || currencies[0]
 
   // Initialize price list from form state or create a default one
   const [priceList, setPriceListLocal] = useState<PriceListItem[]>(() => {
@@ -77,6 +93,35 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
         Choose how you want to price your services
       </Text>
 
+      {/* Currency Selector */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Currency</Text>
+        <View style={styles.currencyButtons}>
+          {currencies.map((curr) => (
+            <Pressable
+              key={curr.code}
+              style={[
+                styles.currencyButton,
+                currency === curr.code && styles.currencyButtonActive,
+              ]}
+              onPress={() => setCurrency?.(curr.code)}
+            >
+              <Text
+                style={[
+                  styles.currencyButtonText,
+                  currency === curr.code && styles.currencyButtonTextActive,
+                ]}
+              >
+                {curr.symbol} {curr.code}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.inputHelp}>
+          Select the currency for your pricing
+        </Text>
+      </View>
+
       {/* Budget Type Selector */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Pricing Type</Text>
@@ -106,7 +151,7 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
       {/* Fixed Price */}
       {budgetType === 'fixed' && (
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Fixed Price (£)</Text>
+          <Text style={styles.label}>Fixed Price ({selectedCurrency.symbol})</Text>
           <TextInput
             style={styles.input}
             value={budgetMin}
@@ -125,7 +170,7 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
       {budgetType === 'range' && (
         <>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Minimum Price (£)</Text>
+            <Text style={styles.label}>Minimum Price ({selectedCurrency.symbol})</Text>
             <TextInput
               style={styles.input}
               value={budgetMin}
@@ -136,7 +181,7 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Maximum Price (£)</Text>
+            <Text style={styles.label}>Maximum Price ({selectedCurrency.symbol})</Text>
             <TextInput
               style={styles.input}
               value={budgetMax}
@@ -174,7 +219,7 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
                   placeholderTextColor="#9ca3af"
                 />
                 <View style={styles.priceInputContainer}>
-                  <Text style={styles.currencySymbol}>£</Text>
+                  <Text style={styles.currencySymbol}>{selectedCurrency.symbol}</Text>
                   <TextInput
                     style={styles.priceInputField}
                     value={item.price}
@@ -387,6 +432,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#3b82f6',
+  },
+  currencyButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  currencyButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  currencyButtonActive: {
+    backgroundColor: '#dbeafe',
+    borderColor: '#3b82f6',
+  },
+  currencyButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  currencyButtonTextActive: {
+    color: '#3b82f6',
+    fontWeight: '600',
   },
   urgencyButtons: {
     flexDirection: 'row',

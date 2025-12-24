@@ -424,6 +424,7 @@ export function createListingHandlers(
         budget_min: formState.budgetMin ? parseFloat(formState.budgetMin) : null,
         budget_max: formState.budgetMax ? parseFloat(formState.budgetMax) : null,
         price_list: formState.price_list && formState.price_list.length > 0 ? formState.price_list : [],
+        currency: formState.currency || 'GBP',
         urgency: formState.urgency,
         preferred_date: formState.preferredDate || null,
         location_address: formState.locationAddress.trim(),

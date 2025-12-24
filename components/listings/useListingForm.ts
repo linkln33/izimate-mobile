@@ -23,6 +23,7 @@ export interface ListingFormState {
   urgency: Urgency
   preferredDate: string
   price_list?: any[] // Array of {serviceName, price} objects
+  currency?: string // Currency code (e.g., 'GBP', 'USD', 'EUR')
   
   // Step 3: Location
   locationAddress: string
@@ -59,6 +60,7 @@ export interface ListingFormActions {
   setUrgency: (value: Urgency) => void
   setPreferredDate: (value: string) => void
   setPriceList?: (value: any[]) => void
+  setCurrency?: (value: string) => void
   
   // Step 3
   setLocationAddress: (value: string) => void
@@ -99,6 +101,7 @@ export function useListingForm(isEditMode: boolean) {
   const [urgency, setUrgency] = useState<Urgency>(() => 'flexible')
   const [preferredDate, setPreferredDate] = useState(() => '')
   const [priceList, setPriceList] = useState<any[]>(() => [])
+  const [currency, setCurrency] = useState(() => 'GBP') // Default to GBP
   
   // Step 3: Location
   const [locationAddress, setLocationAddress] = useState(() => '')
@@ -135,6 +138,8 @@ export function useListingForm(isEditMode: boolean) {
     setBudgetMax('')
     setUrgency('flexible')
     setPreferredDate('')
+    setPriceList([])
+    setCurrency('GBP')
     
     // Step 3
     setLocationAddress('')
@@ -217,6 +222,7 @@ export function useListingForm(isEditMode: boolean) {
     setBudgetMax(listing.budget_max ? String(listing.budget_max) : '')
     setUrgency((listing.urgency as any) || 'flexible')
     setPreferredDate(listing.preferred_date ? new Date(listing.preferred_date).toISOString().split('T')[0] : '')
+    setCurrency(listingAny.currency || 'GBP')
     
     // Load price_list
     if (listingAny.price_list) {
@@ -312,6 +318,7 @@ export function useListingForm(isEditMode: boolean) {
     urgency,
     preferredDate,
     price_list: priceList,
+    currency,
     locationAddress,
     locationLat,
     locationLng,
@@ -341,6 +348,7 @@ export function useListingForm(isEditMode: boolean) {
     setUrgency,
     setPreferredDate,
     setPriceList,
+    setCurrency,
     setLocationAddress,
     setLocationLat,
     setLocationLng,
