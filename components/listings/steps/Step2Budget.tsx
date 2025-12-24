@@ -19,8 +19,6 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
     budgetType,
     budgetMin,
     budgetMax,
-    urgency,
-    preferredDate,
     price_list,
     currency,
   } = formState
@@ -29,8 +27,6 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
     setBudgetType,
     setBudgetMin,
     setBudgetMax,
-    setUrgency,
-    setPreferredDate,
     setPriceList,
     setCurrency,
   } = formActions
@@ -304,43 +300,6 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
         </View>
       )}
 
-      {/* Urgency */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Urgency (Optional)</Text>
-        <View style={styles.urgencyButtons}>
-          {(['asap', 'this_week', 'flexible'] as const).map((urg) => (
-            <Pressable
-              key={urg}
-              style={[
-                styles.urgencyButton,
-                urgency === urg && styles.urgencyButtonActive,
-              ]}
-              onPress={() => setUrgency(urg)}
-            >
-              <Text
-                style={[
-                  styles.urgencyButtonText,
-                  urgency === urg && styles.urgencyButtonTextActive,
-                ]}
-              >
-                {urg === 'asap' ? 'ASAP' : urg === 'this_week' ? 'This Week' : 'Flexible'}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      {/* Preferred Date */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Preferred Date (Optional)</Text>
-        <TextInput
-          style={styles.input}
-          value={preferredDate}
-          onChangeText={setPreferredDate}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor="#9ca3af"
-        />
-      </View>
     </ScrollView>
   )
 }
@@ -539,33 +498,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   currencyDropdownItemTextActive: {
-    color: '#f25842',
-    fontWeight: '600',
-  },
-  urgencyButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  urgencyButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: '#f3f4f6',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    alignItems: 'center',
-  },
-  urgencyButtonActive: {
-    backgroundColor: '#fee2e2',
-    borderColor: '#f25842',
-  },
-  urgencyButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#6b7280',
-  },
-  urgencyButtonTextActive: {
     color: '#f25842',
     fontWeight: '600',
   },

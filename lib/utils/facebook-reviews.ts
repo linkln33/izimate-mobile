@@ -1,121 +1,99 @@
 /**
- * Google Reviews API Integration
- * Handles automatic verification of Google Business reviews
+ * Facebook Reviews API Integration
+ * Handles automatic verification of Facebook page reviews
  */
 
 import { supabase } from '../supabase'
 
-interface GoogleReview {
+interface FacebookReviewData {
+  id: string
+  created_time: string
+  message?: string
+  rating?: number
+  reviewer?: {
+    name: string
+    id: string
+  }
+}
+
+interface FacebookPageReview {
   reviewId: string
   reviewerName: string
   rating: number
   reviewText?: string
   reviewDate: string
   reviewUrl: string
-  reviewerAvatarUrl?: string
 }
 
 /**
- * Fetch reviews from Google My Business API
- * Note: This requires Google My Business API access and OAuth
+ * Fetch reviews from Facebook Page using Graph API
  */
-export async function fetchGoogleBusinessReviews(
-  placeId: string,
-  apiKey: string
-): Promise<GoogleReview[]> {
+export async function fetchFacebookPageReviews(
+  pageId: string,
+  accessToken: string
+): Promise<FacebookPageReview[]> {
   try {
-    // Using Places API (New) to get reviews
     const response = await fetch(
-      `https://places.googleapis.com/v1/places/${placeId}?fields=reviews&key=${apiKey}`,
+      `https://graph.facebook.com/v18.0/${pageId}/ratings?access_token=${accessToken}&fields=reviewer,rating,review_text,created_time,review_id`,
       {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'X-Goog-Api-Key': apiKey,
         },
       }
     )
 
     if (!response.ok) {
-      // Fallback to Places API (Legacy)
-      const legacyResponse = await fetch(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=review&key=${apiKey}`,
-        {
-          method: 'GET',
-        }
-      )
-
-      if (!legacyResponse.ok) {
-        const error = await legacyResponse.json()
-        throw new Error(`Google API error: ${error.error_message || 'Unknown error'}`)
-      }
-
-      const legacyData = await legacyResponse.json()
-      const reviews: GoogleReview[] = []
-
-      if (legacyData.result?.reviews && Array.isArray(legacyData.result.reviews)) {
-        for (const review of legacyData.result.reviews) {
-          reviews.push({
-            reviewId: review.time?.toString() || Date.now().toString(),
-            reviewerName: review.author_name || 'Anonymous',
-            rating: review.rating || 0,
-            reviewText: review.text || '',
-            reviewDate: new Date(review.time * 1000).toISOString(),
-            reviewUrl: `https://www.google.com/maps/place/?q=place_id:${placeId}`,
-            reviewerAvatarUrl: review.profile_photo_url,
-          })
-        }
-      }
-
-      return reviews
+      const error = await response.json()
+      throw new Error(`Facebook API error: ${error.error?.message || 'Unknown error'}`)
     }
 
     const data = await response.json()
-    const reviews: GoogleReview[] = []
+    const reviews: FacebookPageReview[] = []
 
-    if (data.reviews && Array.isArray(data.reviews)) {
-      for (const review of data.reviews) {
+    if (data.data && Array.isArray(data.data)) {
+      for (const review of data.data) {
         reviews.push({
-          reviewId: review.publishTime || Date.now().toString(),
-          reviewerName: review.authorAttribution?.displayName || 'Anonymous',
+          reviewId: review.review_id || review.id,
+          reviewerName: review.reviewer?.name || 'Anonymous',
           rating: review.rating || 0,
-          reviewText: review.text?.text || '',
-          reviewDate: review.publishTime || new Date().toISOString(),
-          reviewUrl: `https://www.google.com/maps/place/?q=place_id:${placeId}`,
-          reviewerAvatarUrl: review.authorAttribution?.photoUri,
+          reviewText: review.review_text || '',
+          reviewDate: review.created_time,
+          reviewUrl: `https://www.facebook.com/${pageId}/reviews`,
         })
       }
     }
 
     return reviews
   } catch (error) {
-    console.error('Failed to fetch Google reviews:', error)
+    console.error('Failed to fetch Facebook reviews:', error)
     throw error
   }
 }
 
 /**
- * Verify a Google review and create external_review record
+ * Verify a Facebook review and create external_review record
  */
-export async function verifyGoogleReview(
+export async function verifyFacebookReview(
   providerId: string,
   listingId: string | null,
   customerId: string,
   bookingId: string | null,
   reviewUrl: string,
-  placeId: string,
-  apiKey: string
+  pageId: string,
+  accessToken: string
 ): Promise<{ verified: boolean; externalReviewId?: string; error?: string }> {
   try {
-    // Fetch recent reviews from Google
-    const reviews = await fetchGoogleBusinessReviews(placeId, apiKey)
+    // Fetch recent reviews from Facebook
+    const reviews = await fetchFacebookPageReviews(pageId, accessToken)
     
     // Try to match the review URL or find recent reviews
+    // For now, we'll create a pending review and mark it as verified if we find a match
     const { data: existingReview } = await supabase
       .from('external_reviews')
       .select('*')
       .eq('provider_id', providerId)
-      .eq('source', 'google')
+      .eq('source', 'facebook')
       .eq('external_url', reviewUrl)
       .single()
 
@@ -139,12 +117,11 @@ export async function verifyGoogleReview(
       return { verified: true, externalReviewId: data.id }
     }
 
-    // Find matching review from API (within last 7 days)
-    const matchingReview = reviews.find(r => {
-      const reviewDate = new Date(r.reviewDate)
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      return reviewDate > sevenDaysAgo
-    })
+    // Find matching review from API
+    const matchingReview = reviews.find(r => 
+      r.reviewUrl === reviewUrl || 
+      (r.reviewDate && new Date(r.reviewDate) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) // Within last 7 days
+    )
 
     if (matchingReview) {
       // Create verified external review
@@ -155,11 +132,10 @@ export async function verifyGoogleReview(
           listing_id: listingId,
           customer_id: customerId,
           booking_id: bookingId,
-          source: 'google',
+          source: 'facebook',
           external_review_id: matchingReview.reviewId,
           external_url: reviewUrl,
           reviewer_name: matchingReview.reviewerName,
-          reviewer_avatar_url: matchingReview.reviewerAvatarUrl,
           rating: matchingReview.rating,
           review_text: matchingReview.reviewText,
           review_date: new Date(matchingReview.reviewDate).toISOString(),
@@ -183,7 +159,7 @@ export async function verifyGoogleReview(
         listing_id: listingId,
         customer_id: customerId,
         booking_id: bookingId,
-        source: 'google',
+        source: 'facebook',
         external_review_id: `pending_${Date.now()}`,
         external_url: reviewUrl,
         verification_status: 'pending',
@@ -194,23 +170,23 @@ export async function verifyGoogleReview(
       .single()
 
     if (error) throw error
-    return { verified: false, externalReviewId: data.id, error: 'Review not found in recent Google reviews. Please verify manually.' }
+    return { verified: false, externalReviewId: data.id, error: 'Review not found in recent Facebook reviews. Please verify manually.' }
   } catch (error: any) {
-    console.error('Failed to verify Google review:', error)
+    console.error('Failed to verify Facebook review:', error)
     return { verified: false, error: error.message || 'Failed to verify review' }
   }
 }
 
 /**
- * Sync Google reviews for a provider
+ * Sync Facebook reviews for a provider
  */
-export async function syncGoogleReviews(
+export async function syncFacebookReviews(
   providerId: string,
-  placeId: string,
-  apiKey: string
+  pageId: string,
+  accessToken: string
 ): Promise<{ synced: number; errors: number }> {
   try {
-    const reviews = await fetchGoogleBusinessReviews(placeId, apiKey)
+    const reviews = await fetchFacebookPageReviews(pageId, accessToken)
     let synced = 0
     let errors = 0
 
@@ -221,7 +197,7 @@ export async function syncGoogleReviews(
           .from('external_reviews')
           .select('id')
           .eq('provider_id', providerId)
-          .eq('source', 'google')
+          .eq('source', 'facebook')
           .eq('external_review_id', review.reviewId)
           .single()
 
@@ -231,11 +207,10 @@ export async function syncGoogleReviews(
             .from('external_reviews')
             .insert({
               provider_id: providerId,
-              source: 'google',
+              source: 'facebook',
               external_review_id: review.reviewId,
               external_url: review.reviewUrl,
               reviewer_name: review.reviewerName,
-              reviewer_avatar_url: review.reviewerAvatarUrl,
               rating: review.rating,
               review_text: review.reviewText,
               review_date: new Date(review.reviewDate).toISOString(),
@@ -251,7 +226,6 @@ export async function syncGoogleReviews(
             .from('external_reviews')
             .update({
               reviewer_name: review.reviewerName,
-              reviewer_avatar_url: review.reviewerAvatarUrl,
               rating: review.rating,
               review_text: review.reviewText,
               last_synced_at: new Date().toISOString(),
@@ -266,7 +240,8 @@ export async function syncGoogleReviews(
 
     return { synced, errors }
   } catch (error) {
-    console.error('Failed to sync Google reviews:', error)
+    console.error('Failed to sync Facebook reviews:', error)
     throw error
   }
 }
+

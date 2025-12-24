@@ -4,7 +4,7 @@ import { normalizePhotoUrls } from '@/lib/utils/images'
 
 export type Step = 1 | 2 | 3 | 4 | 5 | 6
 export type BudgetType = 'fixed' | 'range' | 'price_list'
-export type Urgency = 'asap' | 'this_week' | 'flexible'
+export type Urgency = 'asap' | 'this_week' | 'flexible' | null
 
 export interface ListingFormState {
   // Step 1: Basic Information
@@ -20,7 +20,7 @@ export interface ListingFormState {
   budgetType: BudgetType
   budgetMin: string
   budgetMax: string
-  urgency: Urgency
+  urgency: Urgency | null
   preferredDate: string
   price_list?: any[] // Array of {serviceName, price} objects
   currency?: string // Currency code (e.g., 'GBP', 'USD', 'EUR')
@@ -61,6 +61,11 @@ export interface ListingFormState {
   review_coupon_code_prefix?: string
   review_coupon_valid_days?: number
   review_incentive_message?: string
+  review_platforms?: string[] // ['in_app', 'facebook', 'google']
+  facebook_page_id?: string
+  facebook_page_url?: string
+  google_place_id?: string
+  google_business_url?: string
 }
 
 export interface ListingFormActions {
@@ -77,7 +82,7 @@ export interface ListingFormActions {
   setBudgetType: (value: BudgetType) => void
   setBudgetMin: (value: string) => void
   setBudgetMax: (value: string) => void
-  setUrgency: (value: Urgency) => void
+  setUrgency: (value: Urgency | null) => void
   setPreferredDate: (value: string) => void
   setPriceList?: (value: any[]) => void
   setCurrency?: (value: string) => void
@@ -117,6 +122,11 @@ export interface ListingFormActions {
   setReviewCouponCodePrefix?: (value: string) => void
   setReviewCouponValidDays?: (value: number) => void
   setReviewIncentiveMessage?: (value: string) => void
+  setReviewPlatforms?: (value: string[]) => void
+  setFacebookPageId?: (value: string) => void
+  setFacebookPageUrl?: (value: string) => void
+  setGooglePlaceId?: (value: string) => void
+  setGoogleBusinessUrl?: (value: string) => void
   
   // Reset
   resetForm: () => void
@@ -137,7 +147,7 @@ export function useListingForm(isEditMode: boolean) {
   const [budgetType, setBudgetType] = useState<BudgetType>(() => 'range')
   const [budgetMin, setBudgetMin] = useState(() => '')
   const [budgetMax, setBudgetMax] = useState(() => '')
-  const [urgency, setUrgency] = useState<Urgency>(() => 'flexible')
+  const [urgency, setUrgency] = useState<Urgency | null>(() => null)
   const [preferredDate, setPreferredDate] = useState(() => '')
   const [priceList, setPriceList] = useState<any[]>(() => [])
   const [currency, setCurrency] = useState(() => 'GBP') // Default to GBP
@@ -177,6 +187,11 @@ export function useListingForm(isEditMode: boolean) {
   const [reviewCouponCodePrefix, setReviewCouponCodePrefix] = useState(() => 'REVIEW')
   const [reviewCouponValidDays, setReviewCouponValidDays] = useState(() => 30)
   const [reviewIncentiveMessage, setReviewIncentiveMessage] = useState(() => 'Thank you for your review! Here\'s a discount for your next booking.')
+  const [reviewPlatforms, setReviewPlatforms] = useState<string[]>(() => ['in_app'])
+  const [facebookPageId, setFacebookPageId] = useState(() => '')
+  const [facebookPageUrl, setFacebookPageUrl] = useState(() => '')
+  const [googlePlaceId, setGooglePlaceId] = useState(() => '')
+  const [googleBusinessUrl, setGoogleBusinessUrl] = useState(() => '')
 
   const resetForm = useCallback(() => {
     if (isEditMode) return // Don't reset if editing
@@ -194,7 +209,7 @@ export function useListingForm(isEditMode: boolean) {
     setBudgetType('range')
     setBudgetMin('')
     setBudgetMax('')
-    setUrgency('flexible')
+    setUrgency(null)
     setPreferredDate('')
     setPriceList([])
     setCurrency('GBP')
@@ -234,6 +249,11 @@ export function useListingForm(isEditMode: boolean) {
     setReviewCouponCodePrefix('REVIEW')
     setReviewCouponValidDays(30)
     setReviewIncentiveMessage('Thank you for your review! Here\'s a discount for your next booking.')
+    setReviewPlatforms(['in_app'])
+    setFacebookPageId('')
+    setFacebookPageUrl('')
+    setGooglePlaceId('')
+    setGoogleBusinessUrl('')
   }, [isEditMode])
 
   const loadFromListing = useCallback((listing: Listing) => {
@@ -302,7 +322,7 @@ export function useListingForm(isEditMode: boolean) {
     setBudgetType((listing.budget_type as any) || 'range')
     setBudgetMin(listing.budget_min ? String(listing.budget_min) : '')
     setBudgetMax(listing.budget_max ? String(listing.budget_max) : '')
-    setUrgency((listing.urgency as any) || 'flexible')
+    setUrgency((listing.urgency as any) || null)
     setPreferredDate(listing.preferred_date ? new Date(listing.preferred_date).toISOString().split('T')[0] : '')
     setCurrency(listingAny.currency || 'GBP')
     
@@ -370,10 +390,36 @@ export function useListingForm(isEditMode: boolean) {
       // Default to 24 hours if not set
       setCancellationHours(24)
     }
-    // Note: cancellation fee and refund policy might need to be added to service_settings table
-    // For now, defaults are set in state initialization
+    // Load cancellation fee settings
+    if (listingAny.service_settings) {
+      setCancellationFeeEnabled(listingAny.service_settings.cancellation_fee_enabled || false)
+      setCancellationFeePercentage(listingAny.service_settings.cancellation_fee_percentage || 0)
+      setCancellationFeeAmount(listingAny.service_settings.cancellation_fee_amount || 0)
+      setRefundPolicy(listingAny.service_settings.refund_policy || 'full')
+    }
     
     // Review incentive settings - loaded separately in Step6Settings component
+    // But we can also load platform settings if they exist
+    if (listingAny.review_incentive_settings) {
+      if (listingAny.review_incentive_settings.review_platforms) {
+        const platforms = Array.isArray(listingAny.review_incentive_settings.review_platforms)
+          ? listingAny.review_incentive_settings.review_platforms
+          : ['in_app']
+        setReviewPlatforms(platforms)
+      }
+      if (listingAny.review_incentive_settings.facebook_page_id) {
+        setFacebookPageId(listingAny.review_incentive_settings.facebook_page_id)
+      }
+      if (listingAny.review_incentive_settings.facebook_page_url) {
+        setFacebookPageUrl(listingAny.review_incentive_settings.facebook_page_url)
+      }
+      if (listingAny.review_incentive_settings.google_place_id) {
+        setGooglePlaceId(listingAny.review_incentive_settings.google_place_id)
+      }
+      if (listingAny.review_incentive_settings.google_business_url) {
+        setGoogleBusinessUrl(listingAny.review_incentive_settings.google_business_url)
+      }
+    }
     
     console.log('✅ loadFromListing completed, form state updated')
   }, [
@@ -443,6 +489,11 @@ export function useListingForm(isEditMode: boolean) {
     review_coupon_code_prefix: reviewCouponCodePrefix,
     review_coupon_valid_days: reviewCouponValidDays,
     review_incentive_message: reviewIncentiveMessage,
+    review_platforms: reviewPlatforms,
+    facebook_page_id: facebookPageId,
+    facebook_page_url: facebookPageUrl,
+    google_place_id: googlePlaceId,
+    google_business_url: googleBusinessUrl,
   }
 
   const actions: ListingFormActions = {
@@ -489,6 +540,11 @@ export function useListingForm(isEditMode: boolean) {
     setReviewCouponCodePrefix,
     setReviewCouponValidDays,
     setReviewIncentiveMessage,
+    setReviewPlatforms,
+    setFacebookPageId,
+    setFacebookPageUrl,
+    setGooglePlaceId,
+    setGoogleBusinessUrl,
     resetForm,
     loadFromListing,
   }

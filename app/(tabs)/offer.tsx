@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f9fafb',
     paddingBottom: 0, // Tab bar will handle bottom spacing
-    paddingTop: 60, // Add top padding for status bar
+    paddingTop: Platform.OS === 'ios' ? 50 : 12, // Add top padding for status bar
   },
   centerContainer: {
     flex: 1,

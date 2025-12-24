@@ -232,7 +232,7 @@ export async function processReviewWithIncentive(
 /**
  * Create a discount coupon for review incentive
  */
-async function createReviewIncentiveCoupon(
+export async function createReviewIncentiveCoupon(
   providerId: string,
   settings: ReviewIncentiveSettings,
   rating: number

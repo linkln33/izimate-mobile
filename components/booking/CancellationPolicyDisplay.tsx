@@ -36,20 +36,19 @@ export function CancellationPolicyDisplay({
 
   const loadPolicy = async () => {
     try {
-      // First try to get from service_settings
+      // Get cancellation policy from service_settings
       const { data: settingsData } = await supabase
         .from('service_settings')
-        .select('cancellation_hours')
+        .select('cancellation_hours, cancellation_fee_enabled, cancellation_fee_percentage, cancellation_fee_amount, refund_policy')
         .eq('listing_id', listing.id)
         .single()
 
-      // Get cancellation policy from listing (these fields are on the listing)
       const policyData: CancellationPolicy = {
-        cancellation_hours: settingsData?.cancellation_hours || listing.cancellation_hours || 24,
-        cancellation_fee_enabled: listing.cancellation_fee_enabled || false,
-        cancellation_fee_percentage: listing.cancellation_fee_percentage || undefined,
-        cancellation_fee_amount: listing.cancellation_fee_amount || undefined,
-        refund_policy: listing.refund_policy || 'full',
+        cancellation_hours: settingsData?.cancellation_hours || 24,
+        cancellation_fee_enabled: settingsData?.cancellation_fee_enabled || false,
+        cancellation_fee_percentage: settingsData?.cancellation_fee_percentage || undefined,
+        cancellation_fee_amount: settingsData?.cancellation_fee_amount || undefined,
+        refund_policy: settingsData?.refund_policy || 'full',
       }
 
       setPolicy(policyData)

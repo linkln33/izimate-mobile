@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TextInput, Pressable, Modal } from 'react-native'
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TextInput, Pressable, Modal, Platform } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
@@ -845,8 +845,8 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#ffffff',
-    padding: 16,
-    paddingTop: 60,
+    padding: 12,
+    paddingTop: Platform.OS === 'ios' ? 50 : 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
     flexDirection: 'row',

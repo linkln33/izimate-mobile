@@ -137,7 +137,7 @@ function CreateListingScreenContent() {
       // Fetch service_settings for cancellation settings
       const { data: serviceSettings } = await supabase
         .from('service_settings')
-        .select('cancellation_hours')
+        .select('cancellation_hours, cancellation_fee_enabled, cancellation_fee_percentage, cancellation_fee_amount, refund_policy')
         .eq('listing_id', listingId)
         .single()
 
@@ -440,18 +440,8 @@ function CreateListingScreenContent() {
 
         {step === 3 && (
           <Step5BookingSimplified
-            formData={{
-              booking_enabled: formState.booking_enabled,
-              service_name: formState.service_name,
-              default_price: formState.budget_min, // Use budget_min as default price
-              time_slots: formState.time_slots,
-            }}
-            onUpdate={(bookingData) => {
-              // Update form state with simplified booking data
-              formActions.setBookingEnabled?.(bookingData.booking_enabled)
-              formActions.setServiceName?.(bookingData.service_name)
-              formActions.setTimeSlots?.(bookingData.time_slots)
-            }}
+            formState={formState}
+            formActions={formActions}
             isLoading={loading}
           />
         )}

@@ -61,6 +61,23 @@ function StarRating({ rating, size = 14 }: { rating: number; size?: number }) {
   )
 }
 
+// Blinking Green Indicator Component
+function BlinkingIndicator() {
+  const [opacity, setOpacity] = useState(1)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setOpacity(prev => prev === 1 ? 0.3 : 1)
+    }, 1000) // Blink every second
+
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <View style={[styles.blinkingIndicator, { opacity }]} />
+  )
+}
+
 export function ListingCard({ 
   listing, 
   isExpanded: externalExpanded,
@@ -171,7 +188,9 @@ export function ListingCard({
     ? 'ASAP' 
     : listing.urgency === 'this_week' 
     ? 'This Week' 
-    : 'Flexible'
+    : listing.urgency === 'flexible'
+    ? 'Flexible'
+    : 'Flexible' // Default fallback for null/undefined
 
   // Calculate responsive image height
   const imageHeight = Platform.OS === 'web' 
@@ -453,48 +472,52 @@ export function ListingCard({
                 </Text>
               </View>
 
-              {/* Schedule & Timing Section */}
-              <View style={styles.expandedSection}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="calendar-outline" size={18} color="#f25842" />
-                  <Text style={styles.sectionTitle}>Schedule & Timing</Text>
-                </View>
-                
-                <View style={styles.scheduleGrid}>
-                  {/* Preferred Date */}
-                  {listing.preferred_date && (
+              {/* Schedule & Timing Section - Only show if urgency is meaningful (not null/flexible) OR preferred_date exists */}
+              {((listing.urgency && listing.urgency !== 'flexible') || listing.preferred_date) && (
+                <View style={styles.expandedSection}>
+                  <View style={styles.sectionHeader}>
+                    <Ionicons name="calendar-outline" size={18} color="#f25842" />
+                    <Text style={styles.sectionTitle}>Schedule & Timing</Text>
+                  </View>
+                  
+                  <View style={styles.scheduleGrid}>
+                    {/* Preferred Date */}
+                    {listing.preferred_date && (
+                      <View style={styles.scheduleItem}>
+                        <Text style={styles.scheduleLabel}>Preferred Date</Text>
+                        <Text style={styles.scheduleValue}>
+                          {listing.preferred_date ? formatDate(listing.preferred_date) : 'Not specified'}
+                        </Text>
+                      </View>
+                    )}
+                    
+                    {/* Urgency - Only show if not null and not 'flexible' */}
+                    {listing.urgency && listing.urgency !== 'flexible' && (
+                      <View style={styles.scheduleItem}>
+                        <Text style={styles.scheduleLabel}>Timeline</Text>
+                        <View style={styles.urgencyContainer}>
+                          <Ionicons 
+                            name={listing.urgency === 'asap' ? 'flash' : listing.urgency === 'this_week' ? 'time' : 'calendar'} 
+                            size={14} 
+                            color={listing.urgency === 'asap' ? '#ef4444' : '#f25842'} 
+                          />
+                          <Text style={[styles.scheduleValue, listing.urgency === 'asap' && styles.urgentText]}>
+                            {urgencyText}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                    
+                    {/* Posted Date */}
                     <View style={styles.scheduleItem}>
-                      <Text style={styles.scheduleLabel}>Preferred Date</Text>
+                      <Text style={styles.scheduleLabel}>Posted</Text>
                       <Text style={styles.scheduleValue}>
-                        {listing.preferred_date ? formatDate(listing.preferred_date) : 'Not specified'}
+                        {listing.created_at ? formatRelativeTime(listing.created_at) : 'Recently'}
                       </Text>
                     </View>
-                  )}
-                  
-                  {/* Urgency */}
-                  <View style={styles.scheduleItem}>
-                    <Text style={styles.scheduleLabel}>Timeline</Text>
-                    <View style={styles.urgencyContainer}>
-                      <Ionicons 
-                        name={listing.urgency === 'asap' ? 'flash' : listing.urgency === 'this_week' ? 'time' : 'calendar'} 
-                        size={14} 
-                        color={listing.urgency === 'asap' ? '#ef4444' : '#f25842'} 
-                      />
-                      <Text style={[styles.scheduleValue, listing.urgency === 'asap' && styles.urgentText]}>
-                        {urgencyText}
-                      </Text>
-                    </View>
-                  </View>
-                  
-                  {/* Posted Date */}
-                  <View style={styles.scheduleItem}>
-                    <Text style={styles.scheduleLabel}>Posted</Text>
-                    <Text style={styles.scheduleValue}>
-                      {listing.created_at ? formatRelativeTime(listing.created_at) : 'Recently'}
-                    </Text>
                   </View>
                 </View>
-              </View>
+              )}
 
               {/* Service Costs Section - Replaces Budget Details */}
               <View style={styles.expandedSection}>
@@ -525,55 +548,113 @@ export function ListingCard({
                   )}
                 </View>
 
-              {/* Booking Availability Section - Replaces Activity when booking is enabled */}
-              {listing.booking_enabled && listing.time_slots && listing.time_slots.length > 0 ? (
+              {/* Booking Availability Section - When booking is enabled */}
+              {listing.booking_enabled ? (
                 <View style={styles.expandedSection}>
                   <View style={styles.sectionHeader}>
                     <Ionicons name="calendar-outline" size={18} color="#f25842" />
-                    <Text style={styles.sectionTitle}>Available Time Slots</Text>
-              </View>
-
-                  <View style={styles.timeSlotsContainer}>
-                    {listing.service_name && (
-                      <Text style={styles.bookingServiceName}>
-                        Service: {listing.service_name}
-                      </Text>
-                    )}
-                    <Text style={styles.timeSlotsTitle}>Weekly Schedule:</Text>
-                    {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => {
-                      const daySlots = listing.time_slots?.filter((slot: any) => slot.day === day);
-                      if (!daySlots || daySlots.length === 0) return null;
-                      
-                      return (
-                        <View key={day} style={styles.daySlotRow}>
-                          <Text style={styles.dayName}>
-                            {day.charAt(0).toUpperCase() + day.slice(1)}:
-                          </Text>
-                          <View style={styles.slotsForDay}>
-                            {daySlots.map((slot: any, idx: number) => (
-                              <Text key={idx} style={styles.slotTime}>
-                                {slot.startTime} - {slot.endTime}
-                              </Text>
-                            ))}
-                          </View>
-                        </View>
-                      );
-                    })}
-                    <View style={styles.bookingAvailability}>
-                      <Ionicons name="checkmark-circle" size={16} color="#15803d" />
-                      <Text style={styles.bookingAvailabilityText}>
-                        Online booking available
-                      </Text>
-                    </View>
+                    <Text style={styles.sectionTitle}>
+                      {listing.time_slots && listing.time_slots.length > 0 
+                        ? 'Available Time Slots' 
+                        : 'Booking Information'}
+                    </Text>
                   </View>
+
+                  {listing.time_slots && listing.time_slots.length > 0 ? (
+                    <View style={styles.timeSlotsContainer}>
+                      {listing.service_name && (
+                        <Text style={styles.bookingServiceName}>
+                          Service: {listing.service_name}
+                        </Text>
+                      )}
+                      <Text style={styles.timeSlotsTitle}>Weekly Schedule:</Text>
+                      {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => {
+                        const daySlots = listing.time_slots?.filter((slot: any) => slot.day === day);
+                        if (!daySlots || daySlots.length === 0) return null;
+                        
+                        return (
+                          <View key={day} style={styles.daySlotRow}>
+                            <Text style={styles.dayName}>
+                              {day.charAt(0).toUpperCase() + day.slice(1)}:
+                            </Text>
+                            <View style={styles.slotsForDay}>
+                              {daySlots.map((slot: any, idx: number) => (
+                                <Text key={idx} style={styles.slotTime}>
+                                  {slot.startTime} - {slot.endTime}
+                                </Text>
+                              ))}
+                            </View>
+                          </View>
+                        );
+                      })}
+                      <View style={styles.bookingAvailability}>
+                        <Ionicons name="checkmark-circle" size={16} color="#15803d" />
+                        <Text style={styles.bookingAvailabilityText}>
+                          Online booking available
+                        </Text>
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.bookingInfoContainer}>
+                      {listing.service_name && (
+                        <View style={styles.scheduleInfoRow}>
+                          <Ionicons name="briefcase-outline" size={16} color="#3b82f6" />
+                          <Text style={styles.scheduleInfoText}>
+                            Service: {listing.service_name}
+                          </Text>
+                        </View>
+                      )}
+                      <View style={styles.bookingAvailability}>
+                        <Ionicons name="information-circle-outline" size={16} color="#6b7280" />
+                        <Text style={styles.bookingAvailabilityText}>
+                          Booking enabled - Contact provider for availability
+                        </Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
               ) : (
-                /* Activity & Stats Section - Only show when booking is NOT enabled */
-              <View style={styles.expandedSection}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="analytics-outline" size={18} color="#f25842" />
-                  <Text style={styles.sectionTitle}>Activity</Text>
-                </View>
+                /* Schedule & Timing Section - When booking is NOT enabled */
+                /* Only show if urgency is not null/undefined AND not 'flexible' (default), OR if preferred_date exists */
+                ((listing.urgency && listing.urgency !== 'flexible') || listing.preferred_date) && (
+                  <View style={styles.expandedSection}>
+                    <View style={styles.sectionHeader}>
+                      <Ionicons name="calendar-outline" size={18} color="#f25842" />
+                      <Text style={styles.sectionTitle}>Schedule & Timing</Text>
+                    </View>
+                    <View style={styles.scheduleInfoContainer}>
+                      {listing.urgency && listing.urgency !== 'flexible' && (
+                        <View style={styles.scheduleInfoRow}>
+                          <Ionicons 
+                            name={listing.urgency === 'asap' ? 'flash' : listing.urgency === 'this_week' ? 'time' : 'calendar'} 
+                            size={16} 
+                            color={listing.urgency === 'asap' ? '#ef4444' : '#f25842'} 
+                          />
+                          <Text style={styles.scheduleInfoText}>
+                            {listing.urgency === 'asap' ? 'ASAP' : listing.urgency === 'this_week' ? 'This Week' : 'Flexible'}
+                          </Text>
+                        </View>
+                      )}
+                      {listing.preferred_date && (
+                        <View style={styles.scheduleInfoRow}>
+                          <Ionicons name="calendar" size={16} color="#3b82f6" />
+                          <Text style={styles.scheduleInfoText}>
+                            Preferred: {formatDate(listing.preferred_date)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                )
+              )}
+
+              {/* Activity & Stats Section - Only show when booking is NOT enabled */}
+              {!listing.booking_enabled && (
+                <View style={styles.expandedSection}>
+                  <View style={styles.sectionHeader}>
+                    <Ionicons name="analytics-outline" size={18} color="#f25842" />
+                    <Text style={styles.sectionTitle}>Activity</Text>
+                  </View>
                 
                 <View style={styles.statsGrid}>
                   {(listing.view_count || 0) > 0 && (
@@ -669,27 +750,18 @@ export function ListingCard({
             </View>
           )}
           
-          {/* Expand/Collapse Button - Always show for better UX */}
+          {/* Expand/Collapse Text - Discrete, not a button */}
           <Pressable
-            style={({ pressed }) => [
-              styles.expandButton,
-              pressed && styles.expandButtonPressed,
-            ]}
             onPress={handleToggleExpand}
-            android_ripple={{ color: 'rgba(242, 88, 66, 0.1)' }}
+            style={styles.expandTextContainer}
           >
-            <Ionicons 
-              name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-              size={16} 
-              color="#f25842" 
-            />
-            <Text style={styles.expandButtonText}>
-              {isExpanded ? 'Show Less Details' : 'View More Details'}
+            <Text style={styles.expandText}>
+              {isExpanded ? 'Show Less' : 'More Details'}
             </Text>
             <Ionicons 
               name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-              size={16} 
-              color="#f25842" 
+              size={14} 
+              color="#9ca3af" 
             />
           </Pressable>
 
@@ -700,7 +772,7 @@ export function ListingCard({
                 style={styles.editActionButton}
                 onPress={() => onEdit(listing.id)}
               >
-                <Ionicons name="create-outline" size={18} color="#3b82f6" />
+                <Ionicons name="create-outline" size={14} color="#3b82f6" />
                 <Text style={styles.editActionButtonText}>Edit</Text>
               </Pressable>
               <Pressable
@@ -712,7 +784,7 @@ export function ListingCard({
                   <ActivityIndicator size="small" color="#ef4444" />
                 ) : (
                   <>
-                    <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                    <Ionicons name="trash-outline" size={14} color="#ef4444" />
                     <Text style={styles.deleteActionButtonText}>Delete</Text>
                   </>
                 )}
@@ -720,39 +792,45 @@ export function ListingCard({
             </View>
           )}
 
-          {/* Like/Dislike/Chat Action Buttons - for find page (all listings, except own) */}
+          {/* Action Buttons Row - Dislike, Message, Booking, Like */}
           {showLikeButtons && !isOwnListing && (
             <View style={styles.likeButtonsContainer}>
+              {/* Dislike Button */}
               <Pressable
                 style={styles.dislikeButton}
                 onPress={() => onDislike?.(listing.id)}
               >
-                <Ionicons name="close" size={24} color="#ef4444" />
+                <Ionicons name="close" size={18} color="#ef4444" />
               </Pressable>
+              
+              {/* Chat/Message Button */}
               <Pressable
                 style={styles.chatButton}
                 onPress={() => onChat?.(listing.id)}
               >
-                <Ionicons name="chatbubble-ellipses" size={22} color="#fbbf24" />
+                <Ionicons name="chatbubble-ellipses" size={18} color="#fbbf24" />
               </Pressable>
+              
+              {/* Booking Button - for bookable services */}
+              {showBookingButton && listing.booking_enabled && (
+                <Pressable
+                  style={styles.bookingButton}
+                  onPress={() => router.push(`/booking/${listing.id}`)}
+                >
+                  {/* Blinking green indicator if available spots */}
+                  {listing.time_slots && listing.time_slots.length > 0 && (
+                    <BlinkingIndicator />
+                  )}
+                  <Ionicons name="calendar" size={18} color="#007AFF" />
+                </Pressable>
+              )}
+              
+              {/* Like Button */}
               <Pressable
                 style={styles.likeButton}
                 onPress={() => onLike?.(listing.id)}
               >
-                <Ionicons name="heart" size={24} color="#10b981" />
-              </Pressable>
-            </View>
-          )}
-
-          {/* Booking Button - for bookable services */}
-          {showBookingButton && !isOwnListing && listing.booking_enabled && (
-            <View style={styles.bookingButtonContainer}>
-              <Pressable
-                style={styles.bookingButton}
-                onPress={() => router.push(`/booking/${listing.id}`)}
-              >
-                <Ionicons name="calendar" size={20} color="#ffffff" />
-                <Text style={styles.bookingButtonText}>Book Appointment</Text>
+                <Ionicons name="heart" size={18} color="#10b981" />
               </Pressable>
             </View>
           )}
@@ -1010,30 +1088,19 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginLeft: 4,
   },
-  expandButton: {
+  expandTextContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(242, 88, 66, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(242, 88, 66, 0.3)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 16,
+    gap: 4,
+    marginTop: 12,
     marginBottom: 8,
-    width: '100%',
+    paddingVertical: 4,
   },
-  expandButtonPressed: {
-    opacity: 0.8,
-    backgroundColor: 'rgba(242, 88, 66, 0.2)',
-  },
-  expandButtonText: {
-    fontSize: 14,
-    color: '#f25842',
-    fontWeight: '600',
-    letterSpacing: 0.2,
+  expandText: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontWeight: '400',
   },
   actionButtonsContainer: {
     flexDirection: 'row',
@@ -1047,34 +1114,34 @@ const styles = StyleSheet.create({
   editActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 8,
     backgroundColor: '#dbeafe',
     flex: 1,
     justifyContent: 'center',
   },
   editActionButtonText: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#3b82f6',
-    fontWeight: '600',
+    fontWeight: '500',
   },
   deleteActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 8,
     backgroundColor: '#fee2e2',
     flex: 1,
     justifyContent: 'center',
   },
   deleteActionButtonText: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#ef4444',
-    fontWeight: '600',
+    fontWeight: '500',
   },
   deleteActionButtonDisabled: {
     opacity: 0.5,
@@ -1083,84 +1150,93 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 24,
-    marginTop: 16,
-    paddingTop: 16,
+    gap: 12,
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
     width: '100%',
   },
   dislikeButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#ffffff',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#fee2e2',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   chatButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#ffffff',
-    borderWidth: 2,
-    borderColor: '#fbbf24',
+    borderWidth: 1.5,
+    borderColor: '#fef3c7',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+    flexShrink: 0,
   },
   likeButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#ffffff',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#d1fae5',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  bookingButtonContainer: {
-    marginTop: 16,
-    paddingTop: 16,
+  topButtonsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
     width: '100%',
   },
   bookingButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#bfdbfe',
     justifyContent: 'center',
-    gap: 8,
+    alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+    position: 'relative',
   },
-  bookingButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
+  blinkingIndicator: {
+    position: 'absolute',
+    left: 6,
+    top: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10b981',
   },
   expandedDetails: {
     marginTop: 16,
@@ -1325,6 +1401,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4b5563',
     fontWeight: '500',
+  },
+  scheduleInfoContainer: {
+    gap: 12,
+    marginTop: 8,
+  },
+  scheduleInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+  },
+  scheduleInfoText: {
+    fontSize: 14,
+    color: '#4b5563',
+    fontWeight: '500',
+  },
+  bookingInfoContainer: {
+    gap: 12,
+    marginTop: 8,
   },
   statsGrid: {
     flexDirection: 'row',

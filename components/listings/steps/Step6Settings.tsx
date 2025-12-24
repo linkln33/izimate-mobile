@@ -28,6 +28,11 @@ export function Step6Settings({ formState, formActions, listingId }: Step6Settin
     review_coupon_code_prefix,
     review_coupon_valid_days,
     review_incentive_message,
+    review_platforms,
+    facebook_page_id,
+    facebook_page_url,
+    google_place_id,
+    google_business_url,
   } = formState
 
   const {
@@ -47,6 +52,11 @@ export function Step6Settings({ formState, formActions, listingId }: Step6Settin
     setReviewCouponCodePrefix,
     setReviewCouponValidDays,
     setReviewIncentiveMessage,
+    setReviewPlatforms,
+    setFacebookPageId,
+    setFacebookPageUrl,
+    setGooglePlaceId,
+    setGoogleBusinessUrl,
   } = formActions
 
   const [loading, setLoading] = useState(false)
@@ -87,6 +97,11 @@ export function Step6Settings({ formState, formActions, listingId }: Step6Settin
         setReviewCouponCodePrefix?.(data.coupon_code_prefix || 'REVIEW')
         setReviewCouponValidDays?.(data.coupon_valid_days || 30)
         setReviewIncentiveMessage?.(data.incentive_message || 'Thank you for your review! Here\'s a discount for your next booking.')
+        setReviewPlatforms?.(data.review_platforms || ['in_app'])
+        setFacebookPageId?.(data.facebook_page_id || '')
+        setFacebookPageUrl?.(data.facebook_page_url || '')
+        setGooglePlaceId?.(data.google_place_id || '')
+        setGoogleBusinessUrl?.(data.google_business_url || '')
       }
     } catch (error) {
       console.error('Failed to load review incentive settings:', error)
@@ -267,6 +282,112 @@ export function Step6Settings({ formState, formActions, listingId }: Step6Settin
 
         {review_incentive_enabled && (
           <>
+            {/* Review Platform Selection */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Review Platforms</Text>
+              <Text style={styles.inputHelp}>
+                Select where customers can leave reviews to receive incentives
+              </Text>
+              
+              {/* In-App Reviews */}
+              <View style={styles.platformOption}>
+                <View style={styles.platformHeader}>
+                  <Ionicons name="phone-portrait-outline" size={20} color="#6b7280" />
+                  <Text style={styles.platformLabel}>In-App Reviews</Text>
+                  <Switch
+                    value={review_platforms?.includes('in_app') ?? true}
+                    onValueChange={(enabled) => {
+                      const platforms = review_platforms || []
+                      if (enabled) {
+                        setReviewPlatforms?.([...platforms.filter(p => p !== 'in_app'), 'in_app'])
+                      } else {
+                        setReviewPlatforms?.(platforms.filter(p => p !== 'in_app'))
+                      }
+                    }}
+                    trackColor={{ false: '#e5e7eb', true: '#fee2e2' }}
+                    thumbColor={review_platforms?.includes('in_app') ? '#f25842' : '#f3f4f6'}
+                  />
+                </View>
+                <Text style={styles.platformDescription}>
+                  Customers leave reviews directly in the app
+                </Text>
+              </View>
+
+              {/* Facebook Reviews */}
+              <View style={styles.platformOption}>
+                <View style={styles.platformHeader}>
+                  <Ionicons name="logo-facebook" size={20} color="#1877f2" />
+                  <Text style={styles.platformLabel}>Facebook Page Reviews</Text>
+                  <Switch
+                    value={review_platforms?.includes('facebook') ?? false}
+                    onValueChange={(enabled) => {
+                      const platforms = review_platforms || []
+                      if (enabled) {
+                        setReviewPlatforms?.([...platforms.filter(p => p !== 'facebook'), 'facebook'])
+                      } else {
+                        setReviewPlatforms?.(platforms.filter(p => p !== 'facebook'))
+                        setFacebookPageId?.('')
+                        setFacebookPageUrl?.('')
+                      }
+                    }}
+                    trackColor={{ false: '#e5e7eb', true: '#fee2e2' }}
+                    thumbColor={review_platforms?.includes('facebook') ? '#f25842' : '#f3f4f6'}
+                  />
+                </View>
+                {review_platforms?.includes('facebook') && (
+                  <>
+                    <TextInput
+                      style={styles.input}
+                      value={facebook_page_url || ''}
+                      onChangeText={setFacebookPageUrl}
+                      placeholder="https://www.facebook.com/your-page"
+                      placeholderTextColor="#9ca3af"
+                    />
+                    <Text style={styles.inputHelp}>
+                      Enter your Facebook Page URL. Customers will be directed here to leave reviews.
+                    </Text>
+                  </>
+                )}
+              </View>
+
+              {/* Google Reviews */}
+              <View style={styles.platformOption}>
+                <View style={styles.platformHeader}>
+                  <Ionicons name="logo-google" size={20} color="#4285f4" />
+                  <Text style={styles.platformLabel}>Google Business Reviews</Text>
+                  <Switch
+                    value={review_platforms?.includes('google') ?? false}
+                    onValueChange={(enabled) => {
+                      const platforms = review_platforms || []
+                      if (enabled) {
+                        setReviewPlatforms?.([...platforms.filter(p => p !== 'google'), 'google'])
+                      } else {
+                        setReviewPlatforms?.(platforms.filter(p => p !== 'google'))
+                        setGooglePlaceId?.('')
+                        setGoogleBusinessUrl?.('')
+                      }
+                    }}
+                    trackColor={{ false: '#e5e7eb', true: '#fee2e2' }}
+                    thumbColor={review_platforms?.includes('google') ? '#f25842' : '#f3f4f6'}
+                  />
+                </View>
+                {review_platforms?.includes('google') && (
+                  <>
+                    <TextInput
+                      style={styles.input}
+                      value={google_business_url || ''}
+                      onChangeText={setGoogleBusinessUrl}
+                      placeholder="https://g.page/r/your-business"
+                      placeholderTextColor="#9ca3af"
+                    />
+                    <Text style={styles.inputHelp}>
+                      Enter your Google Business Profile review link. You can find this in your Google Business dashboard.
+                    </Text>
+                  </>
+                )}
+              </View>
+            </View>
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Incentive Type</Text>
               <View style={styles.incentiveTypeButtons}>
@@ -651,6 +772,31 @@ const styles = StyleSheet.create({
   discountTypeButtonTextActive: {
     color: '#f25842',
     fontWeight: '600',
+  },
+  platformOption: {
+    marginBottom: 16,
+    padding: 16,
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  platformHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  platformLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  platformDescription: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 4,
   },
 })
 

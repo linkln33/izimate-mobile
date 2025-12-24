@@ -31,9 +31,11 @@ interface TimeSlot {
   isBlocked?: boolean; // If true, slot is blocked/unavailable
 }
 
+import type { ListingFormState, ListingFormActions } from '../useListingForm'
+
 interface Step5BookingSimplifiedProps {
-  formData: any;
-  onUpdate: (data: any) => void;
+  formState: ListingFormState;
+  formActions: ListingFormActions;
   isLoading?: boolean;
 }
 
@@ -50,14 +52,43 @@ const DAYS_OF_WEEK = [
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
-  formData,
-  onUpdate,
+  formState,
+  formActions,
   isLoading = false,
 }) => {
-  const [bookingEnabled, setBookingEnabled] = useState(formData.booking_enabled || false);
-  const [serviceName, setServiceName] = useState(formData.service_name || '');
-  const [defaultPrice, setDefaultPrice] = useState(formData.default_price?.toString() || '');
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>(formData.time_slots || []);
+  const {
+    booking_enabled,
+    service_name,
+    budget_min,
+    time_slots,
+    urgency,
+    preferredDate,
+  } = formState;
+
+  const {
+    setBookingEnabled,
+    setServiceName,
+    setTimeSlots,
+    setUrgency,
+    setPreferredDate,
+  } = formActions;
+
+  const [bookingEnabled, setBookingEnabledLocal] = useState(booking_enabled || false);
+  const [serviceName, setServiceNameLocal] = useState(service_name || '');
+  const [defaultPrice, setDefaultPrice] = useState(budget_min?.toString() || '');
+  const [timeSlots, setTimeSlotsLocal] = useState<TimeSlot[]>(time_slots || []);
+  const [scheduleTimingEnabled, setScheduleTimingEnabled] = useState(
+    !!(urgency || preferredDate) || false
+  );
+
+  const handleScheduleTimingToggle = (value: boolean) => {
+    setScheduleTimingEnabled(value);
+    if (!value) {
+      // Clear values when disabled - set to null/empty to truly clear
+      setUrgency?.(null);
+      setPreferredDate?.('');
+    }
+  };
   
   // Calendar state
   const [showCalendar, setShowCalendar] = useState(false);
@@ -66,13 +97,10 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
 
   // Update parent whenever data changes
   useEffect(() => {
-    onUpdate({
-      booking_enabled: bookingEnabled,
-      service_name: serviceName,
-      default_price: defaultPrice ? parseFloat(defaultPrice) : null,
-      time_slots: timeSlots,
-    });
-  }, [bookingEnabled, serviceName, defaultPrice, timeSlots]);
+    setBookingEnabled?.(bookingEnabled);
+    setServiceName?.(serviceName);
+    setTimeSlots?.(timeSlots);
+  }, [bookingEnabled, serviceName, timeSlots, setBookingEnabled, setServiceName, setTimeSlots]);
 
   // Expose validation function for parent
   useEffect(() => {
@@ -94,6 +122,21 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
     };
   }, [bookingEnabled, serviceName, timeSlots]);
 
+  const handleBookingEnabledChange = (value: boolean) => {
+    setBookingEnabledLocal(value);
+    setBookingEnabled?.(value);
+  };
+
+  const handleServiceNameChange = (value: string) => {
+    setServiceNameLocal(value);
+    setServiceName?.(value);
+  };
+
+  const handleTimeSlotsChange = (slots: TimeSlot[]) => {
+    setTimeSlotsLocal(slots);
+    setTimeSlots?.(slots);
+  };
+
   const handleDaySelect = (day: string) => {
     setSelectedDay(day);
     setShowCalendar(true);
@@ -110,7 +153,8 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
 
     if (existingSlot) {
       // Remove existing slot
-      setTimeSlots(timeSlots.filter(s => s.id !== existingSlot.id));
+      const updated = timeSlots.filter(s => s.id !== existingSlot.id);
+      handleTimeSlotsChange(updated);
     } else {
       // Create new 1-hour slot immediately
       const newSlot: TimeSlot = {
@@ -120,12 +164,12 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
         endTime: `${(hour + 1).toString().padStart(2, '0')}:00`,
       };
 
-      setTimeSlots([...timeSlots, newSlot]);
+      handleTimeSlotsChange([...timeSlots, newSlot]);
     }
   };
 
   const handleDeleteSlot = (slotId: string) => {
-    setTimeSlots(timeSlots.filter(slot => slot.id !== slotId));
+    handleTimeSlotsChange(timeSlots.filter(slot => slot.id !== slotId));
   };
 
   const getSlotsForDay = (day: string) => {
@@ -230,7 +274,7 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
                               const updatedSlots = timeSlots.map(s => 
                                 s.id === slot.id ? { ...s, startTime: value } : s
                               );
-                              setTimeSlots(updatedSlots);
+                              handleTimeSlotsChange(updatedSlots);
                             }}
                             placeholder="09:00"
                           />
@@ -242,7 +286,7 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
                               const updatedSlots = timeSlots.map(s => 
                                 s.id === slot.id ? { ...s, endTime: value } : s
                               );
-                              setTimeSlots(updatedSlots);
+                              handleTimeSlotsChange(updatedSlots);
                             }}
                             placeholder="17:00"
                           />
@@ -263,7 +307,7 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
                           const updatedSlots = timeSlots.map(s => 
                             s.id === slot.id ? { ...s, service: value, isBlocked: !!value } : s
                           );
-                          setTimeSlots(updatedSlots);
+                          handleTimeSlotsChange(updatedSlots);
                         }}
                         placeholder="Service (optional) - e.g., Lunch Break, Personal..."
                         placeholderTextColor="#9ca3af"
@@ -277,7 +321,7 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
                           const updatedSlots = timeSlots.map(s => 
                             s.id === slot.id ? { ...s, notes: value } : s
                           );
-                          setTimeSlots(updatedSlots);
+                          handleTimeSlotsChange(updatedSlots);
                         }}
                         placeholder="Notes (optional) - e.g., Don't disturb..."
                         placeholderTextColor="#9ca3af"
@@ -317,6 +361,66 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
           Set up your availability for customers to book directly
         </Text>
 
+        {/* Schedule & Timing Section - Above booking toggle */}
+        <View style={styles.section}>
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleInfo}>
+              <Text style={styles.toggleTitle}>Schedule & Timing</Text>
+              <Text style={styles.toggleSubtitle}>
+                Set your preferred timeline and date
+              </Text>
+            </View>
+            <Switch
+              value={scheduleTimingEnabled}
+              onValueChange={handleScheduleTimingToggle}
+              trackColor={{ false: '#e5e7eb', true: '#3b82f6' }}
+              thumbColor={scheduleTimingEnabled ? '#ffffff' : '#f3f4f6'}
+            />
+          </View>
+
+          {scheduleTimingEnabled && (
+            <>
+              {/* Urgency */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Urgency (Optional)</Text>
+                <View style={styles.urgencyButtons}>
+                  {(['asap', 'this_week', 'flexible'] as const).map((urg) => (
+                    <Pressable
+                      key={urg}
+                      style={[
+                        styles.urgencyButton,
+                        urgency === urg && styles.urgencyButtonActive,
+                      ]}
+                      onPress={() => setUrgency?.(urg)}
+                    >
+                      <Text
+                        style={[
+                          styles.urgencyButtonText,
+                          urgency === urg && styles.urgencyButtonTextActive,
+                        ]}
+                      >
+                        {urg === 'asap' ? 'ASAP' : urg === 'this_week' ? 'This Week' : 'Flexible'}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              {/* Preferred Date */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Preferred Date (Optional)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={preferredDate || ''}
+                  onChangeText={setPreferredDate}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor="#9ca3af"
+                />
+              </View>
+            </>
+          )}
+        </View>
+
         {/* Enable Booking Toggle */}
         <View style={styles.section}>
           <View style={styles.toggleRow}>
@@ -328,7 +432,7 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
             </View>
             <Switch
               value={bookingEnabled}
-              onValueChange={setBookingEnabled}
+              onValueChange={handleBookingEnabledChange}
               trackColor={{ false: '#e5e7eb', true: '#3b82f6' }}
               thumbColor={bookingEnabled ? '#ffffff' : '#f3f4f6'}
             />
@@ -343,7 +447,7 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
               <TextInput
                 style={styles.serviceInput}
                 value={serviceName}
-                onChangeText={setServiceName}
+                onChangeText={handleServiceNameChange}
                 placeholder="e.g., Haircut, Manicure, Massage Therapy..."
                 placeholderTextColor="#9ca3af"
               />
@@ -754,6 +858,51 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#1a1a1a',
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+  },
+  urgencyButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  urgencyButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    alignItems: 'center',
+  },
+  urgencyButtonActive: {
+    backgroundColor: '#fee2e2',
+    borderColor: '#f25842',
+  },
+  urgencyButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  urgencyButtonTextActive: {
+    color: '#f25842',
+    fontWeight: '600',
   },
 });
 

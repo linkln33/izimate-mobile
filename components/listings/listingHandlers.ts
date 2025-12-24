@@ -39,6 +39,11 @@ async function saveReviewIncentiveSettings(
       coupon_code_prefix: formState.review_coupon_code_prefix || 'REVIEW',
       coupon_valid_days: formState.review_coupon_valid_days || 30,
       incentive_message: formState.review_incentive_message || 'Thank you for your review! Here\'s a discount for your next booking.',
+      review_platforms: formState.review_platforms || ['in_app'],
+      facebook_page_id: formState.facebook_page_id || null,
+      facebook_page_url: formState.facebook_page_url || null,
+      google_place_id: formState.google_place_id || null,
+      google_business_url: formState.google_business_url || null,
     }
 
     // Check if settings already exist
@@ -119,8 +124,10 @@ async function saveServiceSettings(listingId: string, formState: ListingFormStat
       same_day_booking: true,
       auto_confirm: false, // Manual confirmation by default
       cancellation_hours: formState.cancellation_hours || 24,
-      // Note: cancellation_fee and refund_policy would need to be added to service_settings table
-      // For now, we'll store cancellation_hours in service_settings
+      cancellation_fee_enabled: formState.cancellation_fee_enabled || false,
+      cancellation_fee_percentage: formState.cancellation_fee_percentage || null,
+      cancellation_fee_amount: formState.cancellation_fee_amount || null,
+      refund_policy: formState.refund_policy || 'full',
       working_hours: workingHours,
       break_times: [],
       service_options: formState.budget_type === 'price_list' && formState.price_list && formState.price_list.length > 0
@@ -513,7 +520,7 @@ export function createListingHandlers(
         budget_max: formState.budgetMax ? parseFloat(formState.budgetMax) : null,
         price_list: formState.price_list && formState.price_list.length > 0 ? formState.price_list : [],
         currency: formState.currency || 'GBP',
-        urgency: formState.urgency,
+        urgency: formState.urgency || null,
         preferred_date: formState.preferredDate || null,
         location_address: formState.locationAddress.trim(),
         location_lat: formState.locationLat,

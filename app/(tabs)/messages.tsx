@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Image } from 'react-native'
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Image, Platform } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase'
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#ffffff',
     padding: 20,
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'ios' ? 50 : 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
