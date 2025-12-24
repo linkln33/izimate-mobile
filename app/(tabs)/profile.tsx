@@ -59,6 +59,11 @@ export default function ProfileScreen() {
         .single()
 
       if (userData) {
+        console.log('User data loaded:', { 
+          id: userData.id, 
+          name: userData.name, 
+          verification_status: userData.verification_status 
+        });
         setUser(userData)
         setName(userData.name || '')
         setBio(userData.bio || '')
@@ -322,28 +327,41 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           {/* Avatar */}
           <View style={styles.avatarSection}>
-            {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Ionicons name="person" size={40} color="#6b7280" />
+            <Pressable onPress={handlePickAvatar} style={styles.avatarContainer}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Ionicons name="person" size={40} color="#6b7280" />
+                </View>
+              )}
+              {/* Camera icon overlay for changing photo */}
+              <View style={styles.cameraIconOverlay}>
+                <Ionicons name="camera" size={20} color="#ffffff" />
               </View>
-            )}
-            {/* Display name under avatar */}
-            {name ? (
-              <Text style={styles.avatarName}>{name}</Text>
-            ) : (
-              <Text style={styles.avatarNamePlaceholder}>Add your name</Text>
-            )}
-            {user?.verification_status === 'verified' && (
-              <View style={styles.verifiedBadge}>
-                <Ionicons name="shield-checkmark" size={14} color="#a855f7" />
-                <Text style={styles.verifiedBadgeText}>Verified</Text>
-              </View>
-            )}
-            <Pressable style={styles.changeAvatarButton} onPress={handlePickAvatar}>
-              <Text style={styles.changeAvatarText}>Change Photo</Text>
             </Pressable>
+            
+            {/* Display name with verified badge inline */}
+            <View style={styles.nameRow}>
+              {name ? (
+                <Text style={styles.avatarName}>{name}</Text>
+              ) : (
+                <Text style={styles.avatarNamePlaceholder}>Add your name</Text>
+              )}
+              {(() => {
+                console.log('Checking verification status:', {
+                  hasUser: !!user,
+                  status: user?.verification_status,
+                  isVerified: user?.verification_status === 'verified'
+                });
+                return user?.verification_status === 'verified' && (
+                  <View style={styles.verifiedBadge}>
+                    <Ionicons name="shield-checkmark" size={14} color="#a855f7" />
+                    <Text style={styles.verifiedBadgeText}>Verified</Text>
+                  </View>
+                );
+              })()}
+            </View>
           </View>
 
           {/* Enhanced Ratings and Feedback Section */}
@@ -355,37 +373,19 @@ export default function ProfileScreen() {
               totalReviews={totalReviews}
             />
 
-              {providerProfile && (
-                <>
-                  <View style={styles.statCard}>
-                    <View style={styles.statRow}>
-                      <Ionicons name="briefcase" size={20} color="#f25842" />
-                      <Text style={styles.statLabel}>Provider Rating</Text>
-                    </View>
-                    <View style={styles.statValueRow}>
-                      <Text style={styles.statValue}>{providerProfile.rating.toFixed(1)}</Text>
-                      <Text style={styles.statSubtext}>/ 5.0</Text>
-                    </View>
-                    <Text style={styles.statDetail}>
-                      {providerProfile.jobs_completed} {providerProfile.jobs_completed === 1 ? 'job' : 'jobs'} completed
-                    </Text>
-                  </View>
-
-                  {providerProfile.verification_score !== undefined && (
-                    <View style={styles.statCard}>
-                      <View style={styles.statRow}>
-                        <Ionicons name="shield-checkmark" size={20} color="#10b981" />
-                        <Text style={styles.statLabel}>Verification Score</Text>
-                      </View>
-                      <View style={styles.statValueRow}>
-                        <Text style={styles.statValue}>{providerProfile.verification_score}</Text>
-                        <Text style={styles.statSubtext}>/ 100</Text>
-                      </View>
-                    </View>
-                  )}
-                </>
-              )}
-            </View>
+            {providerProfile && providerProfile.verification_score !== undefined && (
+              <View style={styles.statCard}>
+                <View style={styles.statRow}>
+                  <Ionicons name="shield-checkmark" size={20} color="#10b981" />
+                  <Text style={styles.statLabel}>Verification Score</Text>
+                </View>
+                <View style={styles.statValueRow}>
+                  <Text style={styles.statValue}>{providerProfile.verification_score}</Text>
+                  <Text style={styles.statSubtext}>/ 100</Text>
+                </View>
+              </View>
+            )}
+          </View>
 
           {/* Profile Information */}
           <Text style={styles.sectionTitle}>Profile Information</Text>
@@ -564,11 +564,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 12,
   },
   avatarPlaceholder: {
     width: 100,
@@ -577,20 +580,36 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e7eb',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+  },
+  cameraIconOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#f25842',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#ffffff',
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
   },
   avatarName: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1a1a1a',
-    marginBottom: 4,
     textAlign: 'center',
   },
   avatarNamePlaceholder: {
     fontSize: 16,
     color: '#9ca3af',
     fontStyle: 'italic',
-    marginBottom: 4,
     textAlign: 'center',
   },
   verifiedBadge: {
@@ -600,26 +619,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(168, 85, 247, 0.15)',
     borderWidth: 1,
     borderColor: 'rgba(168, 85, 247, 0.4)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
     borderRadius: 12,
-    marginBottom: 12,
   },
   verifiedBadgeText: {
     fontSize: 12,
     color: '#7c3aed',
     fontWeight: '600',
-  },
-  changeAvatarButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
-  },
-  changeAvatarText: {
-    fontSize: 14,
-    color: '#1a1a1a',
-    fontWeight: '500',
   },
   statsSection: {
     marginBottom: 24,

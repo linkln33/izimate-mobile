@@ -12,7 +12,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "scheme": "izimate-job",
+    "scheme": "izimate",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.izimate.job",
@@ -36,7 +36,11 @@
         "READ_MEDIA_IMAGES",
         "READ_MEDIA_VIDEO",
         "VIBRATE",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "READ_CALENDAR",
+        "WRITE_CALENDAR",
+        "USE_FINGERPRINT",
+        "USE_BIOMETRIC"
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -62,6 +66,27 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow iZimate Job to access your photos to upload images."
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Allow iZimate Job to access your calendar to sync availability and prevent double bookings."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#f25842",
+          "defaultChannel": "default",
+          "sounds": ["./assets/sounds/notification.wav"]
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow iZimate Job to use Face ID for secure booking confirmations."
         }
       ]
     ],

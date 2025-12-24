@@ -67,10 +67,10 @@ export function BillingTab({ user }: Props) {
 
       <View style={styles.plansContainer}>
         {/* Pro Plan */}
-        <View style={[styles.planCard, currentPlan === 'pro' && styles.planCardActive]}>
+        <View style={[styles.planCard, styles.proPlanCard, currentPlan === 'pro' && styles.proPlanCardActive]}>
           <View style={styles.planHeader}>
             <Text style={styles.planName}>Pro Plan</Text>
-            <Text style={styles.planPrice}>£4.95<Text style={styles.planPeriod}>/month</Text></Text>
+            <Text style={[styles.planPrice, styles.proPlanPrice]}>£4.95<Text style={styles.planPeriod}>/month</Text></Text>
           </View>
           <View style={styles.planFeatures}>
             <View style={styles.feature}>
@@ -106,10 +106,10 @@ export function BillingTab({ user }: Props) {
         </View>
 
         {/* Business Plan */}
-        <View style={[styles.planCard, currentPlan === 'business' && styles.planCardActive]}>
+        <View style={[styles.planCard, styles.businessPlanCard, currentPlan === 'business' && styles.businessPlanCardActive]}>
           <View style={styles.planHeader}>
             <Text style={styles.planName}>Business Plan</Text>
-            <Text style={styles.planPrice}>£19.95<Text style={styles.planPeriod}>/month</Text></Text>
+            <Text style={[styles.planPrice, styles.businessPlanPrice]}>£19.95<Text style={styles.planPeriod}>/month</Text></Text>
           </View>
           <View style={styles.planFeatures}>
             <View style={styles.feature}>
@@ -201,6 +201,28 @@ const styles = StyleSheet.create({
   planCardActive: {
     borderColor: '#f25842',
     backgroundColor: '#fef2f2',
+  },
+  proPlanCard: {
+    backgroundColor: 'rgba(99, 102, 241, 0.05)', // Semi-transparent indigo
+    borderColor: 'rgba(99, 102, 241, 0.2)',
+  },
+  proPlanCardActive: {
+    borderColor: '#6366f1',
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+  },
+  proPlanPrice: {
+    color: '#6366f1',
+  },
+  businessPlanCard: {
+    backgroundColor: 'rgba(245, 158, 11, 0.05)', // Semi-transparent amber
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  businessPlanCardActive: {
+    borderColor: '#f59e0b',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+  },
+  businessPlanPrice: {
+    color: '#f59e0b',
   },
   planHeader: {
     marginBottom: 20,

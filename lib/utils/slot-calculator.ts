@@ -11,6 +11,7 @@ export interface ServiceOption {
   duration: number; // minutes
   price: number;
   currency: string;
+  color?: string; // Hex color for calendar display
 }
 
 export interface WorkingHours {
@@ -55,6 +56,7 @@ export interface TimeSlot {
   price?: number;
   currency?: string;
   serviceName?: string;
+  serviceColor?: string; // Color for this service type
   conflictReason?: string; // Why slot is unavailable
 }
 
@@ -221,7 +223,8 @@ export class SlotCalculator {
     date: string, // YYYY-MM-DD format
     serviceDuration?: number, // minutes, optional override
     servicePrice?: number,
-    serviceName?: string
+    serviceName?: string,
+    serviceColor?: string // Color for this service type
   ): Promise<TimeSlot[]> {
     // Get service settings
     const settings = await this.getServiceSettings(listingId);
@@ -310,6 +313,7 @@ export class SlotCalculator {
         price: servicePrice,
         currency: settings.service_options[0]?.currency || 'GBP',
         serviceName: serviceName || 'Service',
+        serviceColor: serviceColor,
         conflictReason
       });
 
@@ -453,8 +457,71 @@ export class SlotCalculator {
         return { success: false, error: error.message };
       }
 
-      // TODO: Send notifications to provider and customer
-      // TODO: Create calendar event if provider has calendar connected
+      // Send notifications to provider and customer
+      try {
+        const { sendBookingConfirmation } = await import('./booking-notifications');
+        
+        // Get customer details
+        const { data: customer } = await supabase
+          .from('users')
+          .select('email, name')
+          .eq('id', customerId)
+          .single();
+
+        if (customer) {
+          await sendBookingConfirmation(
+            booking.id,
+            customerId,
+            customer.email,
+            customer.name,
+            {
+              serviceName: slotData.serviceName,
+              date: slotData.date,
+              startTime: slotData.startTime,
+              endTime: slotData.endTime,
+              providerName: listing.customer?.name || 'Provider',
+            }
+          );
+        }
+      } catch (notifError) {
+        console.warn('Failed to send notification:', notifError);
+        // Don't fail booking if notification fails
+      }
+
+      // Create calendar event in native calendar if enabled
+      try {
+        const { NativeCalendarService } = await import('./native-calendar');
+        const nativeService = NativeCalendarService.getInstance();
+        
+        // Check if provider has native calendar connection as primary
+        const { data: calendarConnection } = await supabase
+          .from('calendar_connections')
+          .select('calendar_id, provider, is_primary')
+          .eq('user_id', listing.user_id)
+          .in('provider', ['apple', 'android', 'samsung'])
+          .eq('is_primary', true)
+          .eq('sync_enabled', true)
+          .single();
+        
+        if (calendarConnection?.calendar_id) {
+          const startDateTime = new Date(`${slotData.date}T${slotData.startTime}`);
+          const endDateTime = new Date(`${slotData.date}T${slotData.endTime}`);
+          
+          await nativeService.createEvent(
+            calendarConnection.calendar_id,
+            {
+              title: `Booking: ${slotData.serviceName}`,
+              startDate: startDateTime,
+              endDate: endDateTime,
+              notes: `Customer: ${customer?.name || 'Guest'}\nService: ${slotData.serviceName}\nPrice: ${slotData.currency}${slotData.servicePrice}${slotData.customerNotes ? `\nNotes: ${slotData.customerNotes}` : ''}`,
+              allDay: false,
+            }
+          );
+        }
+      } catch (calendarError) {
+        console.warn('Failed to create calendar event:', calendarError);
+        // Don't fail booking if calendar event creation fails
+      }
 
       return { success: true, bookingId: booking.id };
 

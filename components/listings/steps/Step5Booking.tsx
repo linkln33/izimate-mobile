@@ -15,6 +15,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { googleCalendar } from '../../../lib/utils/google-calendar';
 import { slotCalculator } from '../../../lib/utils/slot-calculator';
+import { CalendarIntegration } from '../../booking/CalendarIntegration';
+import { supabase } from '../../../lib/supabase';
 
 interface ServiceOption {
   name: string;
@@ -78,30 +80,34 @@ export const Step5Booking: React.FC<Step5BookingProps> = ({
     formData.service_options || []
   );
   const [calendarConnected, setCalendarConnected] = useState(false);
-  const [connectingCalendar, setConnectingCalendar] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user has calendar connected
-    checkCalendarConnection();
+    getCurrentUser();
   }, []);
 
-  const checkCalendarConnection = async () => {
+  const getCurrentUser = async () => {
     try {
-      // This would check the user's calendar connections
-      // For now, we'll assume no connection
-      setCalendarConnected(false);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
     } catch (error) {
-      console.error('Failed to check calendar connection:', error);
+      console.error('Failed to get current user:', error);
     }
   };
 
-  const handleConnectGoogleCalendar = async () => {
-    setConnectingCalendar(true);
-    try {
-      // Get current user ID (this should come from auth context)
-      const userId = 'current-user-id'; // Replace with actual user ID
-      
-      const authUrl = googleCalendar.getAuthUrl(userId);
+  const handleCalendarConnectionChange = (connected: boolean) => {
+    setCalendarConnected(connected);
+    // Update form data with calendar connection status
+    onUpdate({
+      ...formData,
+      calendar_connected: connected,
+    });
+
+    // If connecting, show calendar connection flow
+    if (connected && currentUserId) {
+      const authUrl = googleCalendar.getAuthUrl(currentUserId);
       
       Alert.alert(
         'Connect Google Calendar',
@@ -119,11 +125,6 @@ export const Step5Booking: React.FC<Step5BookingProps> = ({
           }
         ]
       );
-    } catch (error) {
-      console.error('Failed to connect calendar:', error);
-      Alert.alert('Error', 'Failed to connect Google Calendar');
-    } finally {
-      setConnectingCalendar(false);
     }
   };
 
@@ -194,6 +195,31 @@ export const Step5Booking: React.FC<Step5BookingProps> = ({
 
     onNext();
   };
+
+  // Auto-update form data whenever any field changes
+  useEffect(() => {
+    onUpdate({
+      booking_enabled: bookingEnabled,
+      service_type: serviceType,
+      default_duration_minutes: parseInt(defaultDuration) || 60,
+      buffer_minutes: parseInt(bufferTime) || 15,
+      advance_booking_days: parseInt(advanceBookingDays) || 30,
+      same_day_booking: sameDayBooking,
+      auto_confirm: autoConfirm,
+      working_hours: workingHours,
+      service_options: serviceOptions,
+      calendar_connected: calendarConnected,
+    });
+  }, [bookingEnabled, serviceType, defaultDuration, bufferTime, advanceBookingDays, sameDayBooking, autoConfirm, workingHours, serviceOptions, calendarConnected]);
+
+  // Expose validation function to parent via useEffect
+  useEffect(() => {
+    // Store the validation function reference
+    (window as any).__step5BookingValidation = handleNext;
+    return () => {
+      delete (window as any).__step5BookingValidation;
+    };
+  }, [bookingEnabled, serviceOptions, defaultDuration, workingHours]);
 
   const serviceTypes = [
     { value: 'appointment', label: 'Appointment', icon: 'calendar' },
@@ -441,60 +467,15 @@ export const Step5Booking: React.FC<Step5BookingProps> = ({
             {/* Calendar Integration */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Calendar Integration</Text>
-              <View style={styles.calendarCard}>
-                <View style={styles.calendarInfo}>
-                  <Ionicons 
-                    name={calendarConnected ? "checkmark-circle" : "calendar-outline"} 
-                    size={24} 
-                    color={calendarConnected ? "#10b981" : "#6b7280"} 
-                  />
-                  <View style={styles.calendarText}>
-                    <Text style={styles.calendarTitle}>
-                      {calendarConnected ? 'Google Calendar Connected' : 'Connect Google Calendar'}
-                    </Text>
-                    <Text style={styles.calendarSubtitle}>
-                      {calendarConnected 
-                        ? 'Your calendar is synced to prevent double bookings'
-                        : 'Sync your existing calendar to show real availability'
-                      }
-                    </Text>
-                  </View>
-                </View>
-                
-                {!calendarConnected && (
-                  <Pressable
-                    style={styles.connectButton}
-                    onPress={handleConnectGoogleCalendar}
-                    disabled={connectingCalendar}
-                  >
-                    <Text style={styles.connectButtonText}>
-                      {connectingCalendar ? 'Connecting...' : 'Connect'}
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
+              {currentUserId && (
+                <CalendarIntegration
+                  userId={currentUserId}
+                  onConnectionChange={handleCalendarConnectionChange}
+                />
+              )}
             </View>
           </>
         )}
-
-        {/* Navigation Buttons */}
-        <View style={styles.navigationContainer}>
-          <Pressable style={styles.backButton} onPress={onBack}>
-            <Ionicons name="chevron-back" size={20} color="#6b7280" />
-            <Text style={styles.backButtonText}>Back</Text>
-          </Pressable>
-          
-          <Pressable 
-            style={[styles.nextButton, isLoading && styles.nextButtonDisabled]} 
-            onPress={handleNext}
-            disabled={isLoading}
-          >
-            <Text style={styles.nextButtonText}>
-              {isLoading ? 'Creating...' : 'Continue'}
-            </Text>
-            <Ionicons name="chevron-forward" size={20} color="#ffffff" />
-          </Pressable>
-        </View>
       </View>
     </ScrollView>
   );
@@ -767,48 +748,6 @@ const styles = {
   },
   connectButtonText: {
     fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#ffffff',
-  },
-  navigationContainer: {
-    flexDirection: 'row' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
-    marginTop: 32,
-    paddingTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-  backButton: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: '500' as const,
-    color: '#6b7280',
-  },
-  nextButton: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
-    gap: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    backgroundColor: '#3b82f6',
-    borderRadius: 8,
-  },
-  nextButtonDisabled: {
-    opacity: 0.6,
-  },
-  nextButtonText: {
-    fontSize: 16,
     fontWeight: '600' as const,
     color: '#ffffff',
   },

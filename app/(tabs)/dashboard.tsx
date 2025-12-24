@@ -7,10 +7,11 @@ import { getUnreadNotificationCount } from '@/lib/utils/notifications'
 import { BillingTab } from '@/components/dashboard/BillingTab'
 import { AffiliateTab } from '@/components/dashboard/AffiliateTab'
 import { VerificationTab } from '@/components/dashboard/VerificationTab'
-import { BookingManagementTab } from '@/components/dashboard/BookingManagementTab'
 import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection'
-import { CalendarWidget } from '@/components/dashboard/CalendarWidget'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
+import { QuickRebookingWidget } from '@/components/booking/QuickRebookingWidget'
+import { UnifiedBookingsTab } from '@/components/booking/UnifiedBookingsTab'
+import { BusinessBookingsTab } from '@/components/booking/BusinessBookingsTab'
 import type { Listing, Match, User } from '@/lib/types'
 
 interface DashboardStats {
@@ -232,13 +233,30 @@ export default function DashboardScreen() {
           <VerificationTab user={user} />
         </CollapsibleSection>
 
-        {/* Booking Management Section */}
+        {/* Unified Bookings Section */}
+        {user && (
         <CollapsibleSection
-          title="Booking Management"
+            title="My Bookings"
           icon="calendar"
         >
-          <BookingManagementTab />
+            <UnifiedBookingsTab 
+              userId={user.id}
+            />
         </CollapsibleSection>
+        )}
+
+        {/* Business Bookings Section - Only show if user has active listings */}
+        {user && listings.length > 0 && (
+        <CollapsibleSection
+            title="Business Bookings"
+          icon="briefcase"
+        >
+            <BusinessBookingsTab 
+              userId={user.id}
+            />
+        </CollapsibleSection>
+        )}
+
 
         {/* Logout Button */}
         <View style={styles.logoutContainer}>
@@ -347,10 +365,11 @@ function OverviewTab({ user, listings, matches, stats, router }: any) {
         </View>
       </View>
 
-      {/* Calendar Widget */}
-      <View style={styles.calendarSection}>
-        <CalendarWidget events={mockEvents} />
-      </View>
+      {/* Quick Rebooking Widget */}
+      {user && (
+        <QuickRebookingWidget userId={user.id} maxItems={3} />
+      )}
+
     </View>
   )
 }
@@ -467,9 +486,6 @@ const styles = StyleSheet.create({
   },
   starIcon: {
     marginLeft: 4,
-  },
-  calendarSection: {
-    marginTop: 20,
   },
   actionButton: {
     backgroundColor: '#f25842',

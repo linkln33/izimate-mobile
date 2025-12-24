@@ -1,5 +1,5 @@
-import React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import React, { useState } from 'react'
+import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 
 interface RatingCriteriaProps {
@@ -14,6 +14,8 @@ interface RatingCriteriaProps {
 }
 
 export function RatingCriteria({ ratings, totalReviews }: RatingCriteriaProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const criteriaList = [
     {
       key: 'asDescribed',
@@ -89,12 +91,34 @@ export function RatingCriteria({ ratings, totalReviews }: RatingCriteriaProps) {
 
   return (
     <View style={styles.container}>
-      {/* Overall Rating Header */}
+      {/* Overall Rating Header with Summary Stats */}
       <View style={styles.overallSection}>
+        {/* Summary Stats - Replacing "88% Positive" */}
+        <View style={styles.summarySection}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {getPercentage(overallRating)}%
+            </Text>
+            <Text style={styles.summaryLabel}>Positive Rating</Text>
+          </View>
+          
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {criteriaList.filter(c => c.value >= 4.5).length}/5
+            </Text>
+            <Text style={styles.summaryLabel}>Excellent Areas</Text>
+          </View>
+          
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {totalReviews}
+            </Text>
+            <Text style={styles.summaryLabel}>Total Reviews</Text>
+          </View>
+        </View>
+
+        {/* Stars and Subtext */}
         <View style={styles.overallRating}>
-          <Text style={styles.overallValue}>
-            {totalReviews > 0 ? `${getPercentage(overallRating)}% Positive` : 'No Reviews Yet'}
-          </Text>
           <View style={styles.overallStars}>
             {renderStars(overallRating)}
           </View>
@@ -107,72 +131,62 @@ export function RatingCriteria({ ratings, totalReviews }: RatingCriteriaProps) {
         </View>
       </View>
 
-      {/* Criteria Breakdown */}
+      {/* Criteria Breakdown - Collapsible */}
       <View style={styles.criteriaSection}>
-        <Text style={styles.criteriaTitle}>Rating Breakdown</Text>
+        <Pressable 
+          style={styles.criteriaHeader}
+          onPress={() => setIsExpanded(!isExpanded)}
+        >
+          <Text style={styles.criteriaTitle}>Rating Breakdown</Text>
+          <Ionicons 
+            name={isExpanded ? "chevron-up" : "chevron-down"} 
+            size={24} 
+            color="#6b7280" 
+          />
+        </Pressable>
         
-        {criteriaList.map((criteria) => (
-          <View key={criteria.key} style={styles.criteriaItem}>
-            <View style={styles.criteriaHeader}>
-              <View style={styles.criteriaLabelRow}>
-                <Ionicons 
-                  name={criteria.icon as any} 
-                  size={16} 
-                  color={criteria.color} 
-                />
-                <Text style={styles.criteriaLabel}>{criteria.label}</Text>
+        {isExpanded && (
+          <View style={styles.criteriaContent}>
+            {criteriaList.map((criteria) => (
+              <View key={criteria.key} style={styles.criteriaItem}>
+                <View style={styles.criteriaItemHeader}>
+                  <View style={styles.criteriaLabelRow}>
+                    <Ionicons 
+                      name={criteria.icon as any} 
+                      size={16} 
+                      color={criteria.color} 
+                    />
+                    <Text style={styles.criteriaLabel}>{criteria.label}</Text>
+                  </View>
+                  <View style={styles.criteriaValueRow}>
+                    <Text style={styles.criteriaValue}>{criteria.value.toFixed(1)}</Text>
+                    <Text style={styles.criteriaPercentage}>
+                      {getPercentage(criteria.value)}%
+                    </Text>
+                  </View>
+                </View>
+                
+                {/* Progress Bar */}
+                <View style={styles.progressBar}>
+                  <View 
+                    style={[
+                      styles.progressFill, 
+                      { 
+                        width: `${getPercentage(criteria.value)}%`,
+                        backgroundColor: criteria.color 
+                      }
+                    ]} 
+                  />
+                </View>
+                
+                {/* Star Rating */}
+                <View style={styles.criteriaStars}>
+                  {renderStars(criteria.value)}
+                </View>
               </View>
-              <View style={styles.criteriaValueRow}>
-                <Text style={styles.criteriaValue}>{criteria.value.toFixed(1)}</Text>
-                <Text style={styles.criteriaPercentage}>
-                  {getPercentage(criteria.value)}%
-                </Text>
-              </View>
-            </View>
-            
-            {/* Progress Bar */}
-            <View style={styles.progressBar}>
-              <View 
-                style={[
-                  styles.progressFill, 
-                  { 
-                    width: `${getPercentage(criteria.value)}%`,
-                    backgroundColor: criteria.color 
-                  }
-                ]} 
-              />
-            </View>
-            
-            {/* Star Rating */}
-            <View style={styles.criteriaStars}>
-              {renderStars(criteria.value)}
-            </View>
+            ))}
           </View>
-        ))}
-      </View>
-
-      {/* Summary Stats */}
-      <View style={styles.summarySection}>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>
-            {getPercentage(overallRating)}%
-          </Text>
-          <Text style={styles.summaryLabel}>Positive Rating</Text>
-        </View>
-        
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>
-            {criteriaList.filter(c => c.value >= 4.5).length}/5
-          </Text>
-          <Text style={styles.summaryLabel}>Excellent Areas</Text>
-        </View>
-        
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>
-            {totalReviews}
-          </Text>
-          <Text style={styles.summaryLabel}>Total Reviews</Text>
-        </View>
+        )}
       </View>
     </View>
   )
@@ -199,13 +213,6 @@ const styles = StyleSheet.create({
   overallRating: {
     alignItems: 'center',
   },
-  overallValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
   overallStars: {
     flexDirection: 'row',
     marginBottom: 8,
@@ -214,19 +221,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
   },
+  summarySection: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
   criteriaSection: {
     marginBottom: 20,
+  },
+  criteriaHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
   criteriaTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1a1a1a',
-    marginBottom: 16,
+  },
+  criteriaContent: {
+    marginTop: 12,
   },
   criteriaItem: {
     marginBottom: 16,
   },
-  criteriaHeader: {
+  criteriaItemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -268,13 +291,6 @@ const styles = StyleSheet.create({
   },
   criteriaStars: {
     flexDirection: 'row',
-  },
-  summarySection: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
   },
   summaryItem: {
     alignItems: 'center',

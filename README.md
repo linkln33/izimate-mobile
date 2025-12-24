@@ -121,6 +121,9 @@ All environment variables must be prefixed with `EXPO_PUBLIC_` to be accessible 
 - `EXPO_PUBLIC_R2_ACCESS_KEY_ID` - Your R2 access key ID
 - `EXPO_PUBLIC_R2_SECRET_ACCESS_KEY` - Your R2 secret access key
 
+**Optional:**
+- `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY` - Google Places API key for fetching external reviews
+
 ### Building for Production
 
 #### Android APK

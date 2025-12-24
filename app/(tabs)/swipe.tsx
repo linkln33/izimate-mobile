@@ -33,9 +33,15 @@ export default function FindScreen() {
     remaining: 3,
   })
   const [searchQuery, setSearchQuery] = useState('')
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const [expandedFilter, setExpandedFilter] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedUrgency, setSelectedUrgency] = useState<string | null>(null)
+  // New filter states
+  const [minPrice, setMinPrice] = useState('')
+  const [maxPrice, setMaxPrice] = useState('')
+  const [maxDistance, setMaxDistance] = useState('')
+  const [minRating, setMinRating] = useState('')
 
   useEffect(() => {
     loadData()
@@ -66,8 +72,30 @@ export default function FindScreen() {
       filtered = filtered.filter((listing) => listing.urgency === selectedUrgency)
     }
 
+    // Price filter
+    if (minPrice) {
+      const min = parseFloat(minPrice)
+      filtered = filtered.filter(l => l.budget_min && l.budget_min >= min)
+    }
+    if (maxPrice) {
+      const max = parseFloat(maxPrice)
+      filtered = filtered.filter(l => !l.budget_max || l.budget_max <= max)
+    }
+
+    // Distance filter
+    if (maxDistance && userLocation) {
+      const maxDist = parseFloat(maxDistance)
+      filtered = filtered.filter(l => l.distance && l.distance <= maxDist)
+    }
+
+    // Rating filter
+    if (minRating) {
+      const minRat = parseFloat(minRating)
+      filtered = filtered.filter(l => l.customerRating && l.customerRating >= minRat)
+    }
+
     setFilteredListings(filtered)
-  }, [listings, searchQuery, selectedCategory, selectedUrgency])
+  }, [listings, searchQuery, selectedCategory, selectedUrgency, minPrice, maxPrice, maxDistance, minRating, userLocation])
 
   const loadData = async () => {
     try {
@@ -332,48 +360,47 @@ export default function FindScreen() {
   const categories = Array.from(new Set(listings.map((l) => l.category).filter(Boolean))) as string[]
   const urgencyOptions = ['flexible', 'asap', 'urgent']
 
+  const toggleFilter = (filterName: string) => {
+    setExpandedFilter(expandedFilter === filterName ? null : filterName)
+  }
+
   return (
     <View style={styles.container}>
       {/* Header with Search and Filter */}
       <View style={styles.header}>
-        {/* Filter Button - Left Top */}
-        <Pressable
-          style={styles.filterButton}
-          onPress={() => setIsFilterModalOpen(true)}
-        >
-          <Ionicons 
-            name="filter" 
-            size={24} 
-            color={(selectedCategory || selectedUrgency) ? '#f25842' : '#6b7280'} 
-          />
-          {(selectedCategory || selectedUrgency) && (
-            <View style={styles.filterBadge}>
-              <Text style={styles.filterBadgeText}>
-                {(selectedCategory ? 1 : 0) + (selectedUrgency ? 1 : 0)}
-              </Text>
-            </View>
-          )}
-        </Pressable>
-
-        {/* Search Box */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#9ca3af" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search listings..."
-            placeholderTextColor="#9ca3af"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery('')} style={styles.clearButton}>
-              <Ionicons name="close-circle" size={20} color="#9ca3af" />
-            </Pressable>
-          )}
-        </View>
-
         {/* Notification Bell */}
         <NotificationBell />
+
+        {/* Search Box with Filter Button */}
+        <View style={styles.searchWrapper}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={20} color="#6b7280" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search listings..."
+              placeholderTextColor="#9ca3af"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              underlineColorAndroid="transparent"
+              selectionColor="#f25842"
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={20} color="#6b7280" />
+              </Pressable>
+            )}
+          </View>
+          <Pressable
+            style={styles.filterIconButton}
+            onPress={() => setShowFilters(!showFilters)}
+          >
+            <Ionicons 
+              name={showFilters ? "funnel" : "funnel-outline"} 
+              size={20} 
+              color={showFilters ? "#f25842" : "#6b7280"} 
+            />
+          </Pressable>
+        </View>
 
         {/* Swipe View Button */}
         <Pressable
@@ -383,6 +410,230 @@ export default function FindScreen() {
           <Ionicons name="swap-horizontal" size={24} color="#f25842" />
         </Pressable>
       </View>
+
+      {/* Collapsible Filters */}
+      {showFilters && (
+        <View style={styles.filtersContainer}>
+          {/* Category Filter */}
+          <View style={styles.filterPanel}>
+            <Pressable 
+              style={styles.filterHeader}
+              onPress={() => toggleFilter('category')}
+            >
+              <Text style={styles.filterHeaderText}>Category</Text>
+              <Ionicons 
+                name={expandedFilter === 'category' ? "chevron-up" : "chevron-down"} 
+                size={20} 
+                color="#6b7280" 
+              />
+            </Pressable>
+            {expandedFilter === 'category' && (
+              <View style={styles.filterContent}>
+                <View style={styles.categoryChips}>
+                  <Pressable
+                    style={[
+                      styles.categoryChip,
+                      selectedCategory === null && styles.categoryChipActive
+                    ]}
+                    onPress={() => setSelectedCategory(null)}
+                  >
+                    <Text style={[
+                      styles.categoryChipText,
+                      selectedCategory === null && styles.categoryChipTextActive
+                    ]}>
+                      All
+                    </Text>
+                  </Pressable>
+                  {categories.map((category) => (
+                    <Pressable
+                      key={category}
+                      style={[
+                        styles.categoryChip,
+                        selectedCategory === category && styles.categoryChipActive
+                      ]}
+                      onPress={() => setSelectedCategory(category)}
+                    >
+                      <Text style={[
+                        styles.categoryChipText,
+                        selectedCategory === category && styles.categoryChipTextActive
+                      ]}>
+                        {category}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Price Filter */}
+          <View style={styles.filterPanel}>
+            <Pressable 
+              style={styles.filterHeader}
+              onPress={() => toggleFilter('price')}
+            >
+              <Text style={styles.filterHeaderText}>Price</Text>
+              <Ionicons 
+                name={expandedFilter === 'price' ? "chevron-up" : "chevron-down"} 
+                size={20} 
+                color="#6b7280" 
+              />
+            </Pressable>
+            {expandedFilter === 'price' && (
+              <View style={styles.filterContent}>
+                <View style={styles.priceRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.filterLabel}>Min (£)</Text>
+                    <TextInput
+                      style={styles.filterInput}
+                      value={minPrice}
+                      onChangeText={setMinPrice}
+                      placeholder="0"
+                      placeholderTextColor="#9ca3af"
+                      keyboardType="numeric"
+                    />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 8 }}>
+                    <Text style={styles.filterLabel}>Max (£)</Text>
+                    <TextInput
+                      style={styles.filterInput}
+                      value={maxPrice}
+                      onChangeText={setMaxPrice}
+                      placeholder="1000"
+                      placeholderTextColor="#9ca3af"
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Distance Filter */}
+          <View style={styles.filterPanel}>
+            <Pressable 
+              style={styles.filterHeader}
+              onPress={() => toggleFilter('distance')}
+            >
+              <Text style={styles.filterHeaderText}>Distance</Text>
+              <Ionicons 
+                name={expandedFilter === 'distance' ? "chevron-up" : "chevron-down"} 
+                size={20} 
+                color="#6b7280" 
+              />
+            </Pressable>
+            {expandedFilter === 'distance' && (
+              <View style={styles.filterContent}>
+                <Text style={styles.filterLabel}>Max Distance (km)</Text>
+                <TextInput
+                  style={styles.filterInput}
+                  value={maxDistance}
+                  onChangeText={setMaxDistance}
+                  placeholder="10"
+                  placeholderTextColor="#9ca3af"
+                  keyboardType="numeric"
+                />
+              </View>
+            )}
+          </View>
+
+          {/* Rating Filter */}
+          <View style={styles.filterPanel}>
+            <Pressable 
+              style={styles.filterHeader}
+              onPress={() => toggleFilter('rating')}
+            >
+              <Text style={styles.filterHeaderText}>Rating</Text>
+              <Ionicons 
+                name={expandedFilter === 'rating' ? "chevron-up" : "chevron-down"} 
+                size={20} 
+                color="#6b7280" 
+              />
+            </Pressable>
+            {expandedFilter === 'rating' && (
+              <View style={styles.filterContent}>
+                <Text style={styles.filterLabel}>Minimum Rating</Text>
+                <View style={styles.ratingButtons}>
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <Pressable
+                      key={rating}
+                      style={[
+                        styles.ratingButton,
+                        minRating === rating.toString() && styles.ratingButtonActive
+                      ]}
+                      onPress={() => setMinRating(minRating === rating.toString() ? '' : rating.toString())}
+                    >
+                      <Ionicons 
+                        name="star" 
+                        size={16} 
+                        color={minRating === rating.toString() ? '#ffffff' : '#f59e0b'} 
+                      />
+                      <Text style={[
+                        styles.ratingButtonText,
+                        minRating === rating.toString() && styles.ratingButtonTextActive
+                      ]}>
+                        {rating}+
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Urgency Filter */}
+          <View style={styles.filterPanel}>
+            <Pressable 
+              style={styles.filterHeader}
+              onPress={() => toggleFilter('urgency')}
+            >
+              <Text style={styles.filterHeaderText}>Urgency</Text>
+              <Ionicons 
+                name={expandedFilter === 'urgency' ? "chevron-up" : "chevron-down"} 
+                size={20} 
+                color="#6b7280" 
+              />
+            </Pressable>
+            {expandedFilter === 'urgency' && (
+              <View style={styles.filterContent}>
+                <View style={styles.categoryChips}>
+                  <Pressable
+                    style={[
+                      styles.categoryChip,
+                      selectedUrgency === null && styles.categoryChipActive
+                    ]}
+                    onPress={() => setSelectedUrgency(null)}
+                  >
+                    <Text style={[
+                      styles.categoryChipText,
+                      selectedUrgency === null && styles.categoryChipTextActive
+                    ]}>
+                      All
+                    </Text>
+                  </Pressable>
+                  {urgencyOptions.map((urgency) => (
+                    <Pressable
+                      key={urgency}
+                      style={[
+                        styles.categoryChip,
+                        selectedUrgency === urgency && styles.categoryChipActive
+                      ]}
+                      onPress={() => setSelectedUrgency(urgency)}
+                    >
+                      <Text style={[
+                        styles.categoryChipText,
+                        selectedUrgency === urgency && styles.categoryChipTextActive
+                      ]}>
+                        {urgency.charAt(0).toUpperCase() + urgency.slice(1)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
 
       {/* Listings */}
       {filteredListings.length === 0 ? (
@@ -450,16 +701,16 @@ export default function FindScreen() {
 
       {/* Filter Modal */}
       <Modal
-        visible={isFilterModalOpen}
+        visible={showFilters}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setIsFilterModalOpen(false)}
+        onRequestClose={() => setShowFilters(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filters</Text>
-              <Pressable onPress={() => setIsFilterModalOpen(false)}>
+              <Pressable onPress={() => setShowFilters(false)}>
                 <Ionicons name="close" size={24} color="#1a1a1a" />
               </Pressable>
             </View>
@@ -602,52 +853,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  filterButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  filterBadge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    backgroundColor: '#f25842',
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  filterBadgeText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: 'bold',
+  searchWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 8,
   },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
     paddingHorizontal: 12,
-    height: 44,
-  },
-  searchIcon: {
-    marginRight: 8,
+    paddingVertical: 10,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#1a1a1a',
+    color: '#1f2937',
     padding: 0,
+    margin: 0,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
   },
-  clearButton: {
-    marginLeft: 8,
+  filterIconButton: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   swipeButton: {
     width: 44,
@@ -744,6 +990,112 @@ const styles = StyleSheet.create({
   filterOptionTextActive: {
     color: '#f25842',
     fontWeight: '600',
+  },
+  // Collapsible Filters
+  filtersContainer: {
+    backgroundColor: '#f9fafb',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  filterPanel: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    marginBottom: 8,
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  filterHeaderText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  filterContent: {
+    padding: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  filterLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6b7280',
+    marginBottom: 6,
+  },
+  filterInput: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: '#1f2937',
+    marginBottom: 8,
+  },
+  priceRow: {
+    flexDirection: 'row',
+  },
+  categoryChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  categoryChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  categoryChipActive: {
+    backgroundColor: '#f25842',
+    borderColor: '#f25842',
+  },
+  categoryChipText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  categoryChipTextActive: {
+    color: '#ffffff',
+  },
+  ratingButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  ratingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  ratingButtonActive: {
+    backgroundColor: '#f59e0b',
+    borderColor: '#f59e0b',
+  },
+  ratingButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  ratingButtonTextActive: {
+    color: '#ffffff',
   },
   clearFiltersButton: {
     paddingVertical: 12,

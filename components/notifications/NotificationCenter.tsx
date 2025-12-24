@@ -89,6 +89,18 @@ export function NotificationCenter() {
         return 'heart-outline'
       case 'rejection':
         return 'close-circle'
+      case 'booking_confirmed':
+        return 'checkmark-circle'
+      case 'booking_request':
+        return 'calendar'
+      case 'booking_cancelled':
+        return 'close-circle-outline'
+      case 'booking_completed':
+        return 'checkmark-done-circle'
+      case 'booking_reminder':
+        return 'alarm'
+      case 'booking_status_update':
+        return 'information-circle'
       default:
         return 'notifications'
     }

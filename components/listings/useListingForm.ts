@@ -157,6 +157,9 @@ export function useListingForm(isEditMode: boolean) {
       photos: listing.photos,
     })
     
+    // Cast to any once at the top to access additional fields
+    const listingAny = listing as any
+    
     // Step 1
     setTitle(listing.title || '')
     setDescription(listing.description || '')
@@ -239,7 +242,6 @@ export function useListingForm(isEditMode: boolean) {
     setLocationLng(listing.location_lng || null)
     
     // Manual address fields (if stored in DB - these might be in the listing object)
-    const listingAny = listing as any
     const hasStreetAddress = !!(listingAny.street_address || listingAny.city || listingAny.postal_code)
     setShowExactAddress(!!listingAny.show_exact_address || hasStreetAddress)
     

@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import { supabase } from '@/lib/supabase'
 import { uploadImage } from '@/lib/utils/images'
+import { BookingChatActions } from '@/components/chat/BookingChatActions'
+import { BookingMessageBubble } from '@/components/chat/BookingMessageBubble'
 import type { Match, User, Listing, Message } from '@/lib/types'
 import { formatTime } from '@/lib/utils/date'
 
@@ -22,6 +24,7 @@ export default function ChatScreen() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [proposalLoading, setProposalLoading] = useState(false)
   const flatListRef = useRef<FlatList>(null)
 
   useEffect(() => {
@@ -183,6 +186,100 @@ export default function ChatScreen() {
     }
   }
 
+  const handleAcceptProposal = async (messageId: string, type: 'price' | 'date') => {
+    if (!user || !match || proposalLoading) return
+
+    setProposalLoading(true)
+    try {
+      // Find the message with the proposal
+      const proposalMessage = messages.find(m => m.id === messageId)
+      if (!proposalMessage || !proposalMessage.metadata) return
+
+      const updates: any = { status: 'negotiating' }
+      
+      if (type === 'price') {
+        updates.final_price = proposalMessage.metadata.price
+      } else if (type === 'date') {
+        updates.final_date = proposalMessage.metadata.datetime
+      }
+
+      // Update match
+      await supabase
+        .from('matches')
+        .update(updates)
+        .eq('id', match.id)
+
+      // Send acceptance message
+      const content = type === 'price' 
+        ? `✅ Accepted price: $${proposalMessage.metadata.price}`
+        : `✅ Accepted date: ${proposalMessage.metadata.datetime}`
+
+      await supabase
+        .from('messages')
+        .insert({
+          match_id: matchId,
+          sender_id: user.id,
+          recipient_id: otherUser?.id,
+          content,
+          message_type: 'text',
+        })
+
+      Alert.alert('Success', `${type === 'price' ? 'Price' : 'Date'} accepted!`)
+    } catch (error) {
+      console.error('Error accepting proposal:', error)
+      Alert.alert('Error', 'Failed to accept proposal')
+    } finally {
+      setProposalLoading(false)
+    }
+  }
+
+  const handleDeclineProposal = async (messageId: string, type: 'price' | 'date') => {
+    if (!user || !match || proposalLoading) return
+
+    setProposalLoading(true)
+    try {
+      // Send decline message
+      const content = type === 'price' 
+        ? '❌ Declined price proposal'
+        : '❌ Declined date proposal'
+
+      await supabase
+        .from('messages')
+        .insert({
+          match_id: matchId,
+          sender_id: user.id,
+          recipient_id: otherUser?.id,
+          content,
+          message_type: 'text',
+        })
+
+      Alert.alert('Declined', `${type === 'price' ? 'Price' : 'Date'} proposal declined`)
+    } catch (error) {
+      console.error('Error declining proposal:', error)
+      Alert.alert('Error', 'Failed to decline proposal')
+    } finally {
+      setProposalLoading(false)
+    }
+  }
+
+  const handleBookingAction = (action: string, data?: any) => {
+    // Handle booking-related actions from BookingChatActions
+    switch (action) {
+      case 'price_proposed':
+        // Refresh messages to show the new proposal
+        loadChat()
+        break
+      case 'date_proposed':
+        // Refresh messages to show the new proposal
+        loadChat()
+        break
+      case 'proposal_accepted':
+        // Refresh match data
+        loadChat()
+        break
+    }
+  }
+
   const handleSendImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -272,41 +369,28 @@ export default function ChatScreen() {
         renderItem={({ item }) => {
           const isOwn = item.sender_id === user?.id
           return (
-            <View
-              style={[
-                styles.messageContainer,
-                isOwn ? styles.messageOwn : styles.messageOther,
-              ]}
-            >
-              {item.message_type === 'image' && item.metadata?.image_url ? (
-                <Image
-                  source={{ uri: item.metadata.image_url }}
-                  style={styles.messageImage}
-                />
-              ) : (
-                <Text
-                  style={[
-                    styles.messageText,
-                    isOwn ? styles.messageTextOwn : styles.messageTextOther,
-                  ]}
-                >
-                  {item.content}
-                </Text>
-              )}
-              <Text
-                style={[
-                  styles.messageTime,
-                  isOwn ? styles.messageTimeOwn : styles.messageTimeOther,
-                ]}
-              >
-                {formatTime(item.created_at)}
-              </Text>
-            </View>
+            <BookingMessageBubble
+              message={item}
+              isOwn={isOwn}
+              onAcceptProposal={handleAcceptProposal}
+              onDeclineProposal={handleDeclineProposal}
+            />
           )
         }}
         contentContainerStyle={styles.messagesContent}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
+
+      {/* Booking Actions */}
+      {match && user && otherUser && listing && (
+        <BookingChatActions
+          match={match}
+          currentUser={user}
+          otherUser={otherUser}
+          listing={listing}
+          onBookingAction={handleBookingAction}
+        />
+      )}
 
       {/* Input */}
       <View style={styles.inputContainer}>

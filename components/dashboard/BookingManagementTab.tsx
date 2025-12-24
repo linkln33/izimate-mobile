@@ -17,19 +17,28 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { CalendarIntegration } from '../booking/CalendarIntegration';
+import { BookingCalendarWidget } from '../booking/BookingCalendarWidget';
+import { BookingCalendar } from '../booking/BookingCalendar';
+import { BlockedTimeManager } from '../booking/BlockedTimeManager';
+import { WaitlistManager } from '../booking/WaitlistManager';
+import { CouponManager } from '../booking/CouponManager';
+import { StaffManager } from '../booking/StaffManager';
+import { RevenueReports } from '../booking/RevenueReports';
 
 interface Booking {
   id: string;
-  booking_date: string;
-  start_time: string;
-  end_time: string;
-  duration_minutes: number;
-  service_name: string;
-  service_price: number;
-  currency: string;
+  start_time: string; // timestamp with time zone
+  end_time: string; // timestamp with time zone
+  duration_minutes?: number;
+  service_name?: string;
+  service_price?: number;
+  currency?: string;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show';
   customer_notes?: string;
   provider_notes?: string;
+  timezone?: string;
+  metadata?: any;
   created_at: string;
   customer: {
     id: string;
@@ -49,35 +58,107 @@ interface BookingStats {
   pending: number;
   confirmed: number;
   completed: number;
+  cancelled: number;
+  no_show: number;
   revenue: number;
 }
 
 export const BookingManagementTab: React.FC = () => {
+  const [currentUser, setCurrentUser] = useState<{ id: string; name?: string } | null>(null);
+  const [providerId, setProviderId] = useState<string | null>(null);
+  const [listings, setListings] = useState<any[]>([]);
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [selectedBookingDate, setSelectedBookingDate] = useState<Date | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState<BookingStats>({
     total: 0,
     pending: 0,
     confirmed: 0,
     completed: 0,
+    cancelled: 0,
+    no_show: 0,
     revenue: 0
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed'>('all');
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show' | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showBookingCalendarModal, setShowBookingCalendarModal] = useState(false);
+  const [selectedListingForBooking, setSelectedListingForBooking] = useState<any>(null);
   const [providerNotes, setProviderNotes] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
+    getCurrentUser();
     loadBookings();
   }, []);
+
+  const getCurrentUser = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Get user profile for name
+        const { data: userProfile } = await supabase
+          .from('users')
+          .select('id, name')
+          .eq('id', user.id)
+          .single();
+        
+        setCurrentUser({ 
+          id: user.id,
+          name: userProfile?.name || 'Provider'
+        });
+        
+        // Get provider profile
+        const { data: providerProfile } = await supabase
+          .from('provider_profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (providerProfile) {
+          setProviderId(providerProfile.id);
+          
+          // Get user's listings with full details
+          const { data: listingsData } = await supabase
+            .from('listings')
+            .select('id, title, user_id')
+            .eq('user_id', user.id)
+            .eq('status', 'active');
+          
+          if (listingsData && listingsData.length > 0) {
+            setListings(listingsData);
+            setSelectedListingId(listingsData[0].id); // Default to first listing
+            setSelectedListingForBooking(listingsData[0]); // Store full listing for booking
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to get current user:', error);
+    }
+  };
 
   const loadBookings = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // First, get the user's provider profile ID
+      const { data: providerProfile } = await supabase
+        .from('provider_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!providerProfile) {
+        console.log('No provider profile found for user');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      // Get bookings for this provider
       const { data: bookingsData, error } = await supabase
         .from('bookings')
         .select(`
@@ -85,32 +166,41 @@ export const BookingManagementTab: React.FC = () => {
           customer:users!customer_id(id, name, avatar_url, phone),
           listing:listings(id, title, category)
         `)
-        .eq('provider_id', user.id)
-        .gte('booking_date', new Date().toISOString().split('T')[0]) // Only future bookings
-        .order('booking_date', { ascending: true })
-        .order('start_time', { ascending: true });
+        .eq('provider_id', providerProfile.id)
+        .order('start_time', { ascending: false }); // Most recent first
 
       if (error) {
         console.error('Error loading bookings:', error);
         return;
       }
 
-      const typedBookings = bookingsData as Booking[];
+      const typedBookings = (bookingsData || []) as Booking[];
       setBookings(typedBookings);
 
       // Calculate stats
       const statsData = typedBookings.reduce((acc, booking) => {
         acc.total++;
-        acc[booking.status]++;
-        if (booking.status === 'completed') {
+        
+        // Count by status
+        if (booking.status === 'pending') acc.pending++;
+        else if (booking.status === 'confirmed') acc.confirmed++;
+        else if (booking.status === 'completed') acc.completed++;
+        else if (booking.status === 'cancelled') acc.cancelled++;
+        else if (booking.status === 'no_show') acc.no_show++;
+        
+        // Calculate revenue from completed bookings
+        if (booking.status === 'completed' && booking.service_price) {
           acc.revenue += booking.service_price;
         }
+        
         return acc;
       }, {
         total: 0,
         pending: 0,
         confirmed: 0,
         completed: 0,
+        cancelled: 0,
+        no_show: 0,
         revenue: 0
       });
 
@@ -189,7 +279,7 @@ export const BookingManagementTab: React.FC = () => {
   };
 
   const getFilteredBookings = () => {
-    if (selectedFilter === 'all') {
+    if (!selectedFilter) {
       return bookings;
     }
     return bookings.filter(booking => booking.status === selectedFilter);
@@ -197,18 +287,37 @@ export const BookingManagementTab: React.FC = () => {
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('en-GB', {
       weekday: 'short',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      year: 'numeric'
     });
   };
 
   const formatTime = (timeStr: string) => {
-    return timeStr.substring(0, 5); // HH:MM
+    const date = new Date(timeStr);
+    return date.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
   };
 
-  const formatPrice = (price: number, currency: string) => {
+  const formatDateTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleString('en-GB', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
+  const formatPrice = (price?: number, currency?: string) => {
+    if (!price || !currency) return 'Price TBD';
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
       currency: currency
@@ -238,11 +347,12 @@ export const BookingManagementTab: React.FC = () => {
   };
 
   const filters = [
-    { key: 'all', label: 'All', count: stats.total },
     { key: 'pending', label: 'Pending', count: stats.pending },
     { key: 'confirmed', label: 'Confirmed', count: stats.confirmed },
     { key: 'completed', label: 'Completed', count: stats.completed },
-  ];
+    { key: 'cancelled', label: 'Cancelled', count: stats.cancelled },
+    { key: 'no_show', label: 'No Show', count: stats.no_show },
+  ].filter(filter => filter.count > 0);
 
   if (loading) {
     return (
@@ -255,53 +365,187 @@ export const BookingManagementTab: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Stats Cards */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Ionicons name="calendar" size={24} color="#3b82f6" />
-          <Text style={styles.statValue}>{stats.total}</Text>
-          <Text style={styles.statLabel}>Total Bookings</Text>
+      {/* Calendar Integration Section */}
+      {currentUser && (
+        <View style={styles.calendarSection}>
+          <Text style={styles.sectionTitle}>📅 Calendar Options</Text>
+          <Text style={styles.sectionSubtitle}>
+            Use our calendar or sync with your existing one
+          </Text>
+          
+          {/* Upcoming Bookings Calendar */}
+          <BookingCalendarWidget
+            userId={currentUser.id}
+            onBookingPress={(bookingId) => {
+              const booking = bookings.find(b => b.id === bookingId);
+              if (booking) {
+                setSelectedBooking(booking);
+                setShowBookingModal(true);
+              }
+            }}
+          />
+          
+          {/* Calendar Integration */}
+          <CalendarIntegration
+            userId={currentUser.id}
+            listingId={selectedListingId || undefined}
+            onConnectionChange={(connected) => {
+              console.log('Calendar connection changed:', connected);
+            }}
+            onBookDate={(date) => {
+              if (selectedListingId && selectedListingForBooking) {
+                setSelectedBookingDate(date);
+                setShowBookingCalendarModal(true);
+              } else {
+                Alert.alert('No Listing', 'Please select a listing first to book a service.');
+              }
+            }}
+          />
         </View>
-        
-        <View style={styles.statCard}>
-          <Ionicons name="time" size={24} color="#f59e0b" />
-          <Text style={styles.statValue}>{stats.pending}</Text>
-          <Text style={styles.statLabel}>Pending</Text>
+      )}
+
+      {/* Stats Overview */}
+      <View style={styles.statsSection}>
+        <Text style={styles.sectionTitle}>📊 Booking Overview</Text>
+        <View style={styles.statsGrid}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.total}</Text>
+            <Text style={styles.statLabel}>Total</Text>
+          </View>
+
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.pending}</Text>
+            <Text style={styles.statLabel}>Pending</Text>
+          </View>
+
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.confirmed}</Text>
+            <Text style={styles.statLabel}>Confirmed</Text>
+          </View>
+
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.completed}</Text>
+            <Text style={styles.statLabel}>Completed</Text>
+          </View>
+
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>£{stats.revenue.toFixed(0)}</Text>
+            <Text style={styles.statLabel}>Revenue</Text>
+          </View>
+
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.cancelled}</Text>
+            <Text style={styles.statLabel}>Cancelled</Text>
+          </View>
         </View>
-        
-        <View style={styles.statCard}>
-          <Ionicons name="checkmark-circle" size={24} color="#10b981" />
-          <Text style={styles.statValue}>{stats.confirmed}</Text>
-          <Text style={styles.statLabel}>Confirmed</Text>
-        </View>
-        
-        <View style={styles.statCard}>
-          <Ionicons name="cash" size={24} color="#8b5cf6" />
-          <Text style={styles.statValue}>£{stats.revenue}</Text>
-          <Text style={styles.statLabel}>Revenue</Text>
-        </View>
-      </ScrollView>
+      </View>
 
       {/* Filter Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer}>
-        {filters.map((filter) => (
-          <Pressable
-            key={filter.key}
-            style={[
-              styles.filterTab,
-              selectedFilter === filter.key && styles.filterTabActive
-            ]}
-            onPress={() => setSelectedFilter(filter.key as any)}
-          >
-            <Text style={[
-              styles.filterTabText,
-              selectedFilter === filter.key && styles.filterTabTextActive
-            ]}>
-              {filter.label} ({filter.count})
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      <View style={styles.filtersContainer}>
+        <View style={styles.filtersGrid}>
+          {filters.map((filter) => (
+            <Pressable
+              key={filter.key}
+              style={[
+                styles.filterTab,
+                selectedFilter === filter.key && styles.filterTabActive
+              ]}
+              onPress={() => setSelectedFilter(filter.key as any)}
+            >
+              <Text style={[
+                styles.filterTabCount,
+                selectedFilter === filter.key && styles.filterTabCountActive
+              ]}>
+                {filter.count}
+              </Text>
+              <Text style={[
+                styles.filterTabText,
+                selectedFilter === filter.key && styles.filterTabTextActive
+              ]}>
+                {filter.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      {/* New Features Section */}
+      {currentUser && providerId && (
+        <View style={styles.featuresSection}>
+          <Text style={styles.sectionTitle}>🛠️ Booking Tools</Text>
+          
+          {/* Listing Selector */}
+          {listings.length > 1 && (
+            <View style={styles.listingSelector}>
+              <Text style={styles.selectorLabel}>Select Listing:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {listings.map((listing) => (
+                  <Pressable
+                    key={listing.id}
+                    style={[
+                      styles.listingChip,
+                      selectedListingId === listing.id && styles.listingChipActive
+                    ]}
+                    onPress={() => setSelectedListingId(listing.id)}
+                  >
+                    <Text style={[
+                      styles.listingChipText,
+                      selectedListingId === listing.id && styles.listingChipTextActive
+                    ]}>
+                      {listing.title}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Blocked Time Manager */}
+          {selectedListingId && (
+            <View style={styles.featureCard}>
+              <Text style={styles.featureTitle}>⏰ Blocked Time</Text>
+              <BlockedTimeManager
+                providerId={providerId}
+                listingId={selectedListingId}
+              />
+            </View>
+          )}
+
+          {/* Waitlist Manager */}
+          {selectedListingId && (
+            <View style={styles.featureCard}>
+              <Text style={styles.featureTitle}>📋 Waitlist</Text>
+              <WaitlistManager
+                providerId={providerId}
+                listingId={selectedListingId}
+              />
+            </View>
+          )}
+
+          {/* Coupon Manager */}
+          {selectedListingId && (
+            <View style={styles.featureCard}>
+              <Text style={styles.featureTitle}>🎫 Discount Codes</Text>
+              <CouponManager
+                providerId={providerId}
+                listingId={selectedListingId}
+              />
+            </View>
+          )}
+
+          {/* Staff Manager */}
+          <View style={styles.featureCard}>
+            <Text style={styles.featureTitle}>👥 Staff Members</Text>
+            <StaffManager providerId={providerId} />
+          </View>
+
+          {/* Revenue Reports */}
+          <View style={styles.featureCard}>
+            <Text style={styles.featureTitle}>📊 Revenue Reports</Text>
+            <RevenueReports providerId={providerId} />
+          </View>
+        </View>
+      )}
 
       {/* Bookings List */}
       <ScrollView
@@ -316,8 +560,8 @@ export const BookingManagementTab: React.FC = () => {
             <Ionicons name="calendar-outline" size={64} color="#d1d5db" />
             <Text style={styles.emptyStateTitle}>No bookings found</Text>
             <Text style={styles.emptyStateSubtitle}>
-              {selectedFilter === 'all' 
-                ? 'You don\'t have any upcoming bookings yet'
+              {!selectedFilter 
+                ? 'You don\'t have any bookings yet'
                 : `No ${selectedFilter} bookings at the moment`
               }
             </Text>
@@ -331,7 +575,7 @@ export const BookingManagementTab: React.FC = () => {
             >
               <View style={styles.bookingHeader}>
                 <View style={styles.bookingInfo}>
-                  <Text style={styles.serviceName}>{booking.service_name}</Text>
+                  <Text style={styles.serviceName}>{booking.service_name || booking.listing.title}</Text>
                   <Text style={styles.listingTitle}>{booking.listing.title}</Text>
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(booking.status) + '20' }]}>
@@ -355,7 +599,7 @@ export const BookingManagementTab: React.FC = () => {
                 <View style={styles.detailItem}>
                   <Ionicons name="calendar" size={16} color="#6b7280" />
                   <Text style={styles.detailText}>
-                    {formatDate(booking.booking_date)} at {formatTime(booking.start_time)}
+                    {formatDateTime(booking.start_time)}
                   </Text>
                 </View>
                 
@@ -417,7 +661,7 @@ export const BookingManagementTab: React.FC = () => {
                 <View style={styles.modalDetailRow}>
                   <Text style={styles.modalDetailLabel}>Date & Time:</Text>
                   <Text style={styles.modalDetailValue}>
-                    {formatDate(selectedBooking.booking_date)} at {formatTime(selectedBooking.start_time)} - {formatTime(selectedBooking.end_time)}
+                    {formatDate(selectedBooking.start_time)} at {formatTime(selectedBooking.start_time)} - {formatTime(selectedBooking.end_time)}
                   </Text>
                 </View>
                 <View style={styles.modalDetailRow}>
@@ -519,6 +763,28 @@ export const BookingManagementTab: React.FC = () => {
           </View>
         )}
       </Modal>
+
+      {/* Booking Calendar Modal for Date Selection */}
+      {selectedListingForBooking && currentUser && (
+        <BookingCalendar
+          listingId={selectedListingForBooking.id}
+          listingTitle={selectedListingForBooking.title}
+          providerId={providerId || ''}
+          providerName={currentUser.name || 'Provider'}
+          visible={showBookingCalendarModal}
+          initialDate={selectedBookingDate || undefined}
+          onClose={() => {
+            setShowBookingCalendarModal(false);
+            setSelectedBookingDate(null);
+          }}
+          onBookingComplete={(bookingId) => {
+            setShowBookingCalendarModal(false);
+            setSelectedBookingDate(null);
+            loadBookings(); // Refresh bookings list
+            Alert.alert('Success', 'Booking created successfully!');
+          }}
+        />
+      )}
     </View>
   );
 };
@@ -527,6 +793,9 @@ const styles = {
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
+  },
+  calendarSection: {
+    marginBottom: 16,
   },
   loadingContainer: {
     flex: 1,
@@ -539,55 +808,112 @@ const styles = {
     color: '#6b7280',
     marginTop: 12,
   },
-  statsContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: '#1f2937',
+    marginBottom: 4,
   },
-  statCard: {
-    backgroundColor: '#f8fafc',
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 16,
+  },
+  calendarSection: {
+    marginBottom: 24,
+    paddingHorizontal: 20,
+  },
+  statsSection: {
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  statsGrid: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 10,
+  },
+  statItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#f9fafb',
     borderRadius: 12,
-    padding: 16,
-    marginRight: 12,
-    minWidth: 120,
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
     alignItems: 'center' as const,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    justifyContent: 'center' as const,
+    width: '30%',
+    minWidth: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700' as const,
     color: '#1f2937',
-    marginTop: 8,
+    lineHeight: 24,
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '600' as const,
     color: '#6b7280',
     textAlign: 'center' as const,
   },
   filtersContainer: {
     paddingHorizontal: 20,
+    paddingVertical: 12,
     marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  filtersGrid: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 10,
   },
   filterTab: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 8,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 20,
-    borderWidth: 1,
+    paddingVertical: 12,
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    borderWidth: 1.5,
     borderColor: '#e5e7eb',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    width: '30%',
+    minWidth: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   filterTabActive: {
     backgroundColor: '#3b82f6',
     borderColor: '#3b82f6',
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   filterTabText: {
-    fontSize: 14,
-    fontWeight: '500' as const,
+    fontSize: 13,
+    fontWeight: '600' as const,
     color: '#6b7280',
+    marginTop: 4,
   },
   filterTabTextActive: {
+    color: '#ffffff',
+  },
+  filterTabCount: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#1f2937',
+    lineHeight: 24,
+  },
+  filterTabCountActive: {
     color: '#ffffff',
   },
   bookingsList: {
@@ -774,6 +1100,55 @@ const styles = {
   actionButtons: {
     flexDirection: 'row' as const,
     gap: 12,
+  },
+  featuresSection: {
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  listingSelector: {
+    marginBottom: 16,
+  },
+  selectorLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 8,
+  },
+  listingChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  listingChipActive: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#f25842',
+  },
+  listingChipText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  listingChipTextActive: {
+    color: '#f25842',
+    fontWeight: '600',
+  },
+  featureCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  featureTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 12,
   },
   actionButton: {
     flex: 1,

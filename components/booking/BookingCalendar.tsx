@@ -17,6 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { slotCalculator, TimeSlot, ServiceOption } from '../../lib/utils/slot-calculator';
 import { supabase } from '../../lib/supabase';
+import { RecurringBookingForm } from './RecurringBookingManager';
 
 interface BookingCalendarProps {
   listingId: string;
@@ -24,8 +25,17 @@ interface BookingCalendarProps {
   providerId: string;
   providerName: string;
   visible: boolean;
+  initialDate?: Date;
   onClose: () => void;
   onBookingComplete?: (bookingId: string) => void;
+  onBookingSelect?: (selection: {
+    date: string;
+    time: string;
+    serviceName: string;
+    servicePrice: number;
+    currency?: string;
+    durationMinutes: number;
+  }) => void;
 }
 
 export const BookingCalendar: React.FC<BookingCalendarProps> = ({
@@ -34,10 +44,14 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
   providerId,
   providerName,
   visible,
+  initialDate,
   onClose,
   onBookingComplete,
+  onBookingSelect,
 }) => {
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>(
+    initialDate ? initialDate.toISOString().split('T')[0] : ''
+  );
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([]);
@@ -47,6 +61,13 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
   const [customerNotes, setCustomerNotes] = useState('');
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [showRecurringForm, setShowRecurringForm] = useState(false);
+  const [recurringPattern, setRecurringPattern] = useState<{
+    recurrencePattern: 'daily' | 'weekly' | 'monthly';
+    recurrenceEndDate: string;
+    numberOfOccurrences?: number;
+  } | null>(null);
 
   // Generate next 30 days for date selection
   const generateDateOptions = () => {
@@ -78,11 +99,16 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
       loadServiceOptions();
       getCurrentUser();
       
-      // Auto-select today's date
-      const today = new Date().toISOString().split('T')[0];
-      setSelectedDate(today);
+      // Use initialDate if provided, otherwise today
+      if (initialDate) {
+        const dateStr = initialDate.toISOString().split('T')[0];
+        setSelectedDate(dateStr);
+      } else {
+        const today = new Date().toISOString().split('T')[0];
+        setSelectedDate(today);
+      }
     }
-  }, [visible, listingId]);
+  }, [visible, listingId, initialDate]);
 
   // Load slots when date changes
   useEffect(() => {
@@ -120,7 +146,8 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
         selectedDate,
         selectedService.duration,
         selectedService.price,
-        selectedService.name
+        selectedService.name,
+        selectedService.color
       );
       setAvailableSlots(slots);
     } catch (error) {
@@ -135,6 +162,21 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
     if (!slot.isAvailable) return;
     
     setSelectedSlot(slot);
+    
+    // If onBookingSelect is provided, use it for flow management
+    if (onBookingSelect && selectedService) {
+      onBookingSelect({
+        date: selectedDate,
+        time: slot.start,
+        serviceName: selectedService.name,
+        servicePrice: selectedService.price,
+        currency: selectedService.currency,
+        durationMinutes: selectedService.duration
+      });
+      return;
+    }
+    
+    // Otherwise, show the booking form (existing behavior)
     setShowBookingForm(true);
   };
 
@@ -255,6 +297,27 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
             </View>
           )}
 
+          {/* View Mode Toggle */}
+          <View style={styles.section}>
+            <View style={styles.viewModeContainer}>
+              <Text style={styles.sectionTitle}>View</Text>
+              <View style={styles.viewModeButtons}>
+                <Pressable
+                  style={[styles.viewModeButton, viewMode === 'daily' && styles.viewModeButtonActive]}
+                  onPress={() => setViewMode('daily')}
+                >
+                  <Text style={[styles.viewModeText, viewMode === 'daily' && styles.viewModeTextActive]}>Day</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.viewModeButton, viewMode === 'weekly' && styles.viewModeButtonActive]}
+                  onPress={() => setViewMode('weekly')}
+                >
+                  <Text style={[styles.viewModeText, viewMode === 'weekly' && styles.viewModeTextActive]}>Week</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+
           {/* Date Selection */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Select Date</Text>
@@ -307,7 +370,12 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
                       style={[
                         styles.timeSlot,
                         !slot.isAvailable && styles.timeSlotUnavailable,
-                        selectedSlot === slot && styles.timeSlotSelected
+                        selectedSlot === slot && styles.timeSlotSelected,
+                        slot.serviceColor && slot.isAvailable && {
+                          backgroundColor: slot.serviceColor + '20',
+                          borderColor: slot.serviceColor,
+                          borderWidth: 2
+                        }
                       ]}
                       onPress={() => handleSlotSelection(slot)}
                       disabled={!slot.isAvailable}
@@ -315,7 +383,8 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
                       <Text style={[
                         styles.timeSlotText,
                         !slot.isAvailable && styles.timeSlotTextUnavailable,
-                        selectedSlot === slot && styles.timeSlotTextSelected
+                        selectedSlot === slot && styles.timeSlotTextSelected,
+                        slot.serviceColor && slot.isAvailable && { color: slot.serviceColor }
                       ]}>
                         {slot.start}
                       </Text>
@@ -417,6 +486,24 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
                     />
                   </View>
 
+                  <Pressable
+                    style={styles.recurringButton}
+                    onPress={() => setShowRecurringForm(true)}
+                  >
+                    <Ionicons name="repeat" size={20} color="#007AFF" />
+                    <Text style={styles.recurringButtonText}>Make Recurring</Text>
+                  </Pressable>
+                  {recurringPattern && (
+                    <View style={styles.recurringInfo}>
+                      <Text style={styles.recurringInfoText}>
+                        Recurring: {recurringPattern.recurrencePattern} until {new Date(recurringPattern.recurrenceEndDate).toLocaleDateString()}
+                      </Text>
+                      <Pressable onPress={() => setRecurringPattern(null)}>
+                        <Ionicons name="close-circle" size={18} color="#ef4444" />
+                      </Pressable>
+                    </View>
+                  )}
+
                   <View style={styles.bookingNotice}>
                     <Ionicons name="information-circle" size={20} color="#007AFF" />
                     <Text style={styles.bookingNoticeText}>
@@ -428,6 +515,19 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
             </ScrollView>
           </View>
         </Modal>
+
+        {/* Recurring Booking Form */}
+        <RecurringBookingForm
+          visible={showRecurringForm}
+          onClose={() => setShowRecurringForm(false)}
+          onConfirm={(pattern) => {
+            setRecurringPattern(pattern);
+            setShowRecurringForm(false);
+          }}
+          initialDate={selectedDate}
+          initialStartTime={selectedSlot?.start || ''}
+          initialEndTime={selectedSlot?.end || ''}
+        />
       </View>
     </Modal>
   );
@@ -570,6 +670,36 @@ const styles = {
     color: '#999',
     marginTop: 5,
   },
+  viewModeContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    marginBottom: 12,
+  },
+  viewModeButtons: {
+    flexDirection: 'row' as const,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    padding: 4,
+    gap: 4,
+  },
+  viewModeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  viewModeButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  viewModeText: {
+    fontSize: 14,
+    fontWeight: '500' as const,
+    color: '#666',
+  },
+  viewModeTextActive: {
+    color: 'white',
+    fontWeight: '600' as const,
+  },
   slotsGrid: {
     flexDirection: 'row' as const,
     flexWrap: 'wrap' as const,
@@ -697,6 +827,38 @@ const styles = {
     fontWeight: '600' as const,
     color: '#333',
     marginBottom: 10,
+  },
+  recurringButton: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+    padding: 12,
+    backgroundColor: '#eff6ff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    marginBottom: 12,
+  },
+  recurringButtonText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: '#007AFF',
+  },
+  recurringInfo: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    padding: 12,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    marginBottom: 12,
+  },
+  recurringInfoText: {
+    fontSize: 13,
+    color: '#16a34a',
+    fontWeight: '500' as const,
   },
   notesInput: {
     backgroundColor: '#f8f9fa',

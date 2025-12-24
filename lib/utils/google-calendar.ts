@@ -7,9 +7,9 @@ import { supabase } from '../supabase';
 
 // Google Calendar API Configuration
 const GOOGLE_CALENDAR_CONFIG = {
-  clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || '',
+  clientId: process.env.GOOGLE_CLIENT_ID || '',
   clientSecret: process.env.GOOGLE_CLIENT_SECRET || '', // Server-side only
-  redirectUri: process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_URI || 'https://izimate.com/auth/google/callback',
+  redirectUri: process.env.GOOGLE_REDIRECT_URI || 'exp://localhost:19000/--/auth/callback',
   scopes: [
     'https://www.googleapis.com/auth/calendar.readonly',
     'https://www.googleapis.com/auth/calendar.events',
@@ -38,12 +38,12 @@ export interface GoogleCalendarEvent {
 export interface CalendarConnection {
   id: string;
   user_id: string;
-  provider: 'google';
+  provider: 'google' | 'apple' | 'samsung' | 'android' | 'outlook' | 'icloud';
   calendar_id: string;
   calendar_name: string;
-  access_token: string;
-  refresh_token: string;
-  token_expires_at: string;
+  access_token?: string;
+  refresh_token?: string;
+  token_expires_at?: string;
   is_primary: boolean;
   sync_enabled: boolean;
   last_sync_at?: string;
@@ -72,6 +72,23 @@ export class GoogleCalendarService {
       access_type: 'offline',
       prompt: 'consent',
       state: userId // Pass user ID for security
+    });
+
+    return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  }
+
+  /**
+   * Static method to generate OAuth URL without instance
+   */
+  static getAuthUrl(userId?: string): string {
+    const params = new URLSearchParams({
+      client_id: GOOGLE_CALENDAR_CONFIG.clientId,
+      redirect_uri: GOOGLE_CALENDAR_CONFIG.redirectUri,
+      scope: GOOGLE_CALENDAR_CONFIG.scopes.join(' '),
+      response_type: 'code',
+      access_type: 'offline',
+      prompt: 'consent',
+      state: userId || 'test' // Pass user ID for security
     });
 
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;

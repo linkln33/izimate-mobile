@@ -233,9 +233,10 @@ function CreateListingScreenContent() {
       }
       
       console.log('📝 Edit mode: Loading existing listing:', id)
-      loadExistingListing(id)
-      hasLoadedListingRef.current = true
+      // Set the loadingListingIdRef BEFORE calling to prevent duplicate calls
       loadingListingIdRef.current = id
+      loadExistingListing(id)
+      // hasLoadedListingRef is set to true inside loadExistingListing after success
       hasResetRef.current = true
       return
     }
