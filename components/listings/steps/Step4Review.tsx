@@ -128,12 +128,16 @@ export function Step4Review({ formState, quota }: Step4ReviewProps) {
           <View style={styles.summaryItemColumn}>
             <Text style={styles.summaryLabel}>Service Options:</Text>
             <View style={styles.priceListContainer}>
-              {price_list.map((item: any, index: number) => (
-                <View key={index} style={styles.priceListItem}>
-                  <Text style={styles.priceListName}>{item.serviceName || 'Service'}</Text>
-                  <Text style={styles.priceListPrice}>{`${currencySymbol}${item.price || 0}`}</Text>
-                </View>
-              ))}
+              {price_list.map((item: any, index: number) => {
+                const serviceName = item?.serviceName || 'Service'
+                const price = item?.price || 0
+                return (
+                  <View key={index} style={styles.priceListItem}>
+                    <Text style={styles.priceListName}>{serviceName}</Text>
+                    <Text style={styles.priceListPrice}>{`${currencySymbol}${price}`}</Text>
+                  </View>
+                )
+              })}
             </View>
           </View>
         )}

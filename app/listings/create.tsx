@@ -128,7 +128,9 @@ function CreateListingScreenContent() {
         .single()
 
       if (error || !listing) {
-        console.error('❌ Error loading listing:', error)
+        if (__DEV__) {
+          console.error('❌ Error loading listing:', error)
+        }
         Alert.alert('Error', 'Listing not found or you do not have permission to edit it.')
         router.replace('/(tabs)/offer')
         return
@@ -147,19 +149,23 @@ function CreateListingScreenContent() {
         service_settings: serviceSettings || null,
       }
 
-      console.log('✅ Listing loaded:', listing.id, 'Title:', listing.title)
-      console.log('📋 Listing data:', {
-        title: listing.title,
-        category: listing.category,
-        photos: listing.photos,
-        budget_type: listing.budget_type,
-        location_address: listing.location_address,
-        service_settings: serviceSettings,
-      })
+      if (__DEV__) {
+        console.log('✅ Listing loaded:', listing.id, 'Title:', listing.title)
+        console.log('📋 Listing data:', {
+          title: listing.title,
+          category: listing.category,
+          photos: listing.photos,
+          budget_type: listing.budget_type,
+          location_address: listing.location_address,
+          service_settings: serviceSettings,
+        })
+      }
 
       // Load data into form
       formActions.loadFromListing(listingWithSettings as any)
-      console.log('✅ Form data loaded from listing')
+      if (__DEV__) {
+        console.log('✅ Form data loaded from listing')
+      }
       
       // Mark as loaded to prevent re-loading
       hasLoadedListingRef.current = true

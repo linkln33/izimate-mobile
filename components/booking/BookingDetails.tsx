@@ -216,8 +216,21 @@ export function BookingDetails({
           </View>
         )}
 
-        {/* Location */}
-        {listing.location_address && (
+        {/* Service Address - Where service should be performed */}
+        {booking.service_address && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Service Address</Text>
+            <View style={styles.infoCard}>
+              <View style={styles.infoRow}>
+                <Ionicons name="location" size={20} color="#f25842" />
+                <Text style={styles.infoText}>{booking.service_address}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Listing Location - Provider's location (if different from service address) */}
+        {listing.location_address && !booking.service_address && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Location</Text>
             <View style={styles.infoCard}>

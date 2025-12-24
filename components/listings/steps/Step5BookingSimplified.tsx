@@ -87,6 +87,16 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
       // Clear values when disabled - set to null/empty to truly clear
       setUrgency?.(null);
       setPreferredDate?.('');
+    } else {
+      // Auto-set preferred date to today when enabled (if not already set)
+      if (!preferredDate || preferredDate.trim() === '') {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+        setPreferredDate?.(todayStr);
+      }
     }
   };
   
@@ -94,6 +104,18 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [currentWeek, setCurrentWeek] = useState(new Date());
+
+  // Auto-set preferred date to today when Schedule & Timing is enabled on mount (if not already set)
+  useEffect(() => {
+    if (scheduleTimingEnabled && (!preferredDate || preferredDate.trim() === '')) {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${year}-${month}-${day}`;
+      setPreferredDate?.(todayStr);
+    }
+  }, [scheduleTimingEnabled]); // Only run when scheduleTimingEnabled changes
 
   // Update parent whenever data changes
   useEffect(() => {
@@ -412,10 +434,41 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
                 <TextInput
                   style={styles.input}
                   value={preferredDate || ''}
-                  onChangeText={setPreferredDate}
+                  onChangeText={(text) => {
+                    // Validate date format as user types
+                    // Only allow YYYY-MM-DD format
+                    const cleaned = text.replace(/[^0-9-]/g, '')
+                    // Enforce format: YYYY-MM-DD
+                    let formatted = cleaned
+                    if (formatted.length > 4 && formatted[4] !== '-') {
+                      formatted = formatted.slice(0, 4) + '-' + formatted.slice(4)
+                    }
+                    if (formatted.length > 7 && formatted[7] !== '-') {
+                      formatted = formatted.slice(0, 7) + '-' + formatted.slice(7)
+                    }
+                    // Limit to 10 characters (YYYY-MM-DD)
+                    if (formatted.length <= 10) {
+                      setPreferredDate?.(formatted)
+                    }
+                  }}
                   placeholder="YYYY-MM-DD"
                   placeholderTextColor="#9ca3af"
+                  keyboardType="numeric"
+                  maxLength={10}
                 />
+                {preferredDate && preferredDate.length === 10 && (() => {
+                  const [year, month, day] = preferredDate.split('-').map(Number)
+                  const date = new Date(year, month - 1, day)
+                  const isValid = !isNaN(date.getTime()) && 
+                    date.getFullYear() === year && 
+                    date.getMonth() === month - 1 && 
+                    date.getDate() === day &&
+                    month >= 1 && month <= 12 &&
+                    day >= 1 && day <= 31
+                  return !isValid ? (
+                    <Text style={styles.errorText}>Invalid date format</Text>
+                  ) : null
+                })()}
               </View>
             </>
           )}
@@ -903,6 +956,11 @@ const styles = StyleSheet.create({
   urgencyButtonTextActive: {
     color: '#f25842',
     fontWeight: '600',
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#ef4444',
+    marginTop: 4,
   },
 });
 

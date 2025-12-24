@@ -268,14 +268,16 @@ export function ListingCard({
                     style={[styles.listingImage, { width: cardMaxWidth }]}
                     resizeMode="cover"
                     onError={(error) => {
-                      console.error(`❌ Image load error for photo ${index}:`, photo)
-                      console.error('Error details:', error)
+                      if (__DEV__) {
+                        console.error(`❌ Image load error for photo ${index}:`, photo)
+                        console.error('Error details:', error)
+                      }
                       if (index === 0) {
                         setImageError(true)
                       }
                     }}
                     onLoad={() => {
-                      console.log(`✅ Image ${index} loaded successfully:`, photo)
+                      // Image loaded successfully
                     }}
                   />
                 ))}
@@ -665,52 +667,71 @@ export function ListingCard({
               {/* Activity & Stats Section - Only show when booking is NOT enabled */}
               {!listing.booking_enabled && (
                 <View style={styles.expandedSection}>
-                  <View style={styles.sectionHeader}>
-                    <Ionicons name="analytics-outline" size={18} color="#f25842" />
-                    <Text style={styles.sectionTitle}>Activity</Text>
-                  </View>
-                
-                <View style={styles.statsGrid}>
-                  {(listing.view_count || 0) > 0 && (
-                    <View style={styles.statCard}>
-                      <Ionicons name="eye-outline" size={16} color="#6b7280" />
-                      <Text style={styles.statNumber}>{listing.view_count || 0}</Text>
-                      <Text style={styles.statLabel}>Views</Text>
-                    </View>
+                  {/* For creators: Show Activity metrics */}
+                  {(isOwnListing || showActions) ? (
+                    <>
+                      <View style={styles.sectionHeader}>
+                        <Ionicons name="analytics-outline" size={18} color="#f25842" />
+                        <Text style={styles.sectionTitle}>Activity</Text>
+                      </View>
+                    
+                      <View style={styles.statsGrid}>
+                        {(listing.view_count || 0) > 0 && (
+                          <View style={styles.statCard}>
+                            <Ionicons name="eye-outline" size={16} color="#6b7280" />
+                            <Text style={styles.statNumber}>{listing.view_count || 0}</Text>
+                            <Text style={styles.statLabel}>Views</Text>
+                          </View>
+                        )}
+                        
+                        {(listing.swipe_count || 0) > 0 && (
+                          <View style={styles.statCard}>
+                            <Ionicons name="heart-outline" size={16} color="#10b981" />
+                            <Text style={styles.statNumber}>{listing.swipe_count || 0}</Text>
+                            <Text style={styles.statLabel}>Likes</Text>
+                          </View>
+                        )}
+                        
+                        {(listing.match_count || 0) > 0 && (
+                          <View style={styles.statCard}>
+                            <Ionicons name="checkmark-circle-outline" size={16} color="#f25842" />
+                            <Text style={styles.statNumber}>{listing.match_count || 0}</Text>
+                            <Text style={styles.statLabel}>Matches</Text>
+                          </View>
+                        )}
+                        
+                        {/* Status for creator */}
+                        <View style={styles.statCard}>
+                          <Ionicons 
+                            name={listing.status === 'active' ? 'checkmark-circle' : 'pause-circle'} 
+                            size={16} 
+                            color={listing.status === 'active' ? '#10b981' : '#f59e0b'} 
+                          />
+                          <Text style={styles.statNumber}>•</Text>
+                          <Text style={styles.statLabel}>
+                            {listing.status === 'active' ? 'Active' : 
+                             listing.status === 'paused' ? 'Paused' : 
+                             listing.status === 'completed' ? 'Done' : 'Draft'}
+                          </Text>
+                        </View>
+                      </View>
+                    </>
+                  ) : (
+                    /* For applicants: Show Apply button */
+                    <Pressable
+                      style={styles.applyButton}
+                      onPress={() => {
+                        // Trigger like action (which creates an application/interest)
+                        if (onLike) {
+                          onLike(listing.id)
+                        }
+                      }}
+                    >
+                      <Ionicons name="checkmark-circle" size={20} color="#ffffff" />
+                      <Text style={styles.applyButtonText}>Apply</Text>
+                    </Pressable>
                   )}
-                  
-                  {(listing.swipe_count || 0) > 0 && (
-                    <View style={styles.statCard}>
-                      <Ionicons name="heart-outline" size={16} color="#10b981" />
-                      <Text style={styles.statNumber}>{listing.swipe_count || 0}</Text>
-                      <Text style={styles.statLabel}>Likes</Text>
-                    </View>
-                  )}
-                  
-                  {(listing.match_count || 0) > 0 && (
-                    <View style={styles.statCard}>
-                      <Ionicons name="checkmark-circle-outline" size={16} color="#f25842" />
-                      <Text style={styles.statNumber}>{listing.match_count || 0}</Text>
-                      <Text style={styles.statLabel}>Matches</Text>
-                    </View>
-                  )}
-                  
-                  {/* Always show status */}
-                  <View style={styles.statCard}>
-                    <Ionicons 
-                      name={listing.status === 'active' ? 'checkmark-circle' : 'pause-circle'} 
-                      size={16} 
-                      color={listing.status === 'active' ? '#10b981' : '#f59e0b'} 
-                    />
-                    <Text style={styles.statNumber}>•</Text>
-                    <Text style={styles.statLabel}>
-                      {listing.status === 'active' ? 'Active' : 
-                       listing.status === 'paused' ? 'Paused' : 
-                       listing.status === 'completed' ? 'Done' : 'Draft'}
-                    </Text>
-                  </View>
                 </View>
-              </View>
               )}
 
               {/* Contact & Location Details */}
@@ -1265,6 +1286,26 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
+  },
+  applyButton: {
+    backgroundColor: '#f25842',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  applyButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
   },
   sectionHeader: {
     flexDirection: 'row',

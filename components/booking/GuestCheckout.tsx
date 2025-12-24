@@ -13,6 +13,7 @@ import {
   Platform
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { getCurrentLocation, reverseGeocode } from '@/lib/utils/location'
 import { useRouter } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import { sendBookingConfirmation } from '@/lib/utils/booking-notifications'
@@ -39,6 +40,9 @@ interface GuestInfo {
   email: string
   phone: string
   notes?: string
+  serviceAddress?: string
+  serviceAddressLat?: number
+  serviceAddressLng?: number
 }
 
 export function GuestCheckout({
@@ -58,13 +62,17 @@ export function GuestCheckout({
     name: '',
     email: '',
     phone: '',
-    notes: ''
+    notes: '',
+    serviceAddress: '',
+    serviceAddressLat: undefined,
+    serviceAddressLng: undefined
   })
   const [loading, setLoading] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [showBiometricConfirmation, setShowBiometricConfirmation] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [emailOptIn, setEmailOptIn] = useState(false)
+  const [detectingLocation, setDetectingLocation] = useState(false)
 
   const validateGuestInfo = () => {
     if (!guestInfo.name.trim()) {
@@ -153,6 +161,9 @@ export function GuestCheckout({
           status: 'pending',
           customer_notes: guestInfo.notes,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          service_address: guestInfo.serviceAddress || null,
+          service_address_lat: guestInfo.serviceAddressLat || null,
+          service_address_lng: guestInfo.serviceAddressLng || null,
           metadata: {
             guest_info: guestInfo,
             booking_source: 'guest_checkout'
@@ -311,6 +322,53 @@ export function GuestCheckout({
               keyboardType="phone-pad"
               autoComplete="tel"
             />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Service Address</Text>
+            <Text style={styles.inputSubtitle}>Where should the service be performed?</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={guestInfo.serviceAddress}
+              onChangeText={(text) => setGuestInfo(prev => ({ ...prev, serviceAddress: text }))}
+              placeholder="Enter service address (e.g., 123 Main St, City)"
+              multiline
+              numberOfLines={2}
+              textAlignVertical="top"
+            />
+            <Pressable
+              style={styles.detectLocationButton}
+              onPress={async () => {
+                try {
+                  setDetectingLocation(true)
+                  const location = await getCurrentLocation()
+                  const address = await reverseGeocode(location.lat, location.lng)
+                  setGuestInfo(prev => ({
+                    ...prev,
+                    serviceAddress: address,
+                    serviceAddressLat: location.lat,
+                    serviceAddressLng: location.lng
+                  }))
+                } catch (error) {
+                  if (__DEV__) {
+                    console.error('Error detecting location:', error)
+                  }
+                  Alert.alert('Error', 'Failed to detect location. Please enter address manually.')
+                } finally {
+                  setDetectingLocation(false)
+                }
+              }}
+              disabled={detectingLocation}
+            >
+              {detectingLocation ? (
+                <ActivityIndicator size="small" color="#f25842" />
+              ) : (
+                <>
+                  <Ionicons name="location" size={18} color="#f25842" />
+                  <Text style={styles.detectLocationText}>Use My Location</Text>
+                </>
+              )}
+            </Pressable>
           </View>
 
           <View style={styles.inputGroup}>
@@ -578,6 +636,11 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 8,
   },
+  inputSubtitle: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginBottom: 8,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#d1d5db',
@@ -591,6 +654,23 @@ const styles = StyleSheet.create({
   textArea: {
     height: 80,
     textAlignVertical: 'top',
+  },
+  detectLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f25842',
+    gap: 6,
+  },
+  detectLocationText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#f25842',
   },
   checkboxCard: {
     backgroundColor: '#ffffff',

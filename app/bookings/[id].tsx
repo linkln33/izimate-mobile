@@ -56,7 +56,9 @@ export default function BookingDetailsScreen() {
         .single()
 
       if (bookingError || !bookingData) {
-        console.error('Error loading booking:', bookingError)
+        if (__DEV__) {
+          console.error('Error loading booking:', bookingError)
+        }
         Alert.alert('Error', 'Booking not found')
         router.back()
         return
@@ -89,7 +91,9 @@ export default function BookingDetailsScreen() {
       }
 
     } catch (error) {
-      console.error('Error loading booking data:', error)
+      if (__DEV__) {
+        console.error('Error loading booking data:', error)
+      }
       Alert.alert('Error', 'Failed to load booking details')
       router.back()
     } finally {
@@ -107,9 +111,63 @@ export default function BookingDetailsScreen() {
     }
   }
 
-  const handleContact = () => {
-    if (provider) {
-      router.push(`/chat/${provider.id}`)
+  const handleContact = async () => {
+    if (!booking || !listing) return
+    
+    try {
+      // Check if booking has a match_id
+      if (booking.match_id) {
+        router.push(`/chat/${booking.match_id}`)
+        return
+      }
+
+      // If no match_id, find or create a match for this booking
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) return
+
+      // Try to find existing match for this listing
+      // Check as customer first
+      const { data: matchAsCustomer } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('listing_id', listing.id)
+        .eq('customer_id', booking.customer_id)
+        .eq('provider_id', provider?.id)
+        .maybeSingle()
+
+      if (matchAsCustomer) {
+        router.push(`/chat/${matchAsCustomer.id}`)
+        return
+      }
+
+      // Check as provider
+      const { data: matchAsProvider } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('listing_id', listing.id)
+        .eq('customer_id', provider?.id)
+        .eq('provider_id', booking.customer_id)
+        .maybeSingle()
+
+      if (matchAsProvider) {
+        router.push(`/chat/${matchAsProvider.id}`)
+        return
+      }
+
+      // Create a new match for chat using the matching utility
+      const { getOrCreateMatchForChat } = await import('@/lib/utils/matching')
+      const result = await getOrCreateMatchForChat(authUser.id, listing.id)
+
+      if (result.success && result.match) {
+        router.push(`/chat/${result.match.id}`)
+      } else {
+        Alert.alert('Error', result.error || 'Failed to start chat. Please try again.')
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error starting chat:', error)
+      }
+      Alert.alert('Error', 'Failed to start chat. Please try again.')
     }
   }
 

@@ -26,6 +26,9 @@ interface BookingSelection {
   serviceName: string
   servicePrice: number
   currency: string
+  serviceAddress?: string
+  serviceAddressLat?: number
+  serviceAddressLng?: number
 }
 
 export function BookingFlowManager({
@@ -109,11 +112,19 @@ export function BookingFlowManager({
     }
   }
 
-  const handleUserCheckout = async () => {
+  const handleUserCheckout = async (addressData?: { address: string; lat?: number; lng?: number }) => {
     if (!currentUser || !bookingSelection) return
 
     try {
       setLoading(true)
+      
+      // Update booking selection with address if provided
+      const updatedSelection = addressData ? {
+        ...bookingSelection,
+        serviceAddress: addressData.address,
+        serviceAddressLat: addressData.lat,
+        serviceAddressLng: addressData.lng,
+      } : bookingSelection
       
       // Get provider profile ID (bookings.provider_id references provider_profiles.id, not users.id)
       // Use database function to get or create provider profile (bypasses RLS issues)
@@ -126,7 +137,9 @@ export function BookingFlowManager({
           .rpc('get_provider_profile_id', { p_user_id: listing.user_id })
 
         if (functionError) {
-          console.error('❌ Error calling get_provider_profile_id function:', functionError)
+          if (__DEV__) {
+            console.error('❌ Error calling get_provider_profile_id function:', functionError)
+          }
           // Fallback: try direct query
           const { data: providerProfile, error: profileError } = await supabase
             .from('provider_profiles')
@@ -136,9 +149,13 @@ export function BookingFlowManager({
 
           if (providerProfile) {
             providerProfileId = providerProfile.id
-            console.log('✅ Found provider profile via direct query:', providerProfileId)
+            if (__DEV__) {
+              console.log('✅ Found provider profile via direct query:', providerProfileId)
+            }
           } else {
-            console.error('❌ Provider profile not found for user_id:', listing.user_id)
+            if (__DEV__) {
+              console.error('❌ Provider profile not found for user_id:', listing.user_id)
+            }
             Alert.alert(
               'Booking Error',
               'The service provider needs to complete their profile setup. Please contact the provider or try booking a different service.'
@@ -147,16 +164,22 @@ export function BookingFlowManager({
           }
         } else {
           providerProfileId = profileData as string
-          console.log('✅ Got provider profile ID from function:', providerProfileId)
+          if (__DEV__) {
+            console.log('✅ Got provider profile ID from function:', providerProfileId)
+          }
         }
       } catch (error) {
-        console.error('❌ Unexpected error getting provider profile:', error)
+        if (__DEV__) {
+          console.error('❌ Unexpected error getting provider profile:', error)
+        }
         Alert.alert('Error', 'Failed to process booking. Please try again.')
         return
       }
 
       if (!providerProfileId) {
-        console.error('❌ No provider profile ID determined')
+        if (__DEV__) {
+          console.error('❌ No provider profile ID determined')
+        }
         Alert.alert('Error', 'Unable to determine provider profile. Please contact support.')
         return
       }
@@ -172,7 +195,7 @@ export function BookingFlowManager({
       const bookingStatus = autoConfirm ? 'confirmed' : 'pending'
       
       // Create booking for logged-in user
-      const bookingDateTime = new Date(`${bookingSelection.date}T${bookingSelection.time}`)
+      const bookingDateTime = new Date(`${updatedSelection.date}T${updatedSelection.time}`)
       const endDateTime = new Date(bookingDateTime.getTime() + 60 * 60 * 1000) // Default 1 hour
 
       const { data: booking, error } = await supabase
@@ -183,11 +206,14 @@ export function BookingFlowManager({
           customer_id: currentUser.id,
           start_time: bookingDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
-          service_name: bookingSelection.serviceName,
-          service_price: bookingSelection.servicePrice,
-          currency: bookingSelection.currency,
+          service_name: updatedSelection.serviceName,
+          service_price: updatedSelection.servicePrice,
+          currency: updatedSelection.currency,
           status: bookingStatus,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          service_address: updatedSelection.serviceAddress || null,
+          service_address_lat: updatedSelection.serviceAddressLat || null,
+          service_address_lng: updatedSelection.serviceAddressLng || null,
         })
         .select()
         .single()
@@ -254,7 +280,9 @@ export function BookingFlowManager({
               availability: eventAvailability, // Mark as tentative when pending
             })
             
-            console.log(`✅ Calendar event saved as ${eventAvailability} for ${bookingStatus} booking`)
+            if (__DEV__) {
+              console.log(`✅ Calendar event saved as ${eventAvailability} for ${bookingStatus} booking`)
+            }
           }
         }
       } catch (calendarError) {
@@ -362,7 +390,7 @@ export function BookingFlowManager({
           providerName={provider.name}
           price={bookingSelection.servicePrice}
           currency={bookingSelection.currency}
-          date={new Date(bookingSelection.date).toLocaleDateString('en-US', { 
+          date={new Date(`${bookingSelection.date}T${bookingSelection.time}`).toLocaleDateString('en-US', { 
             weekday: 'long', 
             year: 'numeric', 
             month: 'long', 
@@ -372,6 +400,9 @@ export function BookingFlowManager({
             hour: '2-digit', 
             minute: '2-digit' 
           })}
+          initialAddress={bookingSelection.serviceAddress}
+          initialLat={bookingSelection.serviceAddressLat}
+          initialLng={bookingSelection.serviceAddressLng}
           onConfirm={handleUserCheckout}
           onCancel={handleBackToCalendar}
           loading={loading}

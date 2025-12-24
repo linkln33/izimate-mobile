@@ -86,8 +86,8 @@ export async function registerForPushNotifications(): Promise<string | null> {
       console.log('✅ Push token obtained successfully:', token?.substring(0, 20) + '...')
     }
   } catch (e) {
-    console.error('❌ Error getting push token:', e)
     if (__DEV__) {
+      console.error('❌ Error getting push token:', e)
       console.warn('This is normal if running on web or simulator. Push notifications require a physical device with proper Expo/EAS configuration.')
     }
     return null

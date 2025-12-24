@@ -521,7 +521,42 @@ export function createListingHandlers(
         price_list: formState.price_list && formState.price_list.length > 0 ? formState.price_list : [],
         currency: formState.currency || 'GBP',
         urgency: formState.urgency || null,
-        preferred_date: formState.preferredDate || null,
+        preferred_date: (() => {
+          // Validate and format preferred_date
+          if (!formState.preferredDate || formState.preferredDate.trim() === '') {
+            return null
+          }
+          
+          const dateStr = formState.preferredDate.trim()
+          
+          // Validate date format (YYYY-MM-DD)
+          const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+          if (!dateRegex.test(dateStr)) {
+            console.warn('Invalid date format:', dateStr)
+            return null
+          }
+          
+          // Validate date is actually valid
+          const date = new Date(dateStr)
+          if (isNaN(date.getTime())) {
+            console.warn('Invalid date value:', dateStr)
+            return null
+          }
+          
+          // Check if date components match (catches cases like "2025-12-225")
+          const [year, month, day] = dateStr.split('-').map(Number)
+          const expectedDate = new Date(year, month - 1, day)
+          if (
+            expectedDate.getFullYear() !== year ||
+            expectedDate.getMonth() !== month - 1 ||
+            expectedDate.getDate() !== day
+          ) {
+            console.warn('Invalid date components:', dateStr)
+            return null
+          }
+          
+          return dateStr
+        })(),
         location_address: formState.locationAddress.trim(),
         location_lat: formState.locationLat,
         location_lng: formState.locationLng,

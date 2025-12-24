@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator, Platform } from 'react-native'
+import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator, Platform, TextInput, ScrollView } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { 
   authenticateForBooking, 
@@ -7,6 +7,7 @@ import {
   getBiometricTypeName,
   promptBiometricSetup
 } from '@/lib/utils/biometric-auth'
+import { getCurrentLocation, reverseGeocode } from '@/lib/utils/location'
 
 interface BiometricBookingConfirmationProps {
   serviceName: string
@@ -15,7 +16,10 @@ interface BiometricBookingConfirmationProps {
   currency: string
   date: string
   time: string
-  onConfirm: () => Promise<void>
+  initialAddress?: string
+  initialLat?: number
+  initialLng?: number
+  onConfirm: (address?: { address: string; lat?: number; lng?: number }) => Promise<void>
   onCancel: () => void
   loading?: boolean
 }
@@ -27,6 +31,9 @@ export function BiometricBookingConfirmation({
   currency,
   date,
   time,
+  initialAddress,
+  initialLat,
+  initialLng,
   onConfirm,
   onCancel,
   loading = false
@@ -35,6 +42,10 @@ export function BiometricBookingConfirmation({
   const [biometricTypes, setBiometricTypes] = useState<string[]>([])
   const [authenticating, setAuthenticating] = useState(false)
   const [checkingBiometrics, setCheckingBiometrics] = useState(true)
+  const [serviceAddress, setServiceAddress] = useState(initialAddress || '')
+  const [addressLat, setAddressLat] = useState<number | undefined>(initialLat)
+  const [addressLng, setAddressLng] = useState<number | undefined>(initialLng)
+  const [detectingLocation, setDetectingLocation] = useState(false)
 
   useEffect(() => {
     checkBiometricAvailability()
@@ -53,6 +64,57 @@ export function BiometricBookingConfirmation({
     }
   }
 
+
+  const handleDetectLocation = async () => {
+    try {
+      setDetectingLocation(true)
+      const location = await getCurrentLocation()
+      const address = await reverseGeocode(location.lat, location.lng)
+      setServiceAddress(address)
+      setAddressLat(location.lat)
+      setAddressLng(location.lng)
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error detecting location:', error)
+      }
+      Alert.alert('Error', 'Failed to detect location. Please enter address manually.')
+    } finally {
+      setDetectingLocation(false)
+    }
+  }
+
+  const handleManualConfirm = async () => {
+    if (loading) {
+      if (__DEV__) {
+        console.log('Confirm booking blocked: loading is true')
+      }
+      return
+    }
+
+    if (__DEV__) {
+      console.log('Confirm Booking button pressed')
+    }
+    
+    try {
+      if (__DEV__) {
+        console.log('Confirm Booking: Calling onConfirm callback')
+      }
+      await onConfirm(serviceAddress ? {
+        address: serviceAddress,
+        lat: addressLat,
+        lng: addressLng
+      } : undefined)
+      if (__DEV__) {
+        console.log('Confirm Booking: onConfirm completed successfully')
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error confirming booking:', error)
+      }
+      Alert.alert('Error', 'Failed to confirm booking. Please try again.')
+    }
+  }
+
   const handleBiometricConfirm = async () => {
     if (authenticating || loading) return
 
@@ -66,33 +128,21 @@ export function BiometricBookingConfirmation({
       })
 
       if (result.success) {
-        await onConfirm()
+        await onConfirm(serviceAddress ? {
+          address: serviceAddress,
+          lat: addressLat,
+          lng: addressLng
+        } : undefined)
       } else if (result.error !== 'User cancelled') {
         Alert.alert('Authentication Failed', result.error || 'Please try again')
       }
     } catch (error) {
-      console.error('Error during biometric confirmation:', error)
+      if (__DEV__) {
+        console.error('Error during biometric confirmation:', error)
+      }
       Alert.alert('Error', 'Authentication failed. Please try again.')
     } finally {
       setAuthenticating(false)
-    }
-  }
-
-  const handleManualConfirm = async () => {
-    if (loading) {
-      console.log('Confirm booking blocked: loading is true')
-      return
-    }
-
-    console.log('Confirm Booking button pressed')
-    
-    try {
-      console.log('Confirm Booking: Calling onConfirm callback')
-      await onConfirm()
-      console.log('Confirm Booking: onConfirm completed successfully')
-    } catch (error) {
-      console.error('Error confirming booking:', error)
-      Alert.alert('Error', 'Failed to confirm booking. Please try again.')
     }
   }
 
@@ -136,7 +186,8 @@ export function BiometricBookingConfirmation({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
         <Text style={styles.headerTitle}>Confirm Your Booking</Text>
         <Text style={styles.headerSubtitle}>Secure confirmation required</Text>
       </View>
@@ -160,6 +211,38 @@ export function BiometricBookingConfirmation({
             <Ionicons name="card-outline" size={20} color="#6b7280" />
             <Text style={styles.priceText}>{currency}{price}</Text>
           </View>
+        </View>
+      </View>
+
+      {/* Service Address Section */}
+      <View style={styles.addressSection}>
+        <Text style={styles.addressTitle}>Service Address</Text>
+        <Text style={styles.addressSubtitle}>Where should the service be performed?</Text>
+        
+        <View style={styles.addressInputContainer}>
+          <TextInput
+            style={styles.addressInput}
+            value={serviceAddress}
+            onChangeText={setServiceAddress}
+            placeholder="Enter service address (e.g., 123 Main St, City)"
+            placeholderTextColor="#9ca3af"
+            multiline
+            numberOfLines={2}
+          />
+          <Pressable
+            style={styles.detectLocationButton}
+            onPress={handleDetectLocation}
+            disabled={detectingLocation}
+          >
+            {detectingLocation ? (
+              <ActivityIndicator size="small" color="#f25842" />
+            ) : (
+              <>
+                <Ionicons name="location" size={18} color="#f25842" />
+                <Text style={styles.detectLocationText}>Use My Location</Text>
+              </>
+            )}
+          </Pressable>
         </View>
       </View>
 
@@ -261,6 +344,7 @@ export function BiometricBookingConfirmation({
           Your booking is secured with end-to-end encryption
         </Text>
       </View>
+      </ScrollView>
     </View>
   )
 }
@@ -269,6 +353,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
+  },
+  content: {
+    flex: 1,
     padding: 20,
   },
   loadingContainer: {
@@ -471,5 +558,54 @@ const styles = StyleSheet.create({
   securityNoteText: {
     fontSize: 12,
     color: '#10b981',
+  },
+  addressSection: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  addressTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 4,
+  },
+  addressSubtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 12,
+  },
+  addressInputContainer: {
+    gap: 8,
+  },
+  addressInput: {
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  detectLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f25842',
+    gap: 6,
+  },
+  detectLocationText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#f25842',
   },
 })

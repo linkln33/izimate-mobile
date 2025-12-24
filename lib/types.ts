@@ -238,6 +238,9 @@ export interface Booking {
   end_time: string
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
   timezone: string
+  service_address?: string
+  service_address_lat?: number
+  service_address_lng?: number
   metadata?: Record<string, any>
   created_at: string
   updated_at: string

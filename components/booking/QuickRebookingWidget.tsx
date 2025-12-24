@@ -29,6 +29,26 @@ interface QuickRebookingItem {
   bookingCount: number
 }
 
+interface UpcomingBooking {
+  id: string
+  start_time: string
+  end_time: string
+  service_name?: string
+  service_price?: number
+  currency?: string
+  status: string
+  listing: {
+    id: string
+    title: string
+    category: string
+  }
+  provider: {
+    id: string
+    name: string
+    avatar_url?: string
+  }
+}
+
 interface QuickRebookingWidgetProps {
   userId: string
   maxItems?: number
@@ -37,11 +57,13 @@ interface QuickRebookingWidgetProps {
 export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWidgetProps) {
   const router = useRouter()
   const [rebookingItems, setRebookingItems] = useState<QuickRebookingItem[]>([])
+  const [upcomingBookings, setUpcomingBookings] = useState<UpcomingBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [rebookingLoading, setRebookingLoading] = useState<string | null>(null)
 
   useEffect(() => {
     loadRebookingOptions()
+    loadUpcomingBookings()
   }, [userId])
 
   const loadRebookingOptions = async () => {
@@ -149,6 +171,52 @@ export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWid
     router.push(`/providers/${providerId}`)
   }
 
+  const loadUpcomingBookings = async () => {
+    try {
+      const now = new Date().toISOString()
+      
+      const { data: bookingsData, error } = await supabase
+        .from('bookings')
+        .select(`
+          id,
+          start_time,
+          end_time,
+          service_name,
+          service_price,
+          currency,
+          status,
+          listing:listings(id, title, category),
+          provider:provider_profiles!provider_id(user:users!user_id(id, name, avatar_url))
+        `)
+        .eq('customer_id', userId)
+        .gte('start_time', now)
+        .in('status', ['pending', 'confirmed'])
+        .order('start_time', { ascending: true })
+        .limit(maxItems)
+
+      if (error) {
+        console.error('Error loading upcoming bookings:', error)
+        return
+      }
+
+      const formattedBookings = (bookingsData || []).map((booking: any) => ({
+        id: booking.id,
+        start_time: booking.start_time,
+        end_time: booking.end_time,
+        service_name: booking.service_name,
+        service_price: booking.service_price,
+        currency: booking.currency,
+        status: booking.status,
+        listing: booking.listing || { id: '', title: 'Service', category: '' },
+        provider: booking.provider?.user || { id: '', name: 'Unknown Provider', avatar_url: undefined },
+      }))
+
+      setUpcomingBookings(formattedBookings)
+    } catch (error) {
+      console.error('Failed to load upcoming bookings:', error)
+    }
+  }
+
   const formatLastBooking = (dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
@@ -163,6 +231,32 @@ export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWid
     return `${Math.floor(diffDays / 365)} years ago`
   }
 
+  const formatUpcomingDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = date.getTime() - now.getTime()
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+
+    if (diffHours < 1) return 'Starting soon'
+    if (diffHours < 24) return `In ${diffHours} hour${diffHours > 1 ? 's' : ''}`
+    if (diffDays === 1) return 'Tomorrow'
+    if (diffDays < 7) return `In ${diffDays} days`
+    if (diffDays < 30) return `In ${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''}`
+    
+    // Format as date
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+  }
+
+  const handleViewBooking = (bookingId: string) => {
+    router.push(`/bookings/${bookingId}`)
+  }
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -172,12 +266,96 @@ export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWid
     )
   }
 
+  // Show upcoming bookings if no rebooking options
   if (rebookingItems.length === 0) {
+    if (upcomingBookings.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="calendar-outline" size={48} color="#d1d5db" />
+          <Text style={styles.emptyTitle}>No upcoming bookings</Text>
+          <Text style={styles.emptyText}>You don't have any upcoming bookings scheduled</Text>
+        </View>
+      )
+    }
+
+    // Show upcoming bookings
     return (
-      <View style={styles.emptyContainer}>
-        <Ionicons name="refresh-outline" size={48} color="#d1d5db" />
-        <Text style={styles.emptyTitle}>No rebooking options</Text>
-        <Text style={styles.emptyText}>Complete some bookings to see quick rebooking options here</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Upcoming Bookings</Text>
+          <Text style={styles.headerSubtitle}>Your scheduled appointments</Text>
+        </View>
+
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          style={styles.scrollView}
+        >
+          {upcomingBookings.map((booking) => (
+            <View key={booking.id} style={styles.bookingCard}>
+              <Pressable
+                style={styles.cardContent}
+                onPress={() => handleViewBooking(booking.id)}
+              >
+                <View style={styles.cardHeader}>
+                  <View style={styles.providerInfo}>
+                    <View style={styles.providerAvatar}>
+                      <Text style={styles.providerInitial}>
+                        {booking.provider.name.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={styles.providerDetails}>
+                      <Text style={styles.providerName} numberOfLines={1}>
+                        {booking.provider.name}
+                      </Text>
+                      <Text style={styles.categoryText} numberOfLines={1}>
+                        {booking.listing.category}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <View style={[styles.statusBadge, booking.status === 'confirmed' ? styles.statusConfirmed : styles.statusPending]}>
+                    <Text style={styles.statusText}>
+                      {booking.status === 'confirmed' ? 'Confirmed' : 'Pending'}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.serviceInfo}>
+                  <Text style={styles.serviceName} numberOfLines={2}>
+                    {booking.service_name || booking.listing.title}
+                  </Text>
+                  
+                  <View style={styles.bookingMeta}>
+                    <Ionicons name="time-outline" size={14} color="#6b7280" />
+                    <Text style={styles.timeText}>
+                      {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.bookingMeta}>
+                    <Ionicons name="calendar-outline" size={14} color="#6b7280" />
+                    <Text style={styles.dateText}>
+                      {formatUpcomingDate(booking.start_time)}
+                    </Text>
+                  </View>
+
+                  {booking.service_price && (
+                    <Text style={styles.priceText}>
+                      {booking.currency || '$'}{booking.service_price}
+                    </Text>
+                  )}
+                </View>
+
+                <View style={styles.viewButton}>
+                  <Text style={styles.viewButtonText}>View Details</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#f25842" />
+                </View>
+              </Pressable>
+            </View>
+          ))}
+        </ScrollView>
       </View>
     )
   }
@@ -339,7 +517,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   cardContent: {
-    padding: 16,
+    padding: 12,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -353,13 +531,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   providerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#f25842',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 8,
   },
   providerInitial: {
     fontSize: 16,
@@ -370,13 +548,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   providerName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#1a1a1a',
     marginBottom: 2,
   },
   categoryText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#6b7280',
     textTransform: 'capitalize',
   },
@@ -384,14 +562,14 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   serviceInfo: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   serviceName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     color: '#374151',
-    marginBottom: 8,
-    lineHeight: 20,
+    marginBottom: 6,
+    lineHeight: 18,
   },
   bookingMeta: {
     flexDirection: 'row',
@@ -426,5 +604,61 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ffffff',
     marginLeft: 6,
+  },
+  bookingCard: {
+    width: 240,
+    marginRight: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusPending: {
+    backgroundColor: '#fef3c7',
+  },
+  statusConfirmed: {
+    backgroundColor: '#d1fae5',
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#374151',
+    textTransform: 'capitalize',
+  },
+  timeText: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginLeft: 4,
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  viewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    marginTop: 8,
+  },
+  viewButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#f25842',
+    marginRight: 4,
   },
 })
