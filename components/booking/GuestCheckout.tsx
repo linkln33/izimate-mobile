@@ -7,11 +7,11 @@ import {
   Pressable, 
   ScrollView, 
   Alert,
-  ActivityIndicator,
   Modal,
   KeyboardAvoidingView,
   Platform
 } from 'react-native'
+import { Button } from 'react-native-paper'
 import { Ionicons } from '@expo/vector-icons'
 import { getCurrentLocation, reverseGeocode } from '@/lib/utils/location'
 import { useRouter } from 'expo-router'
@@ -360,14 +360,35 @@ export function GuestCheckout({
               }}
               disabled={detectingLocation}
             >
-              {detectingLocation ? (
-                <ActivityIndicator size="small" color="#f25842" />
-              ) : (
-                <>
-                  <Ionicons name="location" size={18} color="#f25842" />
-                  <Text style={styles.detectLocationText}>Use My Location</Text>
-                </>
-              )}
+              <Button
+                mode="outlined"
+                onPress={async () => {
+                  try {
+                    setDetectingLocation(true)
+                    const location = await getCurrentLocation()
+                    const address = await reverseGeocode(location.lat, location.lng)
+                    setGuestInfo(prev => ({
+                      ...prev,
+                      serviceAddress: address,
+                      serviceAddressLat: location.lat,
+                      serviceAddressLng: location.lng
+                    }))
+                  } catch (error) {
+                    if (__DEV__) {
+                      console.error('Error detecting location:', error)
+                    }
+                    Alert.alert('Error', 'Failed to detect location. Please enter address manually.')
+                  } finally {
+                    setDetectingLocation(false)
+                  }
+                }}
+                loading={detectingLocation}
+                disabled={detectingLocation}
+                icon="map-marker"
+                style={styles.detectLocationButton}
+              >
+                Use My Location
+              </Button>
             </Pressable>
           </View>
 

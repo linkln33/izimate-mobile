@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Image, Platform } from 'react-native'
+import { View, Text, StyleSheet, FlatList, Pressable, Image, Platform } from 'react-native'
+import { SkeletonLoader } from '@/components/common/SkeletonLoader'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase'
@@ -141,8 +142,7 @@ export default function MessagesScreen() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#f25842" />
-        <Text style={styles.loadingText}>Loading messages...</Text>
+        <SkeletonLoader type="list" count={5} />
       </View>
     )
   }

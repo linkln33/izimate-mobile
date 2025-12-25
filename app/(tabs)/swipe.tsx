@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TextInput, Pressable, Modal, Platform } from 'react-native'
+import { View, Text, StyleSheet, FlatList, TextInput, Pressable, Modal, Platform } from 'react-native'
+import { SkeletonLoader } from '@/components/common/SkeletonLoader'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
