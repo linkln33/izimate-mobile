@@ -6,7 +6,11 @@
     "start": "npx expo start",
     "android": "npx expo start --android",
     "ios": "npx expo start --ios",
-    "web": "RCT_METRO_PORT=8083 npx expo start --web --port 8083"
+    "web": "RCT_METRO_PORT=8083 npx expo start --web --port 8083",
+    "figma:mcp:start": "./scripts/start-figma-mcp.sh",
+    "figma:mcp:setup": "./scripts/setup-figma-mcp.sh",
+    "figma:export-tokens": "bun run scripts/export-figma-tokens.ts",
+    "figma:generate-mappings": "bun run scripts/generate-figma-from-components.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.956.0",

@@ -1,0 +1,224 @@
+{
+  "colors": [
+    {
+      "name": "Primary",
+      "value": "#f25842",
+      "description": "Main brand color"
+    },
+    {
+      "name": "Primary Dark",
+      "value": "#d14532"
+    },
+    {
+      "name": "Primary Light",
+      "value": "#ff6b55"
+    },
+    {
+      "name": "Secondary",
+      "value": "#4285F4"
+    },
+    {
+      "name": "Secondary Dark",
+      "value": "#3367d6"
+    },
+    {
+      "name": "Secondary Light",
+      "value": "#5a95f5"
+    },
+    {
+      "name": "Success",
+      "value": "#10b981"
+    },
+    {
+      "name": "Warning",
+      "value": "#f59e0b"
+    },
+    {
+      "name": "Error",
+      "value": "#ef4444"
+    },
+    {
+      "name": "Info",
+      "value": "#3b82f6"
+    },
+    {
+      "name": "Text Primary",
+      "value": "#1a1a1a"
+    },
+    {
+      "name": "Text Secondary",
+      "value": "#6b7280"
+    },
+    {
+      "name": "Text Tertiary",
+      "value": "#9ca3af"
+    },
+    {
+      "name": "Text Disabled",
+      "value": "#d1d5db"
+    },
+    {
+      "name": "Background",
+      "value": "#ffffff"
+    },
+    {
+      "name": "Background Secondary",
+      "value": "#f9fafb"
+    },
+    {
+      "name": "Background Tertiary",
+      "value": "#f3f4f6"
+    }
+  ],
+  "spacing": [
+    {
+      "name": "Spacing XS",
+      "value": "4px",
+      "description": "xs spacing (4px)"
+    },
+    {
+      "name": "Spacing SM",
+      "value": "8px",
+      "description": "sm spacing (8px)"
+    },
+    {
+      "name": "Spacing MD",
+      "value": "12px",
+      "description": "md spacing (12px)"
+    },
+    {
+      "name": "Spacing LG",
+      "value": "16px",
+      "description": "lg spacing (16px)"
+    },
+    {
+      "name": "Spacing XL",
+      "value": "20px",
+      "description": "xl spacing (20px)"
+    },
+    {
+      "name": "Spacing 2XL",
+      "value": "24px",
+      "description": "2xl spacing (24px)"
+    },
+    {
+      "name": "Spacing 3XL",
+      "value": "32px",
+      "description": "3xl spacing (32px)"
+    },
+    {
+      "name": "Spacing 4XL",
+      "value": "40px",
+      "description": "4xl spacing (40px)"
+    },
+    {
+      "name": "Spacing 5XL",
+      "value": "48px",
+      "description": "5xl spacing (48px)"
+    }
+  ],
+  "typography": [
+    {
+      "name": "Font Size XS",
+      "value": "12px",
+      "description": "xs font size"
+    },
+    {
+      "name": "Font Size SM",
+      "value": "14px",
+      "description": "sm font size"
+    },
+    {
+      "name": "Font Size BASE",
+      "value": "16px",
+      "description": "base font size"
+    },
+    {
+      "name": "Font Size LG",
+      "value": "18px",
+      "description": "lg font size"
+    },
+    {
+      "name": "Font Size XL",
+      "value": "20px",
+      "description": "xl font size"
+    },
+    {
+      "name": "Font Size 2XL",
+      "value": "24px",
+      "description": "2xl font size"
+    },
+    {
+      "name": "Font Size 3XL",
+      "value": "30px",
+      "description": "3xl font size"
+    },
+    {
+      "name": "Font Size 4XL",
+      "value": "36px",
+      "description": "4xl font size"
+    },
+    {
+      "name": "Font Weight regular",
+      "value": "400",
+      "description": "regular font weight"
+    },
+    {
+      "name": "Font Weight medium",
+      "value": "500",
+      "description": "medium font weight"
+    },
+    {
+      "name": "Font Weight semibold",
+      "value": "600",
+      "description": "semibold font weight"
+    },
+    {
+      "name": "Font Weight bold",
+      "value": "700",
+      "description": "bold font weight"
+    }
+  ],
+  "radius": [
+    {
+      "name": "Radius NONE",
+      "value": "0px",
+      "description": "none border radius (0px)"
+    },
+    {
+      "name": "Radius SM",
+      "value": "4px",
+      "description": "sm border radius (4px)"
+    },
+    {
+      "name": "Radius MD",
+      "value": "6px",
+      "description": "md border radius (6px)"
+    },
+    {
+      "name": "Radius LG",
+      "value": "8px",
+      "description": "lg border radius (8px)"
+    },
+    {
+      "name": "Radius XL",
+      "value": "12px",
+      "description": "xl border radius (12px)"
+    },
+    {
+      "name": "Radius 2XL",
+      "value": "16px",
+      "description": "2xl border radius (16px)"
+    },
+    {
+      "name": "Radius 3XL",
+      "value": "20px",
+      "description": "3xl border radius (20px)"
+    },
+    {
+      "name": "Radius FULL",
+      "value": "9999px",
+      "description": "full border radius (9999px)"
+    }
+  ]
+}
