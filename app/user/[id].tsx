@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, Image, Pressable, ActivityIndicator, Platform, Dimensions } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Image, Pressable, ActivityIndicator, Platform, Dimensions, TextInput, Alert, Linking, Modal } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase'
-import type { User, Listing } from '@/lib/types'
+import type { User, Listing, ProviderProfile } from '@/lib/types'
 import { getUserReviews } from '@/lib/utils/ratings'
 import { formatRelativeTime, formatDate } from '@/lib/utils/date'
 import { normalizePhotoUrls } from '@/lib/utils/images'
+import { LocationPickerMap } from '@/components/location/LocationPickerMap'
+import { triggerLight, triggerSuccess } from '@/lib/utils/haptics'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
@@ -64,11 +66,20 @@ export default function UserProfileScreen() {
   const router = useRouter()
   const { id } = useLocalSearchParams<{ id: string }>()
   const [user, setUser] = useState<User | null>(null)
+  const [providerProfile, setProviderProfile] = useState<ProviderProfile | null>(null)
   const [reviews, setReviews] = useState<Review[]>([])
   const [listings, setListings] = useState<Listing[]>([])
   const [stats, setStats] = useState<UserStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [isOwnProfile, setIsOwnProfile] = useState(false)
+  const [showContactForm, setShowContactForm] = useState(false)
+  const [contactFormData, setContactFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    message: '',
+  })
+  const [sendingMessage, setSendingMessage] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -112,6 +123,17 @@ export default function UserProfileScreen() {
 
       setUser(userData as User)
       
+      // Load provider profile to check if user is a business
+      const { data: providerData } = await supabase
+        .from('provider_profiles')
+        .select('*')
+        .eq('user_id', id)
+        .single()
+
+      if (providerData) {
+        setProviderProfile(providerData as ProviderProfile)
+      }
+      
       if (__DEV__) {
         console.log('👤 User data loaded:', {
           id: userData.id,
@@ -119,6 +141,7 @@ export default function UserProfileScreen() {
           rating: (userData as any).rating,
           total_reviews: (userData as any).total_reviews,
           positive_reviews: (userData as any).positive_reviews,
+          isProvider: !!providerData,
         })
       }
 
@@ -266,6 +289,58 @@ export default function UserProfileScreen() {
     router.push(`/listings/${listingId}`)
   }
 
+  const handleSubmitContactForm = async () => {
+    if (!user || !contactFormData.name || !contactFormData.email || !contactFormData.message) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    setSendingMessage(true);
+    triggerLight();
+
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      // Create a message/notification for the business owner
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: user.id,
+          type: 'contact_form',
+          title: `New Contact Form Message from ${contactFormData.name}`,
+          message: contactFormData.message,
+          metadata: {
+            contact_name: contactFormData.name,
+            contact_email: contactFormData.email,
+            contact_phone: contactFormData.phone || null,
+            sender_id: currentUser?.id || null,
+          },
+        });
+
+      if (error) throw error;
+
+      triggerSuccess();
+      Alert.alert(
+        'Message Sent!',
+        `${user.name} will receive your contact information and can respond directly.`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setShowContactForm(false);
+              setContactFormData({ name: '', email: '', phone: '', message: '' });
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error('Error sending contact form:', error);
+      Alert.alert('Error', 'Failed to send message. Please try again.');
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -384,9 +459,162 @@ export default function UserProfileScreen() {
               <Ionicons name="chatbubble-ellipses-outline" size={18} color="#ffffff" />
               <Text style={styles.messageButtonText}>Message</Text>
             </Pressable>
+            {providerProfile && (
+              <Pressable 
+                style={styles.contactButton} 
+                onPress={() => {
+                  triggerLight();
+                  setShowContactForm(true);
+                }}
+              >
+                <Ionicons name="mail-outline" size={18} color="#3b82f6" />
+                <Text style={styles.contactButtonText}>Contact</Text>
+              </Pressable>
+            )}
           </View>
         )}
       </View>
+
+      {/* Contact Information Icons */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Contact Information</Text>
+        
+        <View style={styles.contactIconsRow}>
+          {user.phone && (
+            <Pressable 
+              style={styles.contactIconButton}
+              onPress={() => {
+                triggerLight();
+                Linking.openURL(`tel:${user.phone}`);
+              }}
+            >
+              <View style={[styles.contactIconContainer, { backgroundColor: '#eff6ff' }]}>
+                <Ionicons name="call" size={22} color="#3b82f6" />
+              </View>
+              <Text style={styles.contactIconLabel}>Call</Text>
+            </Pressable>
+          )}
+          
+          {user.email && (
+            <Pressable 
+              style={styles.contactIconButton}
+              onPress={() => {
+                triggerLight();
+                Linking.openURL(`mailto:${user.email}`);
+              }}
+            >
+              <View style={[styles.contactIconContainer, { backgroundColor: '#fef3c7' }]}>
+                <Ionicons name="mail" size={22} color="#f59e0b" />
+              </View>
+              <Text style={styles.contactIconLabel}>Email</Text>
+            </Pressable>
+          )}
+          
+          {user.location_address && (
+            <Pressable 
+              style={styles.contactIconButton}
+              onPress={() => {
+                triggerLight();
+                if (user.location_lat && user.location_lng) {
+                  const url = `https://www.google.com/maps/search/?api=1&query=${user.location_lat},${user.location_lng}`;
+                  Linking.openURL(url);
+                } else {
+                  Alert.alert('Location', user.location_address || 'Location not available');
+                }
+              }}
+            >
+              <View style={[styles.contactIconContainer, { backgroundColor: '#f0fdf4' }]}>
+                <Ionicons name="location" size={22} color="#10b981" />
+              </View>
+              <Text style={styles.contactIconLabel}>Location</Text>
+            </Pressable>
+          )}
+          
+          {providerProfile && (
+            <Pressable 
+              style={styles.contactIconButton}
+              onPress={() => {
+                triggerLight();
+                const businessInfo = [
+                  providerProfile.services_offered && providerProfile.services_offered.length > 0 
+                    ? `Services: ${providerProfile.services_offered.join(', ')}` 
+                    : null,
+                  providerProfile.hourly_rate 
+                    ? `Hourly Rate: ${providerProfile.hourly_rate}${user.currency || 'GBP'}` 
+                    : null,
+                  providerProfile.jobs_completed 
+                    ? `Jobs Completed: ${providerProfile.jobs_completed}` 
+                    : null,
+                  providerProfile.rating 
+                    ? `Rating: ${providerProfile.rating.toFixed(1)} ⭐` 
+                    : null,
+                ].filter(Boolean).join('\n');
+
+                Alert.alert(
+                  'Business Information',
+                  businessInfo || 'Business profile available',
+                  [{ text: 'OK' }]
+                );
+              }}
+            >
+              <View style={[styles.contactIconContainer, { backgroundColor: '#fef2f2' }]}>
+                <Ionicons name="business" size={22} color="#ef4444" />
+              </View>
+              <Text style={styles.contactIconLabel}>Business</Text>
+            </Pressable>
+          )}
+          
+          {stats?.memberSince && (
+            <Pressable 
+              style={styles.contactIconButton}
+              onPress={() => {
+                triggerLight();
+                Alert.alert(
+                  'Member Since',
+                  `Joined ${new Date(stats.memberSince).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long',
+                    day: 'numeric'
+                  })}`
+                );
+              }}
+            >
+              <View style={[styles.contactIconContainer, { backgroundColor: '#f3e8ff' }]}>
+                <Ionicons name="calendar" size={22} color="#a855f7" />
+              </View>
+              <Text style={styles.contactIconLabel}>Joined</Text>
+            </Pressable>
+          )}
+        </View>
+      </View>
+
+      {/* Location Map Section */}
+      {user.location_lat && user.location_lng && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Location</Text>
+          <View style={styles.mapContainer}>
+            <LocationPickerMap
+              initialAddress={user.location_address || ''}
+              initialLat={user.location_lat}
+              initialLng={user.location_lng}
+              onLocationSelect={() => {}} // Read-only view
+            />
+          </View>
+          {user.location_address && (
+            <Pressable
+              style={styles.mapActionButton}
+              onPress={() => {
+                triggerLight();
+                const url = `https://www.google.com/maps/search/?api=1&query=${user.location_lat},${user.location_lng}`;
+                Linking.openURL(url);
+              }}
+            >
+              <Ionicons name="open-outline" size={18} color="#3b82f6" />
+              <Text style={styles.mapActionText}>Open in Maps</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
 
       {/* Stats Section - eBay Style */}
       <View style={styles.statsSection}>
@@ -537,9 +765,100 @@ export default function UserProfileScreen() {
         </View>
       )}
       </ScrollView>
+
+      {/* Contact Form Modal for Business */}
+      {providerProfile && (
+        <Modal
+          visible={showContactForm}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowContactForm(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Contact {user.name}</Text>
+              <Pressable onPress={() => setShowContactForm(false)}>
+                <Ionicons name="close" size={24} color="#1a1a1a" />
+              </Pressable>
+            </View>
+            
+            <ScrollView style={styles.modalContent}>
+              <Text style={styles.modalDescription}>
+                Send a message to {user.name}. They'll receive your contact information and can respond directly.
+              </Text>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Your Name *</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={contactFormData.name}
+                  onChangeText={(text) => setContactFormData({ ...contactFormData, name: text })}
+                  placeholder="Enter your name"
+                  placeholderTextColor="#9ca3af"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Your Email *</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={contactFormData.email}
+                  onChangeText={(text) => setContactFormData({ ...contactFormData, email: text })}
+                  placeholder="your@email.com"
+                  placeholderTextColor="#9ca3af"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Your Phone (Optional)</Text>
+                <TextInput
+                  style={styles.formInput}
+                  value={contactFormData.phone}
+                  onChangeText={(text) => setContactFormData({ ...contactFormData, phone: text })}
+                  placeholder="+1 (555) 123-4567"
+                  placeholderTextColor="#9ca3af"
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Message *</Text>
+                <TextInput
+                  style={[styles.formInput, styles.formTextArea]}
+                  value={contactFormData.message}
+                  onChangeText={(text) => setContactFormData({ ...contactFormData, message: text })}
+                  placeholder="Tell them about your inquiry..."
+                  placeholderTextColor="#9ca3af"
+                  multiline
+                  numberOfLines={6}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              <Pressable
+                style={[styles.submitButton, sendingMessage && styles.submitButtonDisabled]}
+                onPress={handleSubmitContactForm}
+                disabled={sendingMessage}
+              >
+                {sendingMessage ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <Ionicons name="send-outline" size={20} color="#ffffff" />
+                    <Text style={styles.submitButtonText}>Send Message</Text>
+                  </>
+                )}
+              </Pressable>
+            </ScrollView>
+          </View>
+        </Modal>
+      )}
     </View>
   )
 }
+
 
 const styles = StyleSheet.create({
   wrapper: {
@@ -912,6 +1231,147 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
     color: '#9ca3af',
+  },
+  contactIconsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    gap: 16,
+    flexWrap: 'wrap',
+    marginTop: 8,
+  },
+  contactIconButton: {
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 70,
+  },
+  contactIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  contactIconLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  mapContainer: {
+    height: 250,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  mapActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 12,
+    backgroundColor: '#eff6ff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  mapActionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#3b82f6',
+  },
+  contactButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#eff6ff',
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  contactButtonText: {
+    color: '#3b82f6',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    ...Platform.select({
+      ios: {
+        paddingTop: 60,
+      },
+    }),
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+  },
+  modalContent: {
+    flex: 1,
+    padding: 20,
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  formInput: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  formTextArea: {
+    height: 120,
+    textAlignVertical: 'top',
+  },
+  submitButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#3b82f6',
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
+  },
+  submitButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 })
 

@@ -15,6 +15,7 @@ import { LanguageSelector } from '@/components/settings/LanguageSelector'
 import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection'
 import { AffiliateTab } from '@/components/dashboard/AffiliateTab'
 import { NotificationSettings } from '@/components/notifications/NotificationSettings'
+import { triggerLight } from '@/lib/utils/haptics'
 
 export default function ProfileScreen() {
   const router = useRouter()
@@ -357,7 +358,21 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
-        <NotificationBell />
+        <View style={styles.headerActions}>
+          {user?.id && (
+            <Pressable
+              style={styles.viewAsPublicButton}
+              onPress={() => {
+                triggerLight();
+                router.push(`/user/${user.id}`);
+              }}
+            >
+              <Ionicons name="eye-outline" size={18} color="#3b82f6" />
+              <Text style={styles.viewAsPublicText}>View as Public</Text>
+            </Pressable>
+          )}
+          <NotificationBell />
+        </View>
       </View>
       
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -399,6 +414,20 @@ export default function ProfileScreen() {
                 );
               })()}
             </View>
+
+            {/* View as Public Button - More Prominent */}
+            {user?.id && (
+              <Pressable
+                style={styles.viewAsPublicButtonLarge}
+                onPress={() => {
+                  triggerLight();
+                  router.push(`/user/${user.id}`);
+                }}
+              >
+                <Ionicons name="eye-outline" size={20} color="#3b82f6" />
+                <Text style={styles.viewAsPublicTextLarge}>View How Others See Your Profile</Text>
+              </Pressable>
+            )}
           </View>
 
           {/* Enhanced Ratings and Feedback Section */}
@@ -552,6 +581,49 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+    minHeight: 60,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+  },
+  viewAsPublicButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#eff6ff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    flexShrink: 0,
+  },
+  viewAsPublicText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3b82f6',
+  },
+  viewAsPublicButtonLarge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#eff6ff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    width: '100%',
+  },
+  viewAsPublicTextLarge: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#3b82f6',
   },
   headerTitle: {
     fontSize: 28,

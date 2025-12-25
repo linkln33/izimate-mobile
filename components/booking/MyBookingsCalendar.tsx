@@ -9,6 +9,8 @@ import {
   Alert,
   Linking,
   Modal,
+  ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
@@ -16,6 +18,22 @@ import { QuickEventForm } from './QuickEventForm';
 import type { Booking, Listing, User } from '@/lib/types';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { triggerLight } from '@/lib/utils/haptics';
+import { AuthRequest, AuthRequestConfig, AuthSessionResult, makeRedirectUri } from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+import { GoogleCalendarService } from '@/lib/utils/google-calendar';
+import { OutlookCalendarService } from '@/lib/utils/outlook-calendar';
+
+// Conditionally import native calendar service
+let NativeCalendarService: any = null;
+try {
+  const nativeCalendarModule = require('@/lib/utils/native-calendar');
+  NativeCalendarService = nativeCalendarModule.NativeCalendarService;
+} catch (error) {
+  console.warn('Native calendar service not available:', error);
+}
+
+// Complete the auth session for web browser
+WebBrowser.maybeCompleteAuthSession();
 
 const { width } = Dimensions.get('window');
 const CALENDAR_WIDTH = width - 40;
@@ -48,6 +66,14 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [bookings, setBookings] = useState<BookingEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
+  const [googleAuthRequest, setGoogleAuthRequest] = useState<AuthRequest | null>(null);
+  const [outlookAuthRequest, setOutlookAuthRequest] = useState<AuthRequest | null>(null);
+
+  const googleService = GoogleCalendarService.getInstance();
+  const outlookService = OutlookCalendarService.getInstance();
+  const nativeService = NativeCalendarService ? NativeCalendarService.getInstance() : null;
+  
   const [dayBookings, setDayBookings] = useState<BookingEvent[]>([]);
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
   const [showEventForm, setShowEventForm] = useState(false);
@@ -56,7 +82,80 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
 
   useEffect(() => {
     loadBookings();
+    initializeAuth();
   }, [userId, currentDate]);
+
+  const initializeAuth = async () => {
+    try {
+      // Get the redirect URI - must be HTTP/HTTPS with a valid domain (not IP address)
+      // OAuth providers require a public top-level domain (.com, .org, etc.)
+      const isDevelopment = __DEV__ || process.env.NODE_ENV === 'development';
+      let redirectUri: string;
+      
+      if (typeof window !== 'undefined' && window.location) {
+        const hostname = window.location.hostname;
+        
+        // Check if it's localhost (allowed by OAuth providers)
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          const port = window.location.port || '8083';
+          redirectUri = `http://localhost:${port}/auth/callback`;
+        } else if (hostname.includes('.com') || hostname.includes('.org') || hostname.includes('.net')) {
+          // Valid domain - use it
+          redirectUri = `${window.location.protocol}//${hostname}/auth/callback`;
+        } else {
+          // IP address or invalid - use production domain
+          redirectUri = 'https://izimate.com/auth/callback';
+        }
+      } else if (isDevelopment) {
+        // Development: use localhost (allowed) or production domain
+        redirectUri = 'http://localhost:8083/auth/callback';
+      } else {
+        // Production
+        redirectUri = 'https://izimate.com/auth/callback';
+      }
+
+      console.log('📅 Calendar OAuth redirect URI:', redirectUri);
+
+      // Initialize Google OAuth
+      if (process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID) {
+        const googleConfig: AuthRequestConfig = {
+          clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+          scopes: [
+            'https://www.googleapis.com/auth/calendar.readonly',
+            'https://www.googleapis.com/auth/calendar.events',
+            'https://www.googleapis.com/auth/userinfo.email'
+          ],
+          additionalParameters: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+          redirectUri: redirectUri,
+        };
+        const googleRequest = new AuthRequest(googleConfig);
+        setGoogleAuthRequest(googleRequest);
+      }
+
+      // Initialize Outlook OAuth
+      if (process.env.EXPO_PUBLIC_OUTLOOK_CLIENT_ID) {
+        const outlookConfig: AuthRequestConfig = {
+          clientId: process.env.EXPO_PUBLIC_OUTLOOK_CLIENT_ID,
+          scopes: [
+            'https://graph.microsoft.com/Calendars.Read',
+            'https://graph.microsoft.com/Calendars.ReadWrite',
+            'https://graph.microsoft.com/User.Read'
+          ],
+          additionalParameters: {
+            response_mode: 'query',
+          },
+          redirectUri: redirectUri,
+        };
+        const outlookRequest = new AuthRequest(outlookConfig);
+        setOutlookAuthRequest(outlookRequest);
+      }
+    } catch (error) {
+      console.error('Auth initialization failed:', error);
+    }
+  };
 
   // Helper function to format date as YYYY-MM-DD using local date components
   const formatLocalDateString = (date: Date): string => {
@@ -269,19 +368,176 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
   };
 
   const handleExternalCalendarSync = async (provider: 'google' | 'outlook' | 'icloud') => {
-    try {
-      // Direct users to use the CalendarIntegration component for full calendar management
-      // This is a simplified handler - full integration is available in CalendarIntegration component
-      Alert.alert(
-        'Calendar Integration',
-        `To connect your ${provider === 'google' ? 'Google' : provider === 'outlook' ? 'Outlook' : 'iCloud'} Calendar, please use the Calendar Integration settings in your dashboard or listing settings.`,
-        [
-          { text: 'OK' }
-        ]
-      );
-    } catch (error) {
-      console.error('External calendar sync error:', error);
-      Alert.alert('Error', 'Failed to connect to external calendar');
+    console.log('🔵 Calendar sync initiated for:', provider);
+    triggerLight();
+    
+    if (provider === 'icloud') {
+      // iCloud uses native calendar on iOS
+      if (Platform.OS !== 'ios') {
+        Alert.alert('Not Available', 'iCloud Calendar is only available on iOS devices.');
+        return;
+      }
+      
+      if (!nativeService) {
+        Alert.alert('Not Available', 'Native calendar service is not available. Please install expo-calendar and rebuild the app.');
+        return;
+      }
+
+      setConnectingProvider('icloud');
+      try {
+        const hasPermission = await nativeService.hasPermissions();
+        if (!hasPermission) {
+          const granted = await nativeService.requestPermissions();
+          if (!granted) {
+            Alert.alert('Permission Required', 'Calendar access is required. Please enable it in Settings.');
+            setConnectingProvider(null);
+            return;
+          }
+        }
+
+        const calendars = await nativeService.getCalendars();
+        if (calendars.length === 0) {
+          Alert.alert('No Calendars', 'No calendars found on your device.');
+          setConnectingProvider(null);
+          return;
+        }
+
+        const calendarOptions = calendars.map(cal => cal.title);
+        Alert.alert(
+          'Select Calendar',
+          'Choose which calendar to sync:',
+          [
+            ...calendars.map((cal) => ({
+              text: cal.title,
+              onPress: async () => {
+                try {
+                  await nativeService.saveCalendarConnection(userId, cal, 'apple');
+                  Alert.alert('Success', `Connected to ${cal.title}`);
+                  await loadBookings();
+                } catch (error) {
+                  console.error('Failed to save calendar connection:', error);
+                  Alert.alert('Error', 'Failed to connect calendar.');
+                } finally {
+                  setConnectingProvider(null);
+                }
+              }
+            })),
+            { text: 'Cancel', style: 'cancel', onPress: () => setConnectingProvider(null) }
+          ],
+          { cancelable: true }
+        );
+      } catch (error) {
+        console.error('iCloud calendar connection failed:', error);
+        Alert.alert('Connection Failed', 'Failed to connect to iCloud calendar.');
+        setConnectingProvider(null);
+      }
+      return;
+    }
+
+    if (provider === 'google') {
+      if (!googleAuthRequest) {
+        Alert.alert('Error', 'Google authentication not initialized. Please try again.');
+        return;
+      }
+
+      if (!process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID) {
+        Alert.alert('Configuration Error', 'Google OAuth credentials not configured.');
+        return;
+      }
+
+      setConnectingProvider('google');
+      try {
+        const result: AuthSessionResult = await googleAuthRequest.promptAsync({
+          authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+        });
+
+        if (result.type === 'success') {
+          const { code } = result.params;
+          if (code) {
+            const tokens = await googleService.exchangeCodeForTokens(code, userId);
+            const calendars = await googleService.getCalendarList(tokens.access_token);
+            
+            if (calendars.length === 0) {
+              throw new Error('No calendars found in your Google account');
+            }
+
+            const primaryCalendar = calendars.find(cal => cal.primary) || calendars[0];
+            await googleService.saveCalendarConnection(userId, {
+              calendar_id: primaryCalendar.id,
+              calendar_name: primaryCalendar.summary,
+              access_token: tokens.access_token,
+              refresh_token: tokens.refresh_token,
+              expires_in: tokens.expires_in,
+              is_primary: primaryCalendar.primary || false,
+            });
+
+            Alert.alert('Success', `Connected to ${primaryCalendar.summary}`);
+            await loadBookings();
+          }
+        } else if (result.type === 'error') {
+          throw new Error(result.error?.description || 'OAuth authorization failed');
+        }
+      } catch (error) {
+        console.error('Google calendar connection failed:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to connect calendar';
+        Alert.alert('Connection Failed', errorMessage);
+      } finally {
+        setConnectingProvider(null);
+      }
+      return;
+    }
+
+    if (provider === 'outlook') {
+      if (!outlookAuthRequest) {
+        Alert.alert('Error', 'Outlook authentication not initialized. Please try again.');
+        return;
+      }
+
+      if (!process.env.EXPO_PUBLIC_OUTLOOK_CLIENT_ID) {
+        Alert.alert('Configuration Error', 'Outlook OAuth credentials not configured.');
+        return;
+      }
+
+      setConnectingProvider('outlook');
+      try {
+        const result: AuthSessionResult = await outlookAuthRequest.promptAsync({
+          authorizationEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+        });
+
+        if (result.type === 'success') {
+          const { code } = result.params;
+          if (code) {
+            const tokens = await outlookService.exchangeCodeForTokens(code, userId);
+            const calendars = await outlookService.getCalendarList(tokens.access_token);
+            
+            if (calendars.length === 0) {
+              throw new Error('No calendars found in your Outlook account');
+            }
+
+            const defaultCalendar = calendars.find(cal => cal.isDefaultCalendar) || calendars[0];
+            await outlookService.saveCalendarConnection(userId, {
+              calendar_id: defaultCalendar.id,
+              calendar_name: defaultCalendar.name,
+              access_token: tokens.access_token,
+              refresh_token: tokens.refresh_token,
+              expires_in: tokens.expires_in,
+              is_primary: defaultCalendar.isDefaultCalendar || false,
+            });
+
+            Alert.alert('Success', `Connected to ${defaultCalendar.name}`);
+            await loadBookings();
+          }
+        } else if (result.type === 'error') {
+          throw new Error(result.error?.description || 'OAuth authorization failed');
+        }
+      } catch (error) {
+        console.error('Outlook calendar connection failed:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to connect calendar';
+        Alert.alert('Connection Failed', errorMessage);
+      } finally {
+        setConnectingProvider(null);
+      }
+      return;
     }
   };
 
@@ -724,31 +980,55 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
         <Text style={styles.externalCalendarTitle}>Sync with:</Text>
         <View style={styles.calendarProvidersRow}>
           <Pressable 
-            style={styles.providerSquareBox}
+            style={[
+              styles.providerSquareBox,
+              connectingProvider === 'google' && styles.providerSquareBoxDisabled
+            ]}
             onPress={() => handleExternalCalendarSync('google')}
+            disabled={connectingProvider === 'google'}
           >
             <View style={[styles.providerIconSquare, { backgroundColor: '#4285F4' }]}>
-              <Ionicons name="logo-google" size={20} color="#ffffff" />
+              {connectingProvider === 'google' ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Ionicons name="logo-google" size={20} color="#ffffff" />
+              )}
             </View>
             <Text style={styles.providerTextSquare}>Google</Text>
           </Pressable>
 
           <Pressable 
-            style={styles.providerSquareBox}
+            style={[
+              styles.providerSquareBox,
+              connectingProvider === 'outlook' && styles.providerSquareBoxDisabled
+            ]}
             onPress={() => handleExternalCalendarSync('outlook')}
+            disabled={connectingProvider === 'outlook'}
           >
             <View style={[styles.providerIconSquare, { backgroundColor: '#0078D4' }]}>
-              <Ionicons name="mail" size={20} color="#ffffff" />
+              {connectingProvider === 'outlook' ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Ionicons name="mail" size={20} color="#ffffff" />
+              )}
             </View>
             <Text style={styles.providerTextSquare}>Outlook</Text>
           </Pressable>
 
           <Pressable 
-            style={styles.providerSquareBox}
+            style={[
+              styles.providerSquareBox,
+              connectingProvider === 'icloud' && styles.providerSquareBoxDisabled
+            ]}
             onPress={() => handleExternalCalendarSync('icloud')}
+            disabled={connectingProvider === 'icloud'}
           >
             <View style={[styles.providerIconSquare, { backgroundColor: '#007AFF' }]}>
-              <Ionicons name="logo-apple" size={20} color="#ffffff" />
+              {connectingProvider === 'icloud' ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Ionicons name="logo-apple" size={20} color="#ffffff" />
+              )}
             </View>
             <Text style={styles.providerTextSquare}>iCloud</Text>
           </Pressable>
@@ -1304,6 +1584,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
+  },
+  providerSquareBoxDisabled: {
+    opacity: 0.6,
   },
   providerIconSquare: {
     width: 32,

@@ -92,6 +92,35 @@ export const CalendarIntegration: React.FC<CalendarIntegrationProps> = ({
 
   const initializeAuth = async () => {
     try {
+      // Get the redirect URI - must be HTTP/HTTPS with a valid domain (not IP address)
+      // OAuth providers require a public top-level domain (.com, .org, etc.)
+      const isDevelopment = __DEV__ || process.env.NODE_ENV === 'development';
+      let redirectUri: string;
+      
+      if (typeof window !== 'undefined' && window.location) {
+        const hostname = window.location.hostname;
+        
+        // Check if it's localhost (allowed by OAuth providers)
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          const port = window.location.port || '8083';
+          redirectUri = `http://localhost:${port}/auth/callback`;
+        } else if (hostname.includes('.com') || hostname.includes('.org') || hostname.includes('.net')) {
+          // Valid domain - use it
+          redirectUri = `${window.location.protocol}//${hostname}/auth/callback`;
+        } else {
+          // IP address or invalid - use production domain
+          redirectUri = 'https://izimate.com/auth/callback';
+        }
+      } else if (isDevelopment) {
+        // Development: use localhost (allowed) or production domain
+        redirectUri = 'http://localhost:8083/auth/callback';
+      } else {
+        // Production
+        redirectUri = 'https://izimate.com/auth/callback';
+      }
+
+      console.log('📅 Calendar OAuth redirect URI:', redirectUri);
+
       // Initialize Google OAuth
       if (process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID) {
         const googleConfig: AuthRequestConfig = {
@@ -105,10 +134,7 @@ export const CalendarIntegration: React.FC<CalendarIntegrationProps> = ({
             access_type: 'offline',
             prompt: 'consent',
           },
-          redirectUri: makeRedirectUri({
-            scheme: 'izimate',
-            path: '/auth/callback'
-          }),
+          redirectUri: redirectUri,
         };
         const googleRequest = new AuthRequest(googleConfig);
         setGoogleAuthRequest(googleRequest);
@@ -126,10 +152,7 @@ export const CalendarIntegration: React.FC<CalendarIntegrationProps> = ({
           additionalParameters: {
             response_mode: 'query',
           },
-          redirectUri: makeRedirectUri({
-            scheme: 'izimate',
-            path: '/auth/callback'
-          }),
+          redirectUri: redirectUri,
         };
         const outlookRequest = new AuthRequest(outlookConfig);
         setOutlookAuthRequest(outlookRequest);
