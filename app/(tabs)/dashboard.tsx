@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, RefreshControl, Platform } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, Platform } from 'react-native'
+import { SkeletonLoader } from '@/components/common/SkeletonLoader'
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase'
