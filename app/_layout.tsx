@@ -3,8 +3,10 @@ import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
 import { View, ActivityIndicator } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { PaperProvider } from 'react-native-paper'
 import { useNotificationManager } from '@/lib/utils/notification-manager'
 import { loadLanguage } from '@/lib/i18n/config'
+import { paperTheme } from '@/lib/theme'
 
 export default function RootLayout() {
   const [languageLoaded, setLanguageLoaded] = useState(false)
@@ -32,25 +34,27 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: '#ffffff' },
-        }}
-      >
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
-        <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="listings/create" options={{ headerShown: false }} />
-        <Stack.Screen name="swipe-view" options={{ headerShown: false }} />
-        <Stack.Screen name="booking/[listingId]" options={{ headerShown: false }} />
-        <Stack.Screen name="bookings/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="settings/notifications" options={{ headerShown: false }} />
-        {/* Offer screen is accessed through (tabs)/offer to show tab bar */}
-      </Stack>
-      <StatusBar style="dark" />
+      <PaperProvider theme={paperTheme}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#ffffff' },
+          }}
+        >
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+          <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="listings/create" options={{ headerShown: false }} />
+          <Stack.Screen name="swipe-view" options={{ headerShown: false }} />
+          <Stack.Screen name="booking/[listingId]" options={{ headerShown: false }} />
+          <Stack.Screen name="bookings/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="settings/notifications" options={{ headerShown: false }} />
+          {/* Offer screen is accessed through (tabs)/offer to show tab bar */}
+        </Stack>
+        <StatusBar style="dark" />
+      </PaperProvider>
     </GestureHandlerRootView>
   )
 }
