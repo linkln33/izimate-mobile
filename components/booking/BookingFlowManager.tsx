@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { View, StyleSheet, Alert, Text, Pressable } from 'react-native'
 import { useRouter } from 'expo-router'
 import { supabase } from '@/lib/supabase'
-import { InAppBookingCalendar } from './InAppBookingCalendar'
+import { UnifiedCalendar } from '../calendar'
 import { GuestCheckout } from './GuestCheckout'
 import { BiometricBookingConfirmation } from './BiometricBookingConfirmation'
 import { authenticateForBooking } from '@/lib/utils/biometric-auth'
@@ -340,7 +340,9 @@ export function BookingFlowManager({
   switch (currentStep) {
     case 'calendar':
       return (
-        <InAppBookingCalendar
+        <UnifiedCalendar
+          mode="booking"
+          listingId={listing.id}
           listing={listing}
           provider={provider}
           onBookingSelect={(selection) => {
@@ -355,6 +357,10 @@ export function BookingFlowManager({
             });
           }}
           onClose={handleCancel}
+          visible={true}
+          showTimeSlots={true}
+          showServiceSelection={true}
+          utility="getAvailableTimeSlots"
         />
       )
 

@@ -412,16 +412,28 @@ export default function UserProfileScreen() {
       </View>
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Header Section */}
+        {/* Header Section / Profile Cover */}
         <View style={styles.header}>
         <View style={styles.headerContent}>
-          {user.avatar_url ? (
-            <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Ionicons name="person" size={40} color="#ffffff" />
-            </View>
-          )}
+          <View style={styles.avatarContainer}>
+            {user.avatar_url ? (
+              <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Ionicons name="person" size={40} color="#ffffff" />
+              </View>
+            )}
+            {isOwnProfile && (
+              <Pressable
+                style={styles.viewAsPublicIconButton}
+                onPress={() => {
+                  // Already viewing own profile, this is just a visual indicator
+                }}
+              >
+                <Ionicons name="eye-outline" size={18} color="#3b82f6" />
+              </Pressable>
+            )}
+          </View>
           <View style={styles.headerInfo}>
             <View style={styles.nameRow}>
               <Text style={styles.userName}>{user.name || 'User'}</Text>
@@ -942,6 +954,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 16,
   },
+  avatarContainer: {
+    position: 'relative',
+    width: 80,
+    height: 80,
+  },
   avatar: {
     width: 80,
     height: 80,
@@ -1372,6 +1389,24 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  viewAsPublicIconButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#3b82f6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
 })
 

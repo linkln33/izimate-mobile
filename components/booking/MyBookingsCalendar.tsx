@@ -1,3 +1,11 @@
+/**
+ * @deprecated This component has been replaced by UnifiedCalendar
+ * Please use: import { UnifiedCalendar } from '../calendar'
+ * 
+ * Migration: Replace with <UnifiedCalendar mode="management" viewType="..." ... />
+ * All features (stats, external sync, quick events) are preserved in the unified component.
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,

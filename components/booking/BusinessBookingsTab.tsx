@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { MyBookingsCalendar } from './MyBookingsCalendar';
+import { UnifiedCalendar } from '../calendar';
 import { QuickCustomerRegistration } from './QuickCustomerRegistration';
 import { BusinessAnalytics } from './BusinessAnalytics';
 import { CustomerManagement } from './CustomerManagement';
@@ -25,7 +25,17 @@ export const BusinessBookingsTab: React.FC<BusinessBookingsTabProps> = ({
   const renderContent = () => {
     switch (activeView) {
       case 'calendar':
-        return <MyBookingsCalendar userId={userId} viewType="provider" />;
+        return (
+          <UnifiedCalendar
+            mode="management"
+            userId={userId}
+            viewType="provider"
+            showStats={true}
+            showExternalSync={true}
+            allowBookingCreation={true}
+            showEventDots={true}
+          />
+        );
       case 'register':
         return <QuickCustomerRegistration userId={userId} />;
       case 'analytics':
@@ -33,7 +43,17 @@ export const BusinessBookingsTab: React.FC<BusinessBookingsTabProps> = ({
       case 'customers':
         return <CustomerManagement userId={userId} />;
       default:
-        return <MyBookingsCalendar userId={userId} viewType="provider" />;
+        return (
+          <UnifiedCalendar
+            mode="management"
+            userId={userId}
+            viewType="provider"
+            showStats={true}
+            showExternalSync={true}
+            allowBookingCreation={true}
+            showEventDots={true}
+          />
+        );
     }
   };
 

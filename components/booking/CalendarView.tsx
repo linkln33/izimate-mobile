@@ -1,4 +1,10 @@
 /**
+ * @deprecated This component has been replaced by UnifiedCalendar
+ * Please use: import { UnifiedCalendar } from '../calendar'
+ * 
+ * Migration: Replace with <UnifiedCalendar mode="viewing" ... />
+ * All features are preserved in the unified component.
+ * 
  * Calendar View Component
  * Full calendar with month/week/day view options
  */

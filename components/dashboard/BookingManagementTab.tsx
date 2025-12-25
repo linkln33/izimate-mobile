@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { CalendarIntegration } from '../booking/CalendarIntegration';
 import { BookingCalendarWidget } from '../booking/BookingCalendarWidget';
-import { BookingCalendar } from '../booking/BookingCalendar';
+import { UnifiedCalendar } from '../calendar';
 import { BlockedTimeManager } from '../booking/BlockedTimeManager';
 import { WaitlistManager } from '../booking/WaitlistManager';
 import { CouponManager } from '../booking/CouponManager';
@@ -766,11 +766,11 @@ export const BookingManagementTab: React.FC = () => {
 
       {/* Booking Calendar Modal for Date Selection */}
       {selectedListingForBooking && currentUser && (
-        <BookingCalendar
+        <UnifiedCalendar
+          mode="booking"
           listingId={selectedListingForBooking.id}
-          listingTitle={selectedListingForBooking.title}
-          providerId={providerId || ''}
-          providerName={currentUser.name || 'Provider'}
+          listing={selectedListingForBooking}
+          provider={{ id: currentUser.id, name: currentUser.name || 'Provider' } as any}
           visible={showBookingCalendarModal}
           initialDate={selectedBookingDate || undefined}
           onClose={() => {
@@ -783,6 +783,10 @@ export const BookingManagementTab: React.FC = () => {
             loadBookings(); // Refresh bookings list
             Alert.alert('Success', 'Booking created successfully!');
           }}
+          showTimeSlots={true}
+          showServiceSelection={true}
+          allowBookingCreation={true}
+          utility="slotCalculator"
         />
       )}
     </View>

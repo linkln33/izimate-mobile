@@ -60,6 +60,38 @@ export function Step1BasicInfo({
     <View>
       <Text style={styles.stepTitle}>Basic Information</Text>
 
+      {/* Listing Type */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Listing Type *</Text>
+        <View style={styles.listingTypeContainer}>
+          {(['service', 'goods', 'rental'] as const).map((type) => (
+            <Pressable
+              key={type}
+              style={[
+                styles.listingTypeButton,
+                formState.listing_type === type && styles.listingTypeButtonActive,
+              ]}
+              onPress={() => {
+                formActions.setListingType?.(type)
+                // Reset category when changing listing type
+                if (formState.listing_type !== type) {
+                  formActions.setCategory('')
+                }
+              }}
+            >
+              <Text
+                style={[
+                  styles.listingTypeButtonText,
+                  formState.listing_type === type && styles.listingTypeButtonTextActive,
+                ]}
+              >
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
       {/* Title */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Title *</Text>

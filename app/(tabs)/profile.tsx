@@ -361,14 +361,13 @@ export default function ProfileScreen() {
         <View style={styles.headerActions}>
           {user?.id && (
             <Pressable
-              style={styles.viewAsPublicButton}
+              style={styles.viewAsPublicIconButton}
               onPress={() => {
                 triggerLight();
                 router.push(`/user/${user.id}`);
               }}
             >
-              <Ionicons name="eye-outline" size={18} color="#3b82f6" />
-              <Text style={styles.viewAsPublicText}>View as Public</Text>
+              <Ionicons name="eye-outline" size={22} color="#3b82f6" />
             </Pressable>
           )}
           <NotificationBell />
@@ -414,20 +413,6 @@ export default function ProfileScreen() {
                 );
               })()}
             </View>
-
-            {/* View as Public Button - More Prominent */}
-            {user?.id && (
-              <Pressable
-                style={styles.viewAsPublicButtonLarge}
-                onPress={() => {
-                  triggerLight();
-                  router.push(`/user/${user.id}`);
-                }}
-              >
-                <Ionicons name="eye-outline" size={20} color="#3b82f6" />
-                <Text style={styles.viewAsPublicTextLarge}>View How Others See Your Profile</Text>
-              </Pressable>
-            )}
           </View>
 
           {/* Enhanced Ratings and Feedback Section */}
@@ -589,41 +574,15 @@ const styles = StyleSheet.create({
     gap: 8,
     flexShrink: 1,
   },
-  viewAsPublicButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  viewAsPublicIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#eff6ff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-    flexShrink: 0,
-  },
-  viewAsPublicText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#3b82f6',
-  },
-  viewAsPublicButtonLarge: {
-    flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#eff6ff',
-    borderRadius: 12,
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#bfdbfe',
-    width: '100%',
-  },
-  viewAsPublicTextLarge: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#3b82f6',
   },
   headerTitle: {
     fontSize: 28,

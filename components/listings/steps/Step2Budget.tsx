@@ -21,6 +21,14 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
     budgetMax,
     price_list,
     currency,
+    listing_type,
+    rental_duration_type,
+    rental_rate_hourly,
+    rental_rate_daily,
+    rental_rate_weekly,
+    rental_rate_monthly,
+    security_deposit,
+    cleaning_fee,
   } = formState
 
   const {
@@ -29,6 +37,13 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
     setBudgetMax,
     setPriceList,
     setCurrency,
+    setRentalDurationType,
+    setRentalRateHourly,
+    setRentalRateDaily,
+    setRentalRateWeekly,
+    setRentalRateMonthly,
+    setSecurityDeposit,
+    setCleaningFee,
   } = formActions
 
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false)
@@ -174,34 +189,151 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
         </Text>
       </View>
 
-      {/* Budget Type Selector */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Pricing Type</Text>
-        <View style={styles.budgetTypeButtons}>
-          {(['fixed', 'range', 'price_list'] as const).map((type) => (
-            <Pressable
-              key={type}
-              style={[
-                styles.budgetTypeButton,
-                budgetType === type && styles.budgetTypeButtonActive,
-              ]}
-              onPress={() => setBudgetType(type as BudgetType)}
-            >
-              <Text
-                style={[
-                  styles.budgetTypeButtonText,
-                  budgetType === type && styles.budgetTypeButtonTextActive,
-                ]}
-              >
-                {type === 'price_list' ? 'Price List' : type.charAt(0).toUpperCase() + type.slice(1)}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
+      {/* Rental Pricing Section */}
+      {listing_type === 'rental' && (
+        <>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Rental Duration Type</Text>
+            <View style={styles.budgetTypeButtons}>
+              {(['hourly', 'daily', 'weekly', 'monthly'] as const).map((type) => (
+                <Pressable
+                  key={type}
+                  style={[
+                    styles.budgetTypeButton,
+                    rental_duration_type === type && styles.budgetTypeButtonActive,
+                  ]}
+                  onPress={() => setRentalDurationType?.(type)}
+                >
+                  <Text
+                    style={[
+                      styles.budgetTypeButtonText,
+                      rental_duration_type === type && styles.budgetTypeButtonTextActive,
+                    ]}
+                  >
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
 
-      {/* Fixed Price */}
-      {budgetType === 'fixed' && (
+          {/* Rental Rates */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Rental Rates ({selectedCurrency.symbol})</Text>
+            
+            {rental_duration_type === 'hourly' && (
+              <TextInput
+                style={styles.input}
+                value={rental_rate_hourly || ''}
+                onChangeText={setRentalRateHourly}
+                placeholder="e.g., 25"
+                keyboardType="numeric"
+                placeholderTextColor="#9ca3af"
+              />
+            )}
+            
+            {rental_duration_type === 'daily' && (
+              <TextInput
+                style={styles.input}
+                value={rental_rate_daily || ''}
+                onChangeText={setRentalRateDaily}
+                placeholder="e.g., 50"
+                keyboardType="numeric"
+                placeholderTextColor="#9ca3af"
+              />
+            )}
+            
+            {rental_duration_type === 'weekly' && (
+              <TextInput
+                style={styles.input}
+                value={rental_rate_weekly || ''}
+                onChangeText={setRentalRateWeekly}
+                placeholder="e.g., 300"
+                keyboardType="numeric"
+                placeholderTextColor="#9ca3af"
+              />
+            )}
+            
+            {rental_duration_type === 'monthly' && (
+              <TextInput
+                style={styles.input}
+                value={rental_rate_monthly || ''}
+                onChangeText={setRentalRateMonthly}
+                placeholder="e.g., 1000"
+                keyboardType="numeric"
+                placeholderTextColor="#9ca3af"
+              />
+            )}
+            
+            <Text style={styles.inputHelp}>
+              Set your {rental_duration_type} rental rate
+            </Text>
+          </View>
+
+          {/* Security Deposit */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Security Deposit ({selectedCurrency.symbol})</Text>
+            <TextInput
+              style={styles.input}
+              value={security_deposit || ''}
+              onChangeText={setSecurityDeposit}
+              placeholder="e.g., 200"
+              keyboardType="numeric"
+              placeholderTextColor="#9ca3af"
+            />
+            <Text style={styles.inputHelp}>
+              Amount held as security deposit (optional)
+            </Text>
+          </View>
+
+          {/* Cleaning Fee */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Cleaning Fee ({selectedCurrency.symbol})</Text>
+            <TextInput
+              style={styles.input}
+              value={cleaning_fee || ''}
+              onChangeText={setCleaningFee}
+              placeholder="e.g., 50"
+              keyboardType="numeric"
+              placeholderTextColor="#9ca3af"
+            />
+            <Text style={styles.inputHelp}>
+              One-time cleaning fee (optional)
+            </Text>
+          </View>
+        </>
+      )}
+
+      {/* Budget Type Selector - Only show for non-rental listings */}
+      {listing_type !== 'rental' && (
+        <>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Pricing Type</Text>
+            <View style={styles.budgetTypeButtons}>
+              {(['fixed', 'range', 'price_list'] as const).map((type) => (
+                <Pressable
+                  key={type}
+                  style={[
+                    styles.budgetTypeButton,
+                    budgetType === type && styles.budgetTypeButtonActive,
+                  ]}
+                  onPress={() => setBudgetType(type as BudgetType)}
+                >
+                  <Text
+                    style={[
+                      styles.budgetTypeButtonText,
+                      budgetType === type && styles.budgetTypeButtonTextActive,
+                    ]}
+                  >
+                    {type === 'price_list' ? 'Price List' : type.charAt(0).toUpperCase() + type.slice(1)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          {/* Fixed Price */}
+          {budgetType === 'fixed' && (
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Fixed Price ({selectedCurrency.symbol})</Text>
           <TextInput
@@ -212,14 +344,14 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
             keyboardType="numeric"
             placeholderTextColor="#9ca3af"
           />
-          <Text style={styles.inputHelp}>
-            Set one price for your service
-          </Text>
-        </View>
-      )}
+            <Text style={styles.inputHelp}>
+              Set one price for your service
+            </Text>
+          </View>
+          )}
 
-      {/* Range */}
-      {budgetType === 'range' && (
+          {/* Range */}
+          {budgetType === 'range' && (
         <>
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Minimum Price ({selectedCurrency.symbol})</Text>
@@ -246,11 +378,11 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
               Set a price range for your services
             </Text>
           </View>
-        </>
-      )}
+          </>
+          )}
 
-      {/* Price List */}
-      {budgetType === 'price_list' && (
+          {/* Price List */}
+          {budgetType === 'price_list' && (
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Service Price List</Text>
           <Text style={styles.labelHelp}>
@@ -293,11 +425,13 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
             </View>
           ))}
 
-          <Pressable style={styles.addButton} onPress={handleAddService}>
-            <Ionicons name="add-circle" size={20} color="#3b82f6" />
-            <Text style={styles.addButtonText}>Add Another Service</Text>
-          </Pressable>
-        </View>
+            <Pressable style={styles.addButton} onPress={handleAddService}>
+              <Ionicons name="add-circle" size={20} color="#3b82f6" />
+              <Text style={styles.addButtonText}>Add Another Service</Text>
+            </Pressable>
+          </View>
+          )}
+        </>
       )}
 
     </ScrollView>

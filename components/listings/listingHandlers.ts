@@ -567,6 +567,23 @@ export function createListingHandlers(
         booking_enabled: formState.booking_enabled || false,
         service_name: formState.service_name || null,
         time_slots: formState.time_slots && formState.time_slots.length > 0 ? formState.time_slots : [],
+        // Listing type
+        listing_type: formState.listing_type || 'service',
+        // Rental-specific fields
+        rental_duration_type: formState.rental_duration_type || null,
+        rental_min_duration: formState.rental_min_duration || null,
+        rental_max_duration: formState.rental_max_duration || null,
+        rental_rate_hourly: formState.rental_rate_hourly ? parseFloat(formState.rental_rate_hourly) : null,
+        rental_rate_daily: formState.rental_rate_daily ? parseFloat(formState.rental_rate_daily) : null,
+        rental_rate_weekly: formState.rental_rate_weekly ? parseFloat(formState.rental_rate_weekly) : null,
+        rental_rate_monthly: formState.rental_rate_monthly ? parseFloat(formState.rental_rate_monthly) : null,
+        security_deposit: formState.security_deposit ? parseFloat(formState.security_deposit) : null,
+        cleaning_fee: formState.cleaning_fee ? parseFloat(formState.cleaning_fee) : null,
+        insurance_required: formState.insurance_required || false,
+        pickup_available: formState.pickup_available || false,
+        delivery_available: formState.delivery_available || false,
+        delivery_cost: formState.delivery_cost ? parseFloat(formState.delivery_cost) : null,
+        condition_notes: formState.condition_notes || null,
       }
 
       // Log the data being saved for debugging

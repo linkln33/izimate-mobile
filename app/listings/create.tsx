@@ -390,11 +390,31 @@ function CreateListingScreenContent() {
     )
   }
 
-  const categories = [
-    'Plumbing', 'Electrical', 'Handyman', 'Cleaning', 'Carpentry',
-    'HVAC', 'Painting', 'Roofing', 'Landscaping', 'Flooring',
-    'Other', 'Custom', 'Adult',
-  ]
+  // Get categories based on listing type
+  const getCategories = (listingType?: string) => {
+    if (listingType === 'rental') {
+      return [
+        // Vehicles
+        'Car', 'Motorcycle', 'Bike', 'Boat', 'RV', 'Scooter',
+        // Accommodation
+        'Home', 'Apartment', 'Room', 'Couchsurfing', 'Cabin', 'Villa',
+        // Equipment
+        'Tools', 'Electronics', 'Camera', 'Sports Equipment', 'Party Supplies', 'Furniture',
+        // Spaces
+        'Event Space', 'Parking', 'Storage', 'Workspace', 'Studio',
+        // Other
+        'Other', 'Custom',
+      ]
+    }
+    // Default service categories
+    return [
+      'Plumbing', 'Electrical', 'Handyman', 'Cleaning', 'Carpentry',
+      'HVAC', 'Painting', 'Roofing', 'Landscaping', 'Flooring',
+      'Other', 'Custom', 'Adult',
+    ]
+  }
+
+  const categories = getCategories(formState.listing_type)
 
   return (
     <View key={`create-listing-${userKey || currentUserId || 'default'}`} style={createListingStyles.container}>

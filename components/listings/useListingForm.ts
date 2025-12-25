@@ -15,6 +15,7 @@ export interface ListingFormState {
   photos: string[]
   categoryDropdownOpen: boolean
   tagInput: string
+  listing_type?: 'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content'
   
   // Step 2: Budget & Urgency
   budgetType: BudgetType
@@ -24,6 +25,22 @@ export interface ListingFormState {
   preferredDate: string
   price_list?: any[] // Array of {serviceName, price} objects
   currency?: string // Currency code (e.g., 'GBP', 'USD', 'EUR')
+  
+  // Rental-specific fields
+  rental_duration_type?: 'hourly' | 'daily' | 'weekly' | 'monthly'
+  rental_min_duration?: number
+  rental_max_duration?: number
+  rental_rate_hourly?: string
+  rental_rate_daily?: string
+  rental_rate_weekly?: string
+  rental_rate_monthly?: string
+  security_deposit?: string
+  cleaning_fee?: string
+  insurance_required?: boolean
+  pickup_available?: boolean
+  delivery_available?: boolean
+  delivery_cost?: string
+  condition_notes?: string
   
   // Step 3: Location
   locationAddress: string
@@ -77,6 +94,7 @@ export interface ListingFormActions {
   setPhotos: (value: string[]) => void
   setCategoryDropdownOpen: (value: boolean) => void
   setTagInput: (value: string) => void
+  setListingType?: (value: 'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content') => void
   
   // Step 2
   setBudgetType: (value: BudgetType) => void
@@ -142,6 +160,7 @@ export function useListingForm(isEditMode: boolean) {
   const [photos, setPhotos] = useState<string[]>(() => [])
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(() => false)
   const [tagInput, setTagInput] = useState(() => '')
+  const [listingType, setListingType] = useState<'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content'>(() => 'service')
   
   // Step 2: Budget & Urgency
   const [budgetType, setBudgetType] = useState<BudgetType>(() => 'range')
@@ -151,6 +170,22 @@ export function useListingForm(isEditMode: boolean) {
   const [preferredDate, setPreferredDate] = useState(() => '')
   const [priceList, setPriceList] = useState<any[]>(() => [])
   const [currency, setCurrency] = useState(() => 'GBP') // Default to GBP
+  
+  // Rental-specific fields
+  const [rentalDurationType, setRentalDurationType] = useState<'hourly' | 'daily' | 'weekly' | 'monthly'>(() => 'daily')
+  const [rentalMinDuration, setRentalMinDuration] = useState(() => 1)
+  const [rentalMaxDuration, setRentalMaxDuration] = useState(() => 30)
+  const [rentalRateHourly, setRentalRateHourly] = useState(() => '')
+  const [rentalRateDaily, setRentalRateDaily] = useState(() => '')
+  const [rentalRateWeekly, setRentalRateWeekly] = useState(() => '')
+  const [rentalRateMonthly, setRentalRateMonthly] = useState(() => '')
+  const [securityDeposit, setSecurityDeposit] = useState(() => '')
+  const [cleaningFee, setCleaningFee] = useState(() => '')
+  const [insuranceRequired, setInsuranceRequired] = useState(() => false)
+  const [pickupAvailable, setPickupAvailable] = useState(() => false)
+  const [deliveryAvailable, setDeliveryAvailable] = useState(() => false)
+  const [deliveryCost, setDeliveryCost] = useState(() => '')
+  const [conditionNotes, setConditionNotes] = useState(() => '')
   
   // Step 3: Location
   const [locationAddress, setLocationAddress] = useState(() => '')
@@ -204,6 +239,7 @@ export function useListingForm(isEditMode: boolean) {
     setPhotos([])
     setCategoryDropdownOpen(false)
     setTagInput('')
+    setListingType('service')
     
     // Step 2
     setBudgetType('range')
@@ -213,6 +249,22 @@ export function useListingForm(isEditMode: boolean) {
     setPreferredDate('')
     setPriceList([])
     setCurrency('GBP')
+    
+    // Rental fields
+    setRentalDurationType('daily')
+    setRentalMinDuration(1)
+    setRentalMaxDuration(30)
+    setRentalRateHourly('')
+    setRentalRateDaily('')
+    setRentalRateWeekly('')
+    setRentalRateMonthly('')
+    setSecurityDeposit('')
+    setCleaningFee('')
+    setInsuranceRequired(false)
+    setPickupAvailable(false)
+    setDeliveryAvailable(false)
+    setDeliveryCost('')
+    setConditionNotes('')
     
     // Step 3
     setLocationAddress('')
@@ -271,6 +323,7 @@ export function useListingForm(isEditMode: boolean) {
     setTitle(listing.title || '')
     setDescription(listing.description || '')
     setCategory(listing.category || '')
+    setListingType(listing.listing_type || 'service')
     
     // Handle tags
     if (listing.tags) {
@@ -453,6 +506,7 @@ export function useListingForm(isEditMode: boolean) {
     photos,
     categoryDropdownOpen,
     tagInput,
+    listing_type: listingType,
     budgetType,
     budgetMin,
     budgetMax,
@@ -460,6 +514,20 @@ export function useListingForm(isEditMode: boolean) {
     preferredDate,
     price_list: priceList,
     currency,
+    rental_duration_type: rentalDurationType,
+    rental_min_duration: rentalMinDuration,
+    rental_max_duration: rentalMaxDuration,
+    rental_rate_hourly: rentalRateHourly,
+    rental_rate_daily: rentalRateDaily,
+    rental_rate_weekly: rentalRateWeekly,
+    rental_rate_monthly: rentalRateMonthly,
+    security_deposit: securityDeposit,
+    cleaning_fee: cleaningFee,
+    insurance_required: insuranceRequired,
+    pickup_available: pickupAvailable,
+    delivery_available: deliveryAvailable,
+    delivery_cost: deliveryCost,
+    condition_notes: conditionNotes,
     locationAddress,
     locationLat,
     locationLng,
@@ -504,6 +572,7 @@ export function useListingForm(isEditMode: boolean) {
     setPhotos,
     setCategoryDropdownOpen,
     setTagInput,
+    setListingType,
     setBudgetType,
     setBudgetMin,
     setBudgetMax,
@@ -511,6 +580,20 @@ export function useListingForm(isEditMode: boolean) {
     setPreferredDate,
     setPriceList,
     setCurrency,
+    setRentalDurationType,
+    setRentalMinDuration,
+    setRentalMaxDuration,
+    setRentalRateHourly,
+    setRentalRateDaily,
+    setRentalRateWeekly,
+    setRentalRateMonthly,
+    setSecurityDeposit,
+    setCleaningFee,
+    setInsuranceRequired,
+    setPickupAvailable,
+    setDeliveryAvailable,
+    setDeliveryCost,
+    setConditionNotes,
     setLocationAddress,
     setLocationLat,
     setLocationLng,

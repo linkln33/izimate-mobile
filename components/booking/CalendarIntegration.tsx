@@ -11,7 +11,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { GoogleCalendarService, CalendarConnection } from '@/lib/utils/google-calendar';
 import { OutlookCalendarService } from '@/lib/utils/outlook-calendar';
 import { supabase } from '@/lib/supabase';
-import { CalendarView } from './CalendarView';
+import { UnifiedCalendar } from '../calendar';
 
 // Conditionally import native calendar service
 let NativeCalendarService: any = null;
@@ -540,16 +540,20 @@ export const CalendarIntegration: React.FC<CalendarIntegrationProps> = ({
       </Text>
 
       {/* Calendar View */}
-      <CalendarView 
+      <UnifiedCalendar
+        mode="viewing"
         userId={userId}
         listingId={listingId}
         onDateSelect={(date) => {
           console.log('Date selected:', date);
+          onBookDate?.(date);
         }}
         onEventPress={(event) => {
           console.log('Event pressed:', event);
         }}
-        onBookDate={onBookDate}
+        visible={undefined}
+        showEventDots={true}
+        defaultViewMode="month"
       />
 
       {/* External Calendar Integrations */}

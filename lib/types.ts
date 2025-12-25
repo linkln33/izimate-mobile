@@ -68,7 +68,7 @@ export interface Listing {
   description: string
   category: string
   tags: string[]
-  listing_type?: 'service' | 'goods' | 'book' | 'pdf' | 'gated_content'
+  listing_type?: 'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content'
   budget_min?: number
   budget_max?: number
   budget_type: 'fixed' | 'range' | 'hourly' | 'price_list'
@@ -114,6 +114,22 @@ export interface Listing {
   timezone?: string
   booking_advance_days?: number
   currency?: string
+  // Rental-specific fields
+  rental_duration_type?: 'hourly' | 'daily' | 'weekly' | 'monthly'
+  rental_min_duration?: number // Minimum rental period in days
+  rental_max_duration?: number // Maximum rental period in days
+  rental_rate_hourly?: number
+  rental_rate_daily?: number
+  rental_rate_weekly?: number
+  rental_rate_monthly?: number
+  security_deposit?: number
+  cleaning_fee?: number
+  insurance_required?: boolean
+  insurance_provider?: string
+  pickup_available?: boolean
+  delivery_available?: boolean
+  delivery_cost?: number
+  condition_notes?: string
   created_at: string
   updated_at: string
 }

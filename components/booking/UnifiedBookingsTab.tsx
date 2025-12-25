@@ -4,8 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { MyBookingsCalendar } from './MyBookingsCalendar';
+import { UnifiedCalendar } from '../calendar';
 
 interface UnifiedBookingsTabProps {
   userId: string;
@@ -15,15 +14,14 @@ export const UnifiedBookingsTab: React.FC<UnifiedBookingsTabProps> = ({
   userId,
 }) => {
   return (
-    <View style={styles.container}>
-      <MyBookingsCalendar userId={userId} viewType="customer" />
-    </View>
+    <UnifiedCalendar
+      mode="management"
+      userId={userId}
+      viewType="customer"
+      showStats={true}
+      showExternalSync={true}
+      allowBookingCreation={true}
+      showEventDots={true}
+    />
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-});
