@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, Platform } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { SkeletonLoader } from '@/components/common/SkeletonLoader'
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -15,6 +16,7 @@ import { UnifiedBookingsTab } from '@/components/booking/UnifiedBookingsTab'
 import { BusinessBookingsTab } from '@/components/booking/BusinessBookingsTab'
 import type { Listing, Match, User } from '@/lib/types'
 import { useTranslation } from 'react-i18next'
+import { colors, spacing, elevation, borderRadius } from '@/lib/design-system'
 
 interface DashboardStats {
   totalListings: number
@@ -204,19 +206,29 @@ export default function DashboardScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>{t('dashboard.welcomeBack')}</Text>
-          <Text style={styles.userName}>{user?.name || 'User'}</Text>
+      {/* Header with Gradient */}
+      <LinearGradient
+        colors={['#f25842', '#ff6b55', '#ff8a7a']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={styles.greeting}>{t('dashboard.welcomeBack')}</Text>
+            <Text style={styles.userName}>{user?.name || 'User'}</Text>
+          </View>
+          <View style={styles.headerActions}>
+            <NotificationBell />
+            <Pressable 
+              onPress={() => router.push('/(tabs)/profile')}
+              style={styles.settingsButton}
+            >
+              <Ionicons name="settings-outline" size={24} color="#ffffff" />
+            </Pressable>
+          </View>
         </View>
-        <View style={styles.headerActions}>
-          <NotificationBell />
-          <Pressable onPress={() => router.push('/(tabs)/profile')}>
-            <Ionicons name="settings-outline" size={24} color="#6b7280" />
-          </Pressable>
-        </View>
-      </View>
+      </LinearGradient>
 
       {/* Scrollable Dashboard with Collapsible Sections */}
       <ScrollView
@@ -299,8 +311,14 @@ export default function DashboardScreen() {
 
         {/* Logout Button */}
         <View style={styles.logoutContainer}>
-          <Pressable style={styles.logoutButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={20} color="#ef4444" />
+          <Pressable 
+            style={({ pressed }) => [
+              styles.logoutButton,
+              pressed && styles.logoutButtonPressed
+            ]} 
+            onPress={handleLogout}
+          >
+            <Ionicons name="log-out-outline" size={20} color={colors.error} />
             <Text style={styles.logoutButtonText}>Log Out</Text>
           </Pressable>
         </View>
@@ -373,36 +391,59 @@ function OverviewTab({ user, listings, matches, stats, router }: any) {
     <View>
       {/* Stats Grid */}
       <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{activeListings}/{maxListings}</Text>
-          <Pressable onPress={handleNavigateToListings}>
+        <Pressable onPress={handleNavigateToListings} style={styles.statCardWrapper}>
+          <LinearGradient
+            colors={['#3b82f6', '#2563eb']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.statCard}
+          >
+            <Ionicons name="briefcase-outline" size={28} color="#ffffff" style={styles.statIcon} />
+            <Text style={styles.statValue}>{activeListings}/{maxListings}</Text>
             <Text style={styles.statLabelLink}>{t('dashboard.activeListings')}</Text>
-          </Pressable>
-        </View>
+          </LinearGradient>
+        </Pressable>
         
-        <View style={styles.statCard}>
-          <View style={styles.ratingContainer}>
-            <Text style={styles.statValue}>{positivePercentage}%</Text>
-            <Ionicons name="star" size={20} color="#fbbf24" style={styles.starIcon} />
-          </View>
-          <Pressable onPress={handleNavigateToRating}>
+        <Pressable onPress={handleNavigateToRating} style={styles.statCardWrapper}>
+          <LinearGradient
+            colors={['#f59e0b', '#d97706']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.statCard}
+          >
+            <Ionicons name="star" size={28} color="#ffffff" style={styles.statIcon} />
+            <View style={styles.ratingContainer}>
+              <Text style={styles.statValue}>{positivePercentage}%</Text>
+            </View>
             <Text style={styles.statLabelLink}>{t('dashboard.positive')}</Text>
-          </Pressable>
-        </View>
+          </LinearGradient>
+        </Pressable>
         
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.unreadMessages}</Text>
-          <Pressable onPress={handleNavigateToMessages}>
+        <Pressable onPress={handleNavigateToMessages} style={styles.statCardWrapper}>
+          <LinearGradient
+            colors={['#10b981', '#059669']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.statCard}
+          >
+            <Ionicons name="chatbubbles-outline" size={28} color="#ffffff" style={styles.statIcon} />
+            <Text style={styles.statValue}>{stats.unreadMessages}</Text>
             <Text style={styles.statLabelLink}>{t('dashboard.messages')}</Text>
-          </Pressable>
-        </View>
+          </LinearGradient>
+        </Pressable>
         
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.pendingLikes}</Text>
-          <Pressable onPress={handleNavigateToLiked}>
+        <Pressable onPress={handleNavigateToLiked} style={styles.statCardWrapper}>
+          <LinearGradient
+            colors={['#8b5cf6', '#7c3aed']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.statCard}
+          >
+            <Ionicons name="heart-outline" size={28} color="#ffffff" style={styles.statIcon} />
+            <Text style={styles.statValue}>{stats.pendingLikes}</Text>
             <Text style={styles.statLabelLink}>{t('dashboard.liked')}</Text>
-          </Pressable>
-        </View>
+          </LinearGradient>
+        </Pressable>
       </View>
 
       {/* Quick Rebooking Widget */}
@@ -419,7 +460,7 @@ function OverviewTab({ user, listings, matches, stats, router }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
   },
   centerContainer: {
     flex: 1,
@@ -432,25 +473,45 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6b7280',
   },
+  headerGradient: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 12,
+    ...elevation.level2,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: Platform.OS === 'ios' ? 50 : 12,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    padding: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  headerContent: {
+    flex: 1,
   },
   greeting: {
-    fontSize: 16,
-    color: '#6b7280',
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
   },
   userName: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginTop: 4,
+    color: '#ffffff',
+    marginTop: spacing.xs,
+    ...(Platform.OS === 'web' ? {
+      textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+    } : {
+      textShadowColor: 'rgba(0, 0, 0, 0.1)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
+    }),
+  },
+  settingsButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerActions: {
     flexDirection: 'row',
@@ -481,31 +542,51 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
-    paddingBottom: 32,
+    padding: spacing.md,
+    paddingBottom: spacing.xl * 2,
+    paddingTop: spacing.lg,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: spacing.md,
   },
-  statCard: {
+  statCardWrapper: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
+  },
+  statCard: {
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    ...(Platform.OS === 'web' ? {
+      boxShadow: `0 4px 8px rgba(0, 0, 0, 0.12)`,
+    } : {
+      shadowColor: elevation.level3.shadowColor,
+      shadowOffset: elevation.level3.shadowOffset,
+      shadowOpacity: elevation.level3.shadowOpacity,
+      shadowRadius: elevation.level3.shadowRadius,
+      elevation: elevation.level3.elevation,
+    }),
+    minHeight: 140,
+    justifyContent: 'center',
+  },
+  statIcon: {
+    marginBottom: spacing.sm,
+    opacity: 0.9,
   },
   statValue: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: '#ffffff',
+    marginTop: spacing.xs,
+    ...(Platform.OS === 'web' ? {
+      textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
+    } : {
+      textShadowColor: 'rgba(0, 0, 0, 0.2)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 2,
+    }),
   },
   statLabel: {
     fontSize: 14,
@@ -513,11 +594,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   statLabelLink: {
-    fontSize: 14,
-    color: '#f25842',
-    marginTop: 4,
-    textDecorationLine: 'underline',
-    fontWeight: '500',
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.95)',
+    marginTop: spacing.xs,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -585,16 +666,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#ef4444',
-    gap: 8,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    borderWidth: 2,
+    borderColor: colors.error,
+    gap: spacing.sm,
+    ...elevation.level1,
+  },
+  logoutButtonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.98 }],
   },
   logoutButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#ef4444',
+    color: colors.error,
   },
 })

@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert, Linking } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useFocusEffect } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@/lib/types'
+import { getUserCurrency, formatCurrency, type CurrencyCode } from '@/lib/utils/currency'
 
 interface Props {
   user: User | null
@@ -15,13 +17,75 @@ interface Subscription {
   cancel_at_period_end?: boolean
 }
 
+// Base prices in GBP
+const PRO_PLAN_PRICE_GBP = 4.95
+const BUSINESS_PLAN_PRICE_GBP = 19.95
+
+// Simple exchange rates (approximate, should be updated from API in production)
+const EXCHANGE_RATES: Record<CurrencyCode, number> = {
+  GBP: 1.0,
+  USD: 1.27,
+  EUR: 1.17,
+  CAD: 1.72,
+  AUD: 1.94,
+  JPY: 188.0,
+  CHF: 1.10,
+  CNY: 9.15,
+  INR: 105.0,
+  BRL: 6.30,
+  MXN: 21.50,
+  ZAR: 23.50,
+  NZD: 2.08,
+  SGD: 1.70,
+  HKD: 9.90,
+  NOK: 13.50,
+  SEK: 13.20,
+  DKK: 8.70,
+  PLN: 5.05,
+  CZK: 29.0,
+}
+
+function convertPrice(priceGBP: number, targetCurrency: CurrencyCode): number {
+  const rate = EXCHANGE_RATES[targetCurrency] || 1.0
+  return priceGBP * rate
+}
+
 export function BillingTab({ user }: Props) {
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [loading, setLoading] = useState(true)
+  const [userCurrency, setUserCurrency] = useState<CurrencyCode>('GBP')
+
+  // Get user's currency preference
+  const getUserCurrencyPreference = async () => {
+    if (!user?.id) return
+    
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('currency, country')
+        .eq('id', user.id)
+        .single()
+
+      if (userData) {
+        const currency = getUserCurrency(userData.currency, userData.country)
+        setUserCurrency(currency)
+      }
+    } catch (error) {
+      console.error('Error loading user currency:', error)
+    }
+  }
 
   useEffect(() => {
     loadSubscription()
+    getUserCurrencyPreference()
   }, [user?.id])
+
+  // Reload currency when screen comes into focus (e.g., after currency change)
+  useFocusEffect(
+    React.useCallback(() => {
+      getUserCurrencyPreference()
+    }, [user?.id])
+  )
 
   const loadSubscription = async () => {
     if (!user?.id) {
@@ -105,6 +169,10 @@ export function BillingTab({ user }: Props) {
 
   const currentPlan = subscription?.plan || 'free'
 
+  // Convert prices to user's currency
+  const proPrice = convertPrice(PRO_PLAN_PRICE_GBP, userCurrency)
+  const businessPrice = convertPrice(BUSINESS_PLAN_PRICE_GBP, userCurrency)
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Membership & Billing</Text>
@@ -121,7 +189,10 @@ export function BillingTab({ user }: Props) {
         <View style={[styles.planCard, styles.proPlanCard, currentPlan === 'pro' && styles.proPlanCardActive]}>
           <View style={styles.planHeader}>
             <Text style={styles.planName}>Pro Plan</Text>
-            <Text style={[styles.planPrice, styles.proPlanPrice]}>£4.95<Text style={styles.planPeriod}>/month</Text></Text>
+            <Text style={[styles.planPrice, styles.proPlanPrice]}>
+              {formatCurrency(proPrice, userCurrency)}
+              <Text style={styles.planPeriod}>/month</Text>
+            </Text>
           </View>
           <View style={styles.planFeatures}>
             <View style={styles.feature}>
@@ -160,7 +231,10 @@ export function BillingTab({ user }: Props) {
         <View style={[styles.planCard, styles.businessPlanCard, currentPlan === 'business' && styles.businessPlanCardActive]}>
           <View style={styles.planHeader}>
             <Text style={styles.planName}>Business Plan</Text>
-            <Text style={[styles.planPrice, styles.businessPlanPrice]}>£19.95<Text style={styles.planPeriod}>/month</Text></Text>
+            <Text style={[styles.planPrice, styles.businessPlanPrice]}>
+              {formatCurrency(businessPrice, userCurrency)}
+              <Text style={styles.planPeriod}>/month</Text>
+            </Text>
           </View>
           <View style={styles.planFeatures}>
             <View style={styles.feature}>

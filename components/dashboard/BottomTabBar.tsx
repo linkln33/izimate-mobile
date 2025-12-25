@@ -1,5 +1,8 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, Dimensions } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, Dimensions, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { BlurView } from 'expo-blur'
+import { LinearGradient } from 'expo-linear-gradient'
+import { colors, spacing, borderRadius, elevation } from '@/lib/design-system'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
@@ -31,22 +34,43 @@ export function BottomTabBar({ tabs, activeTab, onTabChange }: BottomTabBarProps
   
   return (
     <View style={styles.container}>
+      {Platform.OS !== 'web' && (
+        <BlurView
+          intensity={80}
+          tint="light"
+          style={StyleSheet.absoluteFillObject}
+        />
+      )}
+      <LinearGradient
+        colors={['rgba(255, 255, 255, 0.9)', 'rgba(255, 255, 255, 0.7)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
       {/* Primary Tabs - Always visible, thumb-friendly */}
       <View style={styles.primaryTabsContainer}>
         {primaryTabs.map((tab) => {
           const isActive = activeTab === tab.id
           
           return (
-            <Pressable
-              key={tab.id}
-              onPress={() => onTabChange(tab.id)}
-              style={({ pressed }) => [
-                styles.primaryTab,
-                isActive && styles.activePrimaryTab,
-                pressed && styles.pressedTab,
-              ]}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
+              <Pressable
+                key={tab.id}
+                onPress={() => onTabChange(tab.id)}
+                style={({ pressed }) => [
+                  styles.primaryTab,
+                  isActive && styles.activePrimaryTab,
+                  pressed && styles.pressedTab,
+                ]}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                {isActive && (
+                  <LinearGradient
+                    colors={[`${colors.primary}15`, `${colors.primary}08`]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                )}
               <View style={styles.tabContent}>
                 <View style={styles.iconContainer}>
                   <Ionicons
@@ -134,15 +158,16 @@ export function BottomTabBar({ tabs, activeTab, onTabChange }: BottomTabBarProps
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#ffffff',
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 8,
-    paddingBottom: 8,
+    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.85)' : 'transparent',
+    borderTopWidth: 0,
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.08)',
+      backdropFilter: 'blur(20px)',
+    } : {
+      ...elevation.level2,
+    }),
+    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
   },
   primaryTabsContainer: {
     flexDirection: 'row',
@@ -158,13 +183,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 10,
     paddingHorizontal: 6,
-    borderRadius: 12,
+    borderRadius: borderRadius.md,
     minHeight: 64, // Large touch target (64pt) for comfortable thumb tapping
     minWidth: 64, // Square touch targets are easier to hit
     maxWidth: (SCREEN_WIDTH - 32) / 5, // Distribute evenly across 5 tabs with padding
+    overflow: 'hidden',
+    position: 'relative',
   },
   activePrimaryTab: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: 'transparent',
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0 2px 8px rgba(242, 88, 66, 0.15)',
+    } : {}),
   },
   pressedTab: {
     opacity: 0.6,
@@ -185,7 +215,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   activePrimaryTabLabel: {
-    color: '#f25842',
+    color: colors.primary,
     fontWeight: '700',
   },
   badge: {
@@ -223,15 +253,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     marginHorizontal: 4,
-    borderRadius: 20,
-    backgroundColor: '#f9fafb',
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
     minHeight: 40, // Comfortable touch target for secondary tabs
     minWidth: 80, // Minimum width for easy tapping
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+      backdropFilter: 'blur(10px)',
+    } : {}),
   },
   activeSecondaryTab: {
-    backgroundColor: '#fee2e2',
+    backgroundColor: 'rgba(242, 88, 66, 0.15)',
+    borderColor: `${colors.primary}40`,
   },
   secondaryTabContent: {
     flexDirection: 'row',

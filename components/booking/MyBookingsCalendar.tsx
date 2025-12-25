@@ -21,11 +21,13 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { QuickEventForm } from './QuickEventForm';
 import type { Booking, Listing, User } from '@/lib/types';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { triggerLight } from '@/lib/utils/haptics';
+import { getUserCurrency, formatCurrency, type CurrencyCode } from '@/lib/utils/currency';
 import { AuthRequest, AuthRequestConfig, AuthSessionResult, makeRedirectUri } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { GoogleCalendarService } from '@/lib/utils/google-calendar';
@@ -87,11 +89,38 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
   const [showEventForm, setShowEventForm] = useState(false);
   const [eventFormDate, setEventFormDate] = useState<string>('');
   const [showDayViewModal, setShowDayViewModal] = useState(false);
+  const [userCurrency, setUserCurrency] = useState<CurrencyCode>('GBP');
+
+  // Load user currency preference
+  const loadUserCurrency = async () => {
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('currency, country')
+        .eq('id', userId)
+        .single();
+
+      if (userData) {
+        const currency = getUserCurrency(userData.currency, userData.country);
+        setUserCurrency(currency);
+      }
+    } catch (error) {
+      console.error('Error loading user currency:', error);
+    }
+  };
 
   useEffect(() => {
+    loadUserCurrency();
     loadBookings();
     initializeAuth();
   }, [userId, currentDate]);
+
+  // Reload currency when screen comes into focus (e.g., after currency change)
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserCurrency();
+    }, [userId])
+  );
 
   const initializeAuth = async () => {
     try {
@@ -1215,7 +1244,7 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
                         <View style={styles.dayViewBookingInfo}>
                           <Ionicons name="cash-outline" size={16} color="#6b7280" />
                           <Text style={styles.dayViewBookingInfoText}>
-                            {booking.currency || 'GBP'} {booking.price.toFixed(2)}
+                            {formatCurrency(booking.price, booking.currency || userCurrency)}
                           </Text>
                         </View>
                       )}

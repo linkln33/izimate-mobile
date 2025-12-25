@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { useRouter } from 'expo-router'
+import { useRouter, useFocusEffect } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import type { Booking, User, Listing } from '@/lib/types'
 import { SkeletonLoader } from '@/components/common/SkeletonLoader'
 import { triggerLight, triggerSuccess } from '@/lib/utils/haptics'
+import { getUserCurrency, formatCurrency, type CurrencyCode } from '@/lib/utils/currency'
 
 interface QuickRebookingItem {
   id: string
@@ -62,11 +63,38 @@ export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWid
   const [upcomingBookings, setUpcomingBookings] = useState<UpcomingBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [rebookingLoading, setRebookingLoading] = useState<string | null>(null)
+  const [userCurrency, setUserCurrency] = useState<CurrencyCode>('GBP')
+
+  // Get user's currency preference
+  const loadUserCurrency = async () => {
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('currency, country')
+        .eq('id', userId)
+        .single()
+
+      if (userData) {
+        const currency = getUserCurrency(userData.currency, userData.country)
+        setUserCurrency(currency)
+      }
+    } catch (error) {
+      console.error('Error loading user currency:', error)
+    }
+  }
 
   useEffect(() => {
+    loadUserCurrency()
     loadRebookingOptions()
     loadUpcomingBookings()
   }, [userId])
+
+  // Reload currency when screen comes into focus (e.g., after currency change)
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserCurrency()
+    }, [userId])
+  )
 
   const loadRebookingOptions = async () => {
     try {
@@ -355,7 +383,7 @@ export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWid
 
                   {booking.service_price && (
                     <Text style={styles.priceText}>
-                      {booking.currency || '$'}{booking.service_price}
+                      {formatCurrency(booking.service_price, booking.currency || userCurrency)}
                     </Text>
                   )}
                 </View>
@@ -435,7 +463,7 @@ export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWid
 
                 {item.lastBooking.service_price && (
                   <Text style={styles.priceText}>
-                    {item.lastBooking.currency || '$'}{item.lastBooking.service_price}
+                    {formatCurrency(item.lastBooking.service_price, item.lastBooking.currency || userCurrency)}
                   </Text>
                 )}
               </View>

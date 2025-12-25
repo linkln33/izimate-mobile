@@ -6,7 +6,9 @@
 import React from 'react'
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { formatCurrency } from '@/lib/utils/currency'
 import type { EventDisplayProps, CalendarEvent, CalendarViewMode } from './types'
+import type { CurrencyCode } from '@/lib/utils/currency'
 
 export const EventDisplay: React.FC<EventDisplayProps> = ({
   events,
@@ -14,6 +16,7 @@ export const EventDisplay: React.FC<EventDisplayProps> = ({
   selectedDate,
   onEventPress,
   showStatusColors = true,
+  userCurrency,
 }) => {
   const getStatusColor = (status: string): string => {
     switch (status) {
@@ -153,7 +156,7 @@ export const EventDisplay: React.FC<EventDisplayProps> = ({
                       <View style={styles.eventDetailRow}>
                         <Ionicons name="cash-outline" size={14} color="#10b981" />
                         <Text style={styles.eventDetailPrice}>
-                          {event.currency || 'GBP'} {event.price.toFixed(2)}
+                          {formatCurrency(event.price, event.currency || userCurrency || 'GBP')}
                         </Text>
                       </View>
                     )}
@@ -258,8 +261,7 @@ export const EventDisplay: React.FC<EventDisplayProps> = ({
                       {event.price && (
                         <Text style={styles.listEventPrice}>
                           <Ionicons name="card" size={12} color="#10b981" />{' '}
-                          {event.currency || '$'}
-                          {event.price}
+                          {formatCurrency(event.price, event.currency || userCurrency || 'GBP')}
                         </Text>
                       )}
                     </View>

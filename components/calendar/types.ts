@@ -113,6 +113,7 @@ export interface EventDisplayProps {
   selectedDate?: Date | null
   onEventPress?: (event: CalendarEvent) => void
   showStatusColors?: boolean
+  userCurrency?: string | null
 }
 
 export interface CalendarStatsProps {

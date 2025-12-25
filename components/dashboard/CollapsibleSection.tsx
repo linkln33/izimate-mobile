@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
+import { colors, spacing, borderRadius, elevation } from '@/lib/design-system'
 
 interface CollapsibleSectionProps {
   title: string
@@ -42,6 +44,8 @@ export function CollapsibleSection({
     transform: [{ rotate: `${rotation.value * 180}deg` }],
   }))
 
+  const iconBgColor = iconColor || colors.primary
+
   return (
     <View style={styles.container}>
       <Pressable
@@ -52,11 +56,13 @@ export function CollapsibleSection({
         ]}
       >
         <View style={styles.headerLeft}>
-          <Ionicons
-            name={icon as any}
-            size={22}
-            color={iconColor || (isExpanded ? '#f25842' : '#6b7280')}
-          />
+          <View style={[styles.iconContainer, { backgroundColor: `${iconBgColor}15` }]}>
+            <Ionicons
+              name={icon as any}
+              size={22}
+              color={iconColor || (isExpanded ? colors.primary : colors.onSurfaceVariant)}
+            />
+          </View>
           <Text style={[styles.title, isExpanded && styles.activeTitle]}>
             {title}
           </Text>
@@ -72,7 +78,7 @@ export function CollapsibleSection({
           <Ionicons
             name="chevron-down"
             size={20}
-            color="#6b7280"
+            color={colors.onSurfaceVariant}
           />
         </Animated.View>
       </Pressable>
@@ -88,54 +94,65 @@ export function CollapsibleSection({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+    ...elevation.level1,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fafafa',
+    padding: spacing.lg,
+    backgroundColor: colors.surface,
   },
   pressedHeader: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.surfaceVariant,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.md,
     flex: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: colors.onSurface,
     flex: 1,
   },
   activeTitle: {
-    color: '#f25842',
+    color: colors.primary,
+    fontWeight: '700',
   },
   badge: {
-    backgroundColor: '#ef4444',
-    borderRadius: 12,
+    backgroundColor: colors.error,
+    borderRadius: borderRadius.full,
     minWidth: 24,
     height: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
+    ...elevation.level1,
   },
   badgeText: {
-    color: '#ffffff',
-    fontSize: 12,
+    color: colors.onError,
+    fontSize: 11,
     fontWeight: 'bold',
   },
   content: {
-    padding: 16,
+    padding: spacing.lg,
     overflow: 'hidden',
+    backgroundColor: colors.surface,
   },
 })

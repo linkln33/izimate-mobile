@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { BlurView } from 'expo-blur'
+import { LinearGradient } from 'expo-linear-gradient'
+import { colors, spacing, borderRadius, elevation } from '@/lib/design-system'
 
 interface Tab {
   id: string
@@ -35,6 +38,19 @@ export function TabBar({ tabs, activeTab, onTabChange }: TabBarProps) {
 
   return (
     <View style={styles.container}>
+      {Platform.OS !== 'web' && (
+        <BlurView
+          intensity={60}
+          tint="light"
+          style={StyleSheet.absoluteFillObject}
+        />
+      )}
+      <LinearGradient
+        colors={['rgba(255, 255, 255, 0.85)', 'rgba(255, 255, 255, 0.6)']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
       <ScrollView
         ref={scrollViewRef}
         horizontal
@@ -59,6 +75,14 @@ export function TabBar({ tabs, activeTab, onTabChange }: TabBarProps) {
                 tabPositions.current[tab.id] = x
               }}
             >
+              {isActive && (
+                <LinearGradient
+                  colors={[`${colors.primary}20`, `${colors.primary}10`]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFillObject}
+                />
+              )}
               <View style={styles.tabContent}>
                 <View style={styles.iconContainer}>
                   <Ionicons
@@ -95,14 +119,15 @@ export function TabBar({ tabs, activeTab, onTabChange }: TabBarProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.85)' : 'transparent',
+    borderBottomWidth: 0,
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06)',
+      backdropFilter: 'blur(20px)',
+    } : {
+      ...elevation.level1,
+    }),
   },
   scrollView: {
     flexGrow: 0,
@@ -116,14 +141,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginHorizontal: 3,
-    borderRadius: 10,
+    borderRadius: borderRadius.md,
     minWidth: 65,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    overflow: 'hidden',
   },
   activeTab: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: 'transparent',
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0 2px 8px rgba(242, 88, 66, 0.12)',
+    } : {}),
   },
   pressedTab: {
     opacity: 0.6,
@@ -145,7 +174,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   activeTabLabel: {
-    color: '#f25842',
+    color: colors.primary,
     fontWeight: '700',
   },
   badge: {
@@ -174,10 +203,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     left: '50%',
-    marginLeft: -18,
-    width: 36,
+    marginLeft: -20,
+    width: 40,
     height: 3,
-    backgroundColor: '#f25842',
-    borderRadius: 2,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.full,
+    ...(Platform.OS === 'web' ? {
+      boxShadow: `0 2px 8px ${colors.primary}40`,
+    } : {}),
   },
 })

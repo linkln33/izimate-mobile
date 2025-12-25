@@ -5,7 +5,7 @@ import type { Listing, User } from '@/lib/types'
 import { getMainPhoto } from '@/lib/utils/images'
 import { formatBudget, getCurrencyFromUser } from '@/lib/utils/price'
 import { formatDate, formatRelativeTime } from '@/lib/utils/date'
-import { getUserCurrency } from '@/lib/utils/currency'
+import { getUserCurrency, formatCurrency } from '@/lib/utils/currency'
 import { useRouter } from 'expo-router'
 import { triggerLight, triggerSuccess } from '@/lib/utils/haptics'
 
@@ -552,12 +552,17 @@ export function ListingCard({
                 
                 {listing.budget_type === 'price_list' && listing.price_list && listing.price_list.length > 0 ? (
                   <View style={styles.priceListSection}>
-                    {listing.price_list.map((item: any, index: number) => (
-                      <View key={index} style={styles.priceListItem}>
-                        <Text style={styles.priceListServiceName}>{item.serviceName}</Text>
-                        <Text style={styles.priceListPrice}>£{item.price}</Text>
-                      </View>
-                    ))}
+                    {listing.price_list.map((item: any, index: number) => {
+                      const displayCurrency = listing.currency || userCurrency || 'GBP'
+                      return (
+                        <View key={index} style={styles.priceListItem}>
+                          <Text style={styles.priceListServiceName}>{item.serviceName}</Text>
+                          <Text style={styles.priceListPrice}>
+                            {formatCurrency(item.price, displayCurrency)}
+                          </Text>
+                        </View>
+                      )
+                    })}
                   </View>
                 ) : (
                 <View style={styles.budgetBreakdown}>

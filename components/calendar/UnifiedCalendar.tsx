@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
+import { useFocusEffect } from 'expo-router'
 import {
   View,
   Text,
@@ -79,6 +80,7 @@ export const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({
   const [bookingLoading, setBookingLoading] = useState(false)
   const [showDayDetailModal, setShowDayDetailModal] = useState(false)
   const [selectedDayBookings, setSelectedDayBookings] = useState<CalendarEvent[]>([])
+  const [userCurrency, setUserCurrency] = useState<string | null>(null)
 
   useEffect(() => {
     loadUser()
@@ -93,6 +95,13 @@ export const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({
     }
   }, [currentDate])
 
+  // Reload user currency when screen comes into focus (e.g., after currency change)
+  useFocusEffect(
+    useCallback(() => {
+      loadUser()
+    }, [userId])
+  )
+
   const loadUser = async () => {
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser()
@@ -104,6 +113,7 @@ export const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({
           .single()
         if (userData) {
           setCurrentUser(userData as User)
+          setUserCurrency(userData.currency)
         }
       }
     } catch (error) {
@@ -553,6 +563,7 @@ export const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({
           selectedDate={selectedDate}
           onEventPress={onEventPress}
           showStatusColors={true}
+          userCurrency={userCurrency}
         />
       </ScrollView>
     )
@@ -588,6 +599,7 @@ export const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({
           selectedDate={selectedDate}
           onEventPress={onEventPress}
           showStatusColors={true}
+          userCurrency={userCurrency}
         />
 
         {/* Stats */}
