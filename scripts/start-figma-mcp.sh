@@ -4,7 +4,11 @@
 
 export PATH="$HOME/.bun/bin:$PATH"
 
-cd "$(dirname "$0")/../figma-mcp-server"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+MCP_SERVER_DIR="$PROJECT_ROOT/figma-mcp-server"
+
+cd "$MCP_SERVER_DIR"
 
 if [ ! -d "node_modules" ]; then
   echo "📦 Installing dependencies..."
@@ -25,5 +29,4 @@ echo ""
 echo "Press Ctrl+C to stop the server"
 echo ""
 
-bun socket
-
+bun run socket
