@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, ActivityIndicator, Alert, Image, Platform } from 'react-native'
 import { useRouter, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -51,9 +51,20 @@ export default function ProfileScreen() {
   }, [])
 
   // Reload user data when screen comes into focus (e.g., after currency change)
+  // Use ref to track last fetch time and prevent excessive reloads
+  const lastUserFetchRef = useRef<number>(0)
+  const USER_FETCH_COOLDOWN = 5000 // 5 seconds
+
   useFocusEffect(
     useCallback(() => {
       const reloadUser = async () => {
+        const now = Date.now()
+        // Skip if recently fetched (within cooldown period)
+        if (now - lastUserFetchRef.current < USER_FETCH_COOLDOWN) {
+          return
+        }
+        lastUserFetchRef.current = now
+
         try {
           const { data: { user: authUser } } = await supabase.auth.getUser()
           if (!authUser) return

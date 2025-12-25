@@ -136,40 +136,62 @@ export const QuickEventForm: React.FC<QuickEventFormProps> = ({
 
       if (error) throw error;
 
-      let enriched = await Promise.all(
-        (listingsData || []).map(async (listing) => {
-          const enrichedListing: EnrichedListing = {
-            ...listing,
-            provider: listing.provider as unknown as User,
-          };
+      // Get all unique provider IDs for batch review query
+      const providerIds = [...new Set(
+        (listingsData || [])
+          .map((l: any) => l.provider?.id || l.user_id)
+          .filter(Boolean)
+      )];
 
-          // Calculate distance
-          if (userLocation && listing.location_lat && listing.location_lng) {
-            enrichedListing.distance = calculateDistance(
-              userLocation.lat,
-              userLocation.lng,
-              listing.location_lat,
-              listing.location_lng
-            );
+      // Batch fetch all reviews for all providers in one query
+      const { data: allReviews } = providerIds.length > 0
+        ? await supabase
+            .from('reviews')
+            .select('reviewee_id, rating')
+            .in('reviewee_id', providerIds)
+        : { data: null };
+
+      // Create a map of provider_id -> reviews for fast lookup
+      const reviewsMap = new Map<string, number[]>();
+      if (allReviews) {
+        allReviews.forEach((review: any) => {
+          if (!reviewsMap.has(review.reviewee_id)) {
+            reviewsMap.set(review.reviewee_id, []);
           }
+          reviewsMap.get(review.reviewee_id)!.push(review.rating);
+        });
+      }
 
-          // Get rating
-          if (listing.provider) {
-            const providerData = listing.provider as unknown as User;
-            const { data: reviews } = await supabase
-              .from('reviews')
-              .select('rating')
-              .eq('reviewee_id', providerData.id);
+      // Enrich listings (all in-memory, no more queries)
+      let enriched = (listingsData || []).map((listing: any) => {
+        const enrichedListing: EnrichedListing = {
+          ...listing,
+          provider: listing.provider as unknown as User,
+        };
 
-            if (reviews && reviews.length > 0) {
-              const avgRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
-              enrichedListing.rating = Math.round(avgRating * 10) / 10;
-            }
+        // Calculate distance
+        if (userLocation && listing.location_lat && listing.location_lng) {
+          enrichedListing.distance = calculateDistance(
+            userLocation.lat,
+            userLocation.lng,
+            listing.location_lat,
+            listing.location_lng
+          );
+        }
+
+        // Get rating from reviews map
+        if (listing.provider) {
+          const providerData = listing.provider as unknown as User;
+          const reviews = reviewsMap.get(providerData.id) || [];
+
+          if (reviews.length > 0) {
+            const avgRating = reviews.reduce((sum, r) => sum + (r || 0), 0) / reviews.length;
+            enrichedListing.rating = Math.round(avgRating * 10) / 10;
           }
+        }
 
-          return enrichedListing;
-        })
-      );
+        return enrichedListing;
+      });
 
       // Apply filters
       enriched = applyFilters(enriched);

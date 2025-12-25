@@ -133,7 +133,10 @@ export default function SwipeViewScreen() {
 
       let query = supabase
         .from('listings')
-        .select('*')
+        .select(`
+          *,
+          user:users!user_id(*)
+        `)
         .eq('status', 'active')
         .gte('expires_at', new Date().toISOString())
 
@@ -147,89 +150,100 @@ export default function SwipeViewScreen() {
         .limit(50)
 
       if (listingsData) {
-        // Enrich with customer data, ratings, and distance
-        const enriched = await Promise.all(
-          listingsData.map(async (listing) => {
-            const { data: customer } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', listing.user_id)
-              .single()
+        // Get all unique user IDs for batch review query
+        const userIds = [...new Set(listingsData.map((l: any) => l.user_id).filter(Boolean))]
+        
+        // Batch fetch all reviews for all users in one query
+        const { data: allReviews } = await supabase
+          .from('reviews')
+          .select('reviewee_id, rating')
+          .in('reviewee_id', userIds)
 
-            // Get customer rating from reviews
-            let customerRating: number | undefined
-            let positivePercentage: number | undefined
-            if (customer) {
-              const { data: reviews } = await supabase
-                .from('reviews')
-                .select('rating')
-                .eq('reviewee_id', customer.id)
-
-              if (reviews && reviews.length > 0) {
-                const avgRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
-                customerRating = Math.round(avgRating * 10) / 10
-                
-                const positiveCount = reviews.filter((r) => (r.rating || 0) >= 4).length
-                positivePercentage = Math.round((positiveCount / reviews.length) * 100)
-              } else {
-                customerRating = Math.round((Math.random() * 1.5 + 3.5) * 10) / 10
-                positivePercentage = Math.round(Math.random() * 20 + 80)
-              }
+        // Create a map of user_id -> reviews for fast lookup
+        const reviewsMap = new Map<string, number[]>()
+        if (allReviews) {
+          allReviews.forEach((review: any) => {
+            if (!reviewsMap.has(review.reviewee_id)) {
+              reviewsMap.set(review.reviewee_id, [])
+            }
+            reviewsMap.get(review.reviewee_id)!.push(review.rating)
+          })
+        }
+        
+        // Enrich listings with ratings and distance (all in-memory, no more queries)
+        const enriched = listingsData.map((listing: any) => {
+          const customer = listing.user as User | null
+          
+          // Get customer rating from reviews map
+          let customerRating: number | undefined
+          let positivePercentage: number | undefined
+          if (customer) {
+            const reviews = reviewsMap.get(customer.id) || []
+            
+            if (reviews.length > 0) {
+              const avgRating = reviews.reduce((sum, r) => sum + (r || 0), 0) / reviews.length
+              customerRating = Math.round(avgRating * 10) / 10
+              
+              const positiveCount = reviews.filter((r) => (r || 0) >= 4).length
+              positivePercentage = Math.round((positiveCount / reviews.length) * 100)
             } else {
               customerRating = Math.round((Math.random() * 1.5 + 3.5) * 10) / 10
               positivePercentage = Math.round(Math.random() * 20 + 80)
             }
+          } else {
+            customerRating = Math.round((Math.random() * 1.5 + 3.5) * 10) / 10
+            positivePercentage = Math.round(Math.random() * 20 + 80)
+          }
 
-            let distance: number | undefined
-            if (userLocation && listing.location_lat && listing.location_lng) {
-              distance = calculateDistance(
-                userLocation.lat,
-                userLocation.lng,
-                listing.location_lat,
-                listing.location_lng
+          let distance: number | undefined
+          if (userLocation && listing.location_lat && listing.location_lng) {
+            distance = calculateDistance(
+              userLocation.lat,
+              userLocation.lng,
+              listing.location_lat,
+              listing.location_lng
+            )
+          }
+
+          // Normalize photos
+          let photos: string[] = []
+          if (listing.photos) {
+            if (Array.isArray(listing.photos)) {
+              photos = listing.photos.filter(
+                (p: any) => p && typeof p === 'string' && p.trim().length > 0
               )
-            }
-
-            // Normalize photos
-            let photos: string[] = []
-            if (listing.photos) {
-              if (Array.isArray(listing.photos)) {
-                photos = listing.photos.filter(
-                  (p: any) => p && typeof p === 'string' && p.trim().length > 0
-                )
-              } else if (typeof listing.photos === 'string') {
-                try {
-                  const parsed = JSON.parse(listing.photos)
-                  if (Array.isArray(parsed)) {
-                    photos = parsed.filter(
-                      (p: any) => p && typeof p === 'string' && p.trim().length > 0
-                    )
-                  } else {
-                    photos = [listing.photos].filter(
-                      (p: any) => p && typeof p === 'string' && p.trim().length > 0
-                    )
-                  }
-                } catch {
-                  if (listing.photos.trim().length > 0) {
-                    photos = [listing.photos]
-                  }
+            } else if (typeof listing.photos === 'string') {
+              try {
+                const parsed = JSON.parse(listing.photos)
+                if (Array.isArray(parsed)) {
+                  photos = parsed.filter(
+                    (p: any) => p && typeof p === 'string' && p.trim().length > 0
+                  )
+                } else {
+                  photos = [listing.photos].filter(
+                    (p: any) => p && typeof p === 'string' && p.trim().length > 0
+                  )
+                }
+              } catch {
+                if (listing.photos.trim().length > 0) {
+                  photos = [listing.photos]
                 }
               }
             }
-            
-            // Normalize all photo URLs using shared utility
-            photos = normalizePhotoUrls(photos)
+          }
+          
+          // Normalize all photo URLs using shared utility
+          photos = normalizePhotoUrls(photos)
 
-            return {
-              ...listing,
-              photos,
-              customer: customer || undefined,
-              customerRating,
-              positivePercentage,
-              distance,
-            }
-          })
-        )
+          return {
+            ...listing,
+            photos,
+            customer: customer || undefined,
+            customerRating,
+            positivePercentage,
+            distance,
+          }
+        })
 
         setListings(enriched)
         setCurrentUserId(authUser.id)

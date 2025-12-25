@@ -121,10 +121,13 @@ export default function FindScreen() {
       const quota = await getSuperLikeQuota(authUser.id)
       setSuperLikeQuota(quota)
 
-      // Load ALL active listings (including user's own - they just won't be editable)
+      // Load ALL active listings with user data in one query (fixes N+1 problem)
       const { data: listingsData } = await supabase
         .from('listings')
-        .select('*')
+        .select(`
+          *,
+          user:users!user_id(*)
+        `)
         .eq('status', 'active')
         .gte('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false })
@@ -137,109 +140,120 @@ export default function FindScreen() {
           console.log('First listing photos:', listingsData[0].photos, 'Type:', typeof listingsData[0].photos)
         }
         
-        // Enrich with customer data, ratings, and distance
-        const enriched = await Promise.all(
-          listingsData.map(async (listing) => {
-            const { data: customer } = await supabase
-              .from('users')
-              .select('*')
-              .eq('id', listing.user_id)
-              .single()
+        // Get all unique user IDs for batch review query
+        const userIds = [...new Set(listingsData.map((l: any) => l.user_id).filter(Boolean))]
+        
+        // Batch fetch all reviews for all users in one query
+        const { data: allReviews } = await supabase
+          .from('reviews')
+          .select('reviewee_id, rating')
+          .in('reviewee_id', userIds)
 
-            // Get customer rating from reviews
-            let customerRating: number | undefined
-            let positivePercentage: number | undefined
-            if (customer) {
-              const { data: reviews } = await supabase
-                .from('reviews')
-                .select('rating')
-                .eq('reviewee_id', customer.id)
-
-              if (reviews && reviews.length > 0) {
-                const avgRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
-                customerRating = Math.round(avgRating * 10) / 10 // Round to 1 decimal
-                
-                // Calculate positive percentage (4+ stars)
-                const positiveCount = reviews.filter((r) => (r.rating || 0) >= 4).length
-                positivePercentage = Math.round((positiveCount / reviews.length) * 100)
-              } else {
-                // Generate random rating for demo listings (3.5 to 5.0)
-                customerRating = Math.round((Math.random() * 1.5 + 3.5) * 10) / 10
-                // Random positive percentage (80-100%)
-                positivePercentage = Math.round(Math.random() * 20 + 80)
-              }
+        // Create a map of user_id -> reviews for fast lookup
+        const reviewsMap = new Map<string, number[]>()
+        if (allReviews) {
+          allReviews.forEach((review: any) => {
+            if (!reviewsMap.has(review.reviewee_id)) {
+              reviewsMap.set(review.reviewee_id, [])
+            }
+            reviewsMap.get(review.reviewee_id)!.push(review.rating)
+          })
+        }
+        
+        // Enrich listings with ratings and distance (all in-memory, no more queries)
+        const enriched = listingsData.map((listing: any) => {
+          const customer = listing.user as User | null
+          
+          // Get customer rating from reviews map
+          let customerRating: number | undefined
+          let positivePercentage: number | undefined
+          if (customer) {
+            const reviews = reviewsMap.get(customer.id) || []
+            
+            if (reviews.length > 0) {
+              const avgRating = reviews.reduce((sum, r) => sum + (r || 0), 0) / reviews.length
+              customerRating = Math.round(avgRating * 10) / 10 // Round to 1 decimal
+              
+              // Calculate positive percentage (4+ stars)
+              const positiveCount = reviews.filter((r) => (r || 0) >= 4).length
+              positivePercentage = Math.round((positiveCount / reviews.length) * 100)
             } else {
-              // Generate random rating for demo listings when no customer data
+              // Generate random rating for demo listings (3.5 to 5.0)
               customerRating = Math.round((Math.random() * 1.5 + 3.5) * 10) / 10
+              // Random positive percentage (80-100%)
               positivePercentage = Math.round(Math.random() * 20 + 80)
             }
+          } else {
+            // Generate random rating for demo listings when no customer data
+            customerRating = Math.round((Math.random() * 1.5 + 3.5) * 10) / 10
+            positivePercentage = Math.round(Math.random() * 20 + 80)
+          }
 
-            let distance: number | undefined
-            if (userLocation && listing.location_lat && listing.location_lng) {
-              distance = calculateDistance(
-                userLocation.lat,
-                userLocation.lng,
-                listing.location_lat,
-                listing.location_lng
+          let distance: number | undefined
+          if (userLocation && listing.location_lat && listing.location_lng) {
+            distance = calculateDistance(
+              userLocation.lat,
+              userLocation.lng,
+              listing.location_lat,
+              listing.location_lng
+            )
+          }
+
+          // Ensure photos is always an array and filter out invalid values
+          let photos: string[] = []
+          if (listing.photos) {
+            if (Array.isArray(listing.photos)) {
+              photos = listing.photos.filter(
+                (p: any) => p && typeof p === 'string' && p.trim().length > 0
               )
-            }
-
-            // Ensure photos is always an array and filter out invalid values
-            let photos: string[] = []
-            if (listing.photos) {
-              if (Array.isArray(listing.photos)) {
-                photos = listing.photos.filter(
-                  (p: any) => p && typeof p === 'string' && p.trim().length > 0
-                )
-              } else if (typeof listing.photos === 'string') {
-                try {
-                  const parsed = JSON.parse(listing.photos)
-                  if (Array.isArray(parsed)) {
-                    photos = parsed.filter(
-                      (p: any) => p && typeof p === 'string' && p.trim().length > 0
-                    )
-                  } else {
-                    photos = [listing.photos].filter(
-                      (p: any) => p && typeof p === 'string' && p.trim().length > 0
-                    )
-                  }
-                } catch {
-                  if (listing.photos.trim().length > 0) {
-                    photos = [listing.photos]
-                  }
+            } else if (typeof listing.photos === 'string') {
+              try {
+                const parsed = JSON.parse(listing.photos)
+                if (Array.isArray(parsed)) {
+                  photos = parsed.filter(
+                    (p: any) => p && typeof p === 'string' && p.trim().length > 0
+                  )
+                } else {
+                  photos = [listing.photos].filter(
+                    (p: any) => p && typeof p === 'string' && p.trim().length > 0
+                  )
+                }
+              } catch {
+                if (listing.photos.trim().length > 0) {
+                  photos = [listing.photos]
                 }
               }
             }
-            
-            // Normalize all photo URLs using shared utility
-            photos = normalizePhotoUrls(photos)
-            
-            // Debug: log normalized URLs
-            if (photos.length > 0) {
-              console.log(`✅ Listing ${listing.id} normalized photos:`, photos[0])
-            }
-            
-            // Debug log for photos (after normalization)
-            if (photos.length > 0) {
-              console.log(`✅ Listing ${listing.id} has ${photos.length} photo(s):`, photos[0])
-            } else {
-              console.log(`⚠️ Listing ${listing.id} has no valid photos. Raw photos:`, listing.photos)
-            }
+          }
+          
+          // Normalize all photo URLs using shared utility
+          photos = normalizePhotoUrls(photos)
+          
+          // Debug: log normalized URLs
+          if (photos.length > 0) {
+            console.log(`✅ Listing ${listing.id} normalized photos:`, photos[0])
+          }
+          
+          // Debug log for photos (after normalization)
+          if (photos.length > 0) {
+            console.log(`✅ Listing ${listing.id} has ${photos.length} photo(s):`, photos[0])
+          } else {
+            console.log(`⚠️ Listing ${listing.id} has no valid photos. Raw photos:`, listing.photos)
+          }
 
-            // Check if this is the user's own listing
-            const isOwnListing = listing.user_id === authUser.id
+          // Check if this is the user's own listing
+          const isOwnListing = listing.user_id === authUser.id
 
-            return {
-              ...listing,
-              photos, // Normalize photos to always be an array
-              customer: customer || undefined,
-              customerRating,
-              positivePercentage,
-              distance,
-              isOwnListing, // Add flag to identify own listings
-            }
-          })
-        )
+          return {
+            ...listing,
+            photos, // Normalize photos to always be an array
+            customer: customer || undefined,
+            customerRating,
+            positivePercentage,
+            distance,
+            isOwnListing, // Add flag to identify own listings
+          }
+        })
 
         console.log('Enriched listings:', enriched.length)
         setListings(enriched)
@@ -646,6 +660,11 @@ export default function FindScreen() {
         <FlatList
           data={filteredListings}
           keyExtractor={(item) => item.id}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          initialNumToRender={10}
+          updateCellsBatchingPeriod={50}
           renderItem={({ item }) => {
             // Normalize photo URLs - preserve R2 URLs
             const normalizePhotoUrl = (url: string): string => {

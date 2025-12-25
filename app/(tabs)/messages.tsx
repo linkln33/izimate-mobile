@@ -167,6 +167,11 @@ export default function MessagesScreen() {
       <FlatList
         data={matches}
         keyExtractor={(item) => item.id}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        initialNumToRender={10}
+        updateCellsBatchingPeriod={50}
         renderItem={({ item }) => (
           <Pressable
             style={styles.matchItem}

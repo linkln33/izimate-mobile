@@ -67,91 +67,112 @@ export default function OfferScreen() {
         setUser(userData as User)
       }
 
-      // Enrich with user/customer data and likes data
-      const enriched = await Promise.all(
-        listingsData.map(async (listing) => {
-          // Get the user's own profile data (since these are their listings)
-          const customerData = userData
+      // Batch fetch reviews for the user (all listings belong to same user)
+      let customerRating: number | undefined
+      let positivePercentage: number | undefined
+      if (userData) {
+        const { data: reviews } = await supabase
+          .from('reviews')
+          .select('rating')
+          .eq('reviewee_id', userData.id)
 
-          // Get customer rating from reviews
-          let customerRating: number | undefined
-          let positivePercentage: number | undefined
-          if (customerData) {
-            const { data: reviews } = await supabase
-              .from('reviews')
-              .select('rating')
-              .eq('reviewee_id', customerData.id)
+        if (reviews && reviews.length > 0) {
+          const avgRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
+          customerRating = Math.round(avgRating * 10) / 10
+          
+          const positiveCount = reviews.filter((r) => (r.rating || 0) >= 4).length
+          positivePercentage = Math.round((positiveCount / reviews.length) * 100)
+        }
+      }
 
-            if (reviews && reviews.length > 0) {
-              const avgRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
-              customerRating = Math.round(avgRating * 10) / 10
-              
-              const positiveCount = reviews.filter((r) => (r.rating || 0) >= 4).length
-              positivePercentage = Math.round((positiveCount / reviews.length) * 100)
-            }
+      // Batch fetch all swipes for all listings in one query
+      const listingIds = listingsData.map(l => l.id)
+      const { data: allSwipes } = await supabase
+        .from('swipes')
+        .select('listing_id, swiper_id, created_at, direction, swipe_type')
+        .in('listing_id', listingIds)
+        .in('direction', ['right', 'super'])
+
+      // Batch fetch all matches for all listings
+      const { data: allMatches } = await supabase
+        .from('matches')
+        .select('listing_id, customer_id')
+        .in('listing_id', listingIds)
+
+      // Get all unique customer IDs who liked any listing
+      const allCustomerIds = [...new Set(
+        allSwipes
+          ?.filter(s => s.swipe_type === 'customer_on_listing' && s.direction === 'right')
+          .map(s => s.swiper_id)
+          .filter(Boolean) || []
+      )]
+
+      // Batch fetch all customer user data
+      const { data: allCustomers } = allCustomerIds.length > 0
+        ? await supabase
+            .from('users')
+            .select('id, name, avatar_url, verification_status')
+            .in('id', allCustomerIds)
+        : { data: null }
+
+      // Create maps for fast lookup
+      const swipesByListing = new Map<string, typeof allSwipes>()
+      const matchesByListing = new Map<string, Set<string>>()
+      
+      if (allSwipes) {
+        allSwipes.forEach(swipe => {
+          if (!swipesByListing.has(swipe.listing_id)) {
+            swipesByListing.set(swipe.listing_id, [])
           }
-
-          // Count favorites
-          const { count } = await supabase
-            .from('swipes')
-            .select('*', { count: 'exact', head: true })
-            .eq('listing_id', listing.id)
-            .in('direction', ['right', 'super'])
-
-          // Get customers who liked
-          const { data: customerSwipes } = await supabase
-            .from('swipes')
-            .select('swiper_id, created_at')
-            .eq('listing_id', listing.id)
-            .eq('swipe_type', 'customer_on_listing')
-            .eq('direction', 'right')
-            .order('created_at', { ascending: false })
-
-          let likedByUsers: Array<{ user: User; swipedAt: string }> = []
-          if (customerSwipes && customerSwipes.length > 0) {
-            const customerIds = customerSwipes.map(s => s.swiper_id).filter(Boolean) as string[]
-
-            // Check for existing matches
-            const { data: existingMatches } = await supabase
-              .from('matches')
-              .select('customer_id')
-              .eq('listing_id', listing.id)
-              .in('customer_id', customerIds)
-
-            const approvedIds = new Set(existingMatches?.map(m => m.customer_id) || [])
-            const pendingIds = customerIds.filter(id => !approvedIds.has(id))
-
-            if (pendingIds.length > 0) {
-              const { data: users } = await supabase
-                .from('users')
-                .select('id, name, avatar_url, verification_status')
-                .in('id', pendingIds)
-
-              if (users) {
-                likedByUsers = customerSwipes
-                  .filter(s => pendingIds.includes(s.swiper_id))
-                  .map(swipe => {
-                    const userData = users.find(u => u.id === swipe.swiper_id)
-                    return userData ? {
-                      user: userData as User,
-                      swipedAt: swipe.created_at,
-                    } : null
-                  })
-                  .filter(Boolean) as Array<{ user: User; swipedAt: string }>
-              }
-            }
-          }
-
-          return {
-            ...listing,
-            customer: customerData as User | undefined,
-            customerRating,
-            positivePercentage,
-            favoritesCount: count || 0,
-            likedByUsers,
-          }
+          swipesByListing.get(swipe.listing_id)!.push(swipe)
         })
-      )
+      }
+
+      if (allMatches) {
+        allMatches.forEach(match => {
+          if (!matchesByListing.has(match.listing_id)) {
+            matchesByListing.set(match.listing_id, new Set())
+          }
+          matchesByListing.get(match.listing_id)!.add(match.customer_id)
+        })
+      }
+
+      // Enrich listings (all in-memory, no more queries)
+      const enriched = listingsData.map((listing) => {
+        const listingSwipes = swipesByListing.get(listing.id) || []
+        const listingMatches = matchesByListing.get(listing.id) || new Set()
+        
+        // Count favorites
+        const favoritesCount = listingSwipes.filter(s => 
+          s.direction === 'right' || s.direction === 'super'
+        ).length
+
+        // Get customers who liked (only pending ones)
+        const customerSwipes = listingSwipes.filter(s => 
+          s.swipe_type === 'customer_on_listing' && 
+          s.direction === 'right' &&
+          !listingMatches.has(s.swiper_id)
+        )
+
+        const likedByUsers: Array<{ user: User; swipedAt: string }> = customerSwipes
+          .map(swipe => {
+            const userData = allCustomers?.find(u => u.id === swipe.swiper_id)
+            return userData ? {
+              user: userData as User,
+              swipedAt: swipe.created_at,
+            } : null
+          })
+          .filter(Boolean) as Array<{ user: User; swipedAt: string }>
+
+        return {
+          ...listing,
+          customer: userData as User | undefined,
+          customerRating,
+          positivePercentage,
+          favoritesCount,
+          likedByUsers,
+        }
+      })
 
       setListings(enriched)
     } catch (error) {
@@ -336,6 +357,11 @@ export default function OfferScreen() {
         <FlatList
           data={listings}
           keyExtractor={(item) => item.id}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          initialNumToRender={10}
+          updateCellsBatchingPeriod={50}
           renderItem={({ item }) => {
             const likedBy = item.likedByUsers || []
             

@@ -366,6 +366,11 @@ export default function ChatScreen() {
         ref={flatListRef}
         data={messages}
         keyExtractor={(item) => item.id}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        initialNumToRender={15}
+        updateCellsBatchingPeriod={50}
         renderItem={({ item }) => {
           const isOwn = item.sender_id === user?.id
           return (

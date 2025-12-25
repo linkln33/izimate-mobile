@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, memo } from 'react'
 import { View, Text, StyleSheet, Dimensions, Image, Pressable, Linking, Platform, ActivityIndicator, ScrollView } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { Listing, User } from '@/lib/types'
@@ -79,7 +79,7 @@ function BlinkingIndicator() {
   )
 }
 
-export function ListingCard({ 
+function ListingCardComponent({ 
   listing, 
   isExpanded: externalExpanded,
   onExpandChange,
@@ -1614,4 +1614,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+})
+
+// Memoize component to prevent unnecessary re-renders
+export const ListingCard = memo(ListingCardComponent, (prevProps, nextProps) => {
+  // Only re-render if these key props change
+  return (
+    prevProps.listing.id === nextProps.listing.id &&
+    prevProps.isExpanded === nextProps.isExpanded &&
+    prevProps.showActions === nextProps.showActions &&
+    prevProps.showLikeButtons === nextProps.showLikeButtons &&
+    prevProps.showBookingButton === nextProps.showBookingButton &&
+    prevProps.isOwnListing === nextProps.isOwnListing &&
+    prevProps.userCurrency === nextProps.userCurrency &&
+    prevProps.userCountry === nextProps.userCountry
+  )
 })
