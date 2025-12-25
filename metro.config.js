@@ -10,6 +10,8 @@ config.resolver = {
   ...config.resolver,
   alias: {
     '@': path.resolve(__dirname, '.'),
+    // Alias react-native-linear-gradient to expo-linear-gradient for Expo compatibility
+    'react-native-linear-gradient': 'expo-linear-gradient',
   },
 };
 

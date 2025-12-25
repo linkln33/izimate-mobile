@@ -9,6 +9,7 @@ interface CollapsibleSectionProps {
   badge?: number
   children: React.ReactNode
   defaultExpanded?: boolean
+  iconColor?: string
 }
 
 export function CollapsibleSection({
@@ -17,6 +18,7 @@ export function CollapsibleSection({
   badge,
   children,
   defaultExpanded = false,
+  iconColor,
 }: CollapsibleSectionProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
   const rotation = useSharedValue(defaultExpanded ? 1 : 0)
@@ -53,7 +55,7 @@ export function CollapsibleSection({
           <Ionicons
             name={icon as any}
             size={22}
-            color={isExpanded ? '#f25842' : '#6b7280'}
+            color={iconColor || (isExpanded ? '#f25842' : '#6b7280')}
           />
           <Text style={[styles.title, isExpanded && styles.activeTitle]}>
             {title}

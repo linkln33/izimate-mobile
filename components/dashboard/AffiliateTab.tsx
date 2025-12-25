@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as Clipboard from 'expo-clipboard'
 import { supabase } from '@/lib/supabase'
+import { formatCurrency, getUserCurrency } from '@/lib/utils/currency'
 import type { User, Affiliate, Referral } from '@/lib/types'
 
 interface Props {
@@ -476,7 +477,7 @@ export function AffiliateTab({ user }: Props) {
           <Ionicons name="people" size={64} color="#f25842" />
           <Text style={styles.welcomeTitle}>Join the Affiliate Program</Text>
           <Text style={styles.welcomeText}>
-            Earn £3 per signup + 10% recurring! Refer friends and colleagues to start earning.
+            Earn {formatCurrency(3, user?.currency || 'GBP')} per signup + 10% recurring! Refer friends and colleagues to start earning.
           </Text>
           <Pressable
             style={({ pressed }) => [
@@ -535,6 +536,13 @@ export function AffiliateTab({ user }: Props) {
   const oneTimeEarnings = referrals.reduce((sum, r) => sum + (r.one_time_commission_paid ? r.one_time_commission_amount : 0), 0)
   const recurringEarnings = referrals.reduce((sum, r) => sum + r.recurring_commission_total, 0)
 
+  // Get user currency
+  const userCurrency = user ? getUserCurrency(user.currency, user.country) : 'GBP'
+  
+  if (__DEV__ && user) {
+    console.log('💰 AffiliateTab: Using currency:', userCurrency, 'from user.currency:', user.currency, 'user.country:', user.country)
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Stats */}
@@ -552,7 +560,7 @@ export function AffiliateTab({ user }: Props) {
           <Text style={styles.statLabel}>Conversion</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>£{affiliate.total_earnings.toFixed(2)}</Text>
+          <Text style={styles.statValue}>{formatCurrency(affiliate.total_earnings, userCurrency)}</Text>
           <Text style={styles.statLabel}>Total Earnings</Text>
         </View>
       </View>
@@ -562,11 +570,11 @@ export function AffiliateTab({ user }: Props) {
         <Text style={styles.sectionTitle}>Earnings Breakdown</Text>
         <View style={styles.breakdownRow}>
           <Text style={styles.breakdownLabel}>One-time Commissions:</Text>
-          <Text style={styles.breakdownValue}>£{oneTimeEarnings.toFixed(2)}</Text>
+          <Text style={styles.breakdownValue}>{formatCurrency(oneTimeEarnings, userCurrency)}</Text>
         </View>
         <View style={styles.breakdownRow}>
           <Text style={styles.breakdownLabel}>Recurring Commissions:</Text>
-          <Text style={styles.breakdownValue}>£{recurringEarnings.toFixed(2)}</Text>
+          <Text style={styles.breakdownValue}>{formatCurrency(recurringEarnings, userCurrency)}</Text>
         </View>
       </View>
 
@@ -605,7 +613,7 @@ export function AffiliateTab({ user }: Props) {
       <View style={styles.tierCard}>
         <Text style={styles.tierTitle}>Affiliate Program</Text>
         <Text style={styles.tierDescription}>
-          Earn £3 per signup + 10% recurring commissions from all your referrals
+          Earn {formatCurrency(3, userCurrency)} per signup + 10% recurring commissions from all your referrals
         </Text>
         <Text style={styles.proUserNote}>*Available to Pro Users</Text>
       </View>
@@ -637,7 +645,7 @@ export function AffiliateTab({ user }: Props) {
               ) : (
                 <>
                   <Text style={styles.requestPayoutText}>Request Payout</Text>
-                  <Text style={styles.requestPayoutAmount}>£{affiliate.pending_earnings.toFixed(2)}</Text>
+                  <Text style={styles.requestPayoutAmount}>{formatCurrency(affiliate.pending_earnings, userCurrency)}</Text>
                 </>
               )}
             </Pressable>
@@ -673,18 +681,18 @@ export function AffiliateTab({ user }: Props) {
                     </Text>
                     <Text style={styles.historyItemCode}>Code: {referral.referral_code}</Text>
                   </View>
-                  <Text style={styles.historyItemAmount}>£{referral.total_earned.toFixed(2)}</Text>
+                  <Text style={styles.historyItemAmount}>{formatCurrency(referral.total_earned, userCurrency)}</Text>
                 </View>
                 <View style={styles.historyItemDetails}>
                   {referral.one_time_commission_amount > 0 && (
                     <Text style={styles.historyItemDetail}>
-                      One-time: £{referral.one_time_commission_amount.toFixed(2)} 
+                      One-time: {formatCurrency(referral.one_time_commission_amount, userCurrency)} 
                       {referral.one_time_commission_paid ? ' ✓ Paid' : ' ⏳ Pending'}
                     </Text>
                   )}
                   {referral.recurring_commission_total > 0 && (
                     <Text style={styles.historyItemDetail}>
-                      Recurring: £{referral.recurring_commission_total.toFixed(2)} 
+                      Recurring: {formatCurrency(referral.recurring_commission_total, userCurrency)} 
                       ({referral.recurring_commission_months} months)
                     </Text>
                   )}
@@ -734,16 +742,16 @@ export function AffiliateTab({ user }: Props) {
               )}
               <View style={styles.referralEarningsBreakdown}>
                 <Text style={styles.referralItemEarnings}>
-                  Total: £{referral.total_earned.toFixed(2)}
+                  Total: {formatCurrency(referral.total_earned, userCurrency)}
                 </Text>
                 {referral.one_time_commission_amount > 0 && (
                   <Text style={styles.referralItemDetail}>
-                    One-time: £{referral.one_time_commission_amount.toFixed(2)}
+                    One-time: {formatCurrency(referral.one_time_commission_amount, userCurrency)}
                   </Text>
                 )}
                 {referral.recurring_commission_total > 0 && (
                   <Text style={styles.referralItemDetail}>
-                    Recurring: £{referral.recurring_commission_total.toFixed(2)} ({referral.recurring_commission_months} months)
+                    Recurring: {formatCurrency(referral.recurring_commission_total, userCurrency)} ({referral.recurring_commission_months} months)
                   </Text>
                 )}
               </View>

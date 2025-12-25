@@ -3,7 +3,7 @@
  * Revenue, bookings, and performance analytics for providers
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,10 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { formatCurrency, getUserCurrency } from '@/lib/utils/currency';
+import type { User } from '@/lib/types';
 
 interface BusinessAnalyticsProps {
   userId: string;
@@ -36,6 +39,7 @@ export const BusinessAnalytics: React.FC<BusinessAnalyticsProps> = ({
   userId,
 }) => {
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalRevenue: 0,
     totalBookings: 0,
@@ -48,9 +52,45 @@ export const BusinessAnalytics: React.FC<BusinessAnalyticsProps> = ({
   });
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month');
 
+  // Get user currency - default to GBP if user not loaded yet
+  const userCurrency = user ? getUserCurrency(user.currency, user.country) : 'GBP';
+  
+  if (__DEV__ && user) {
+    console.log('📊 BusinessAnalytics: Using currency:', userCurrency, 'from user.currency:', user.currency, 'user.country:', user.country);
+  }
+
   useEffect(() => {
+    loadUser();
     loadAnalytics();
   }, [timeRange]);
+
+  // Reload user data when component comes into focus (e.g., after currency change)
+  useFocusEffect(
+    useCallback(() => {
+      loadUser();
+    }, [userId])
+  );
+
+  const loadUser = async () => {
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (userData) {
+        if (__DEV__) {
+          console.log('📊 BusinessAnalytics: Loaded user currency:', userData.currency);
+        }
+        setUser(userData as User);
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error loading user:', error);
+      }
+    }
+  };
 
   const loadAnalytics = async () => {
     try {
@@ -213,7 +253,7 @@ export const BusinessAnalytics: React.FC<BusinessAnalyticsProps> = ({
       <View style={styles.metricsGrid}>
         <View style={[styles.metricCard, { backgroundColor: '#f0fdf4' }]}>
           <Ionicons name="cash" size={20} color="#10b981" />
-          <Text style={styles.metricValue}>£{analytics.totalRevenue.toFixed(2)}</Text>
+          <Text style={styles.metricValue}>{formatCurrency(analytics.totalRevenue, userCurrency)}</Text>
           <Text style={styles.metricLabel}>Total Revenue</Text>
         </View>
 
@@ -242,7 +282,7 @@ export const BusinessAnalytics: React.FC<BusinessAnalyticsProps> = ({
           <Ionicons name="trending-up" size={20} color="#6b7280" />
           <Text style={styles.avgLabel}>Average Booking Value</Text>
         </View>
-        <Text style={styles.avgValue}>£{analytics.averageBookingValue.toFixed(2)}</Text>
+        <Text style={styles.avgValue}>{formatCurrency(analytics.averageBookingValue, userCurrency)}</Text>
       </View>
 
       {/* Top Services */}
@@ -257,11 +297,11 @@ export const BusinessAnalytics: React.FC<BusinessAnalyticsProps> = ({
               <View style={styles.serviceInfo}>
                 <Text style={styles.serviceName}>{service.name}</Text>
                 <Text style={styles.serviceStats}>
-                  {service.count} booking{service.count !== 1 ? 's' : ''} • £{service.revenue.toFixed(2)}
+                  {service.count} booking{service.count !== 1 ? 's' : ''} • {formatCurrency(service.revenue, userCurrency)}
                 </Text>
               </View>
               <View style={styles.serviceRevenue}>
-                <Text style={styles.serviceRevenueText}>£{service.revenue.toFixed(2)}</Text>
+                <Text style={styles.serviceRevenueText}>{formatCurrency(service.revenue, userCurrency)}</Text>
               </View>
             </View>
           ))}
@@ -279,7 +319,7 @@ export const BusinessAnalytics: React.FC<BusinessAnalyticsProps> = ({
               
               return (
                 <View key={index} style={styles.chartBar}>
-                  <Text style={styles.chartValue}>£{item.revenue.toFixed(0)}</Text>
+                  <Text style={styles.chartValue}>{formatCurrency(item.revenue, userCurrency)}</Text>
                   <View style={[styles.bar, { height: Math.max(height, 20) }]} />
                   <Text style={styles.chartLabel}>{item.month}</Text>
                 </View>

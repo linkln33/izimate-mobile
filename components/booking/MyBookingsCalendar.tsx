@@ -4,7 +4,6 @@ import {
   Text,
   Pressable,
   ScrollView,
-  ActivityIndicator,
   StyleSheet,
   Dimensions,
   Alert,
@@ -15,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { QuickEventForm } from './QuickEventForm';
 import type { Booking, Listing, User } from '@/lib/types';
+import { SkeletonLoader } from '@/components/common/SkeletonLoader';
+import { triggerLight } from '@/lib/utils/haptics';
 
 const { width } = Dimensions.get('window');
 const CALENDAR_WIDTH = width - 40;
@@ -293,9 +294,8 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#f25842" />
-        <Text style={styles.loadingText}>Loading your bookings...</Text>
+      <View style={styles.container}>
+        <SkeletonLoader type="calendar" count={5} />
       </View>
     );
   }

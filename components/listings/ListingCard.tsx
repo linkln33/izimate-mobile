@@ -7,6 +7,7 @@ import { formatBudget, getCurrencyFromUser } from '@/lib/utils/price'
 import { formatDate, formatRelativeTime } from '@/lib/utils/date'
 import { getUserCurrency } from '@/lib/utils/currency'
 import { useRouter } from 'expo-router'
+import { triggerLight, triggerSuccess } from '@/lib/utils/haptics'
 
 const getDimensions = () => Dimensions.get('window')
 
@@ -435,14 +436,17 @@ export function ListingCard({
               {(listing.location_lat && listing.location_lng) && (
                 <Pressable
                   onPress={async () => {
+                    triggerLight()
                     const wazeUrl = `https://waze.com/ul?ll=${listing.location_lat},${listing.location_lng}&navigate=yes&utm_source=izimate-job`
                     try {
                       const canOpen = await Linking.canOpenURL(wazeUrl)
                       if (canOpen) {
                         await Linking.openURL(wazeUrl)
+                        triggerSuccess()
                       } else {
                         // Fallback: try to open in browser
                         await Linking.openURL(wazeUrl)
+                        triggerSuccess()
                       }
                     } catch (error) {
                       console.error('Failed to open Waze:', error)
@@ -725,6 +729,7 @@ export function ListingCard({
                     <Pressable
                       style={styles.applyButton}
                       onPress={() => {
+                        triggerSuccess()
                         // Trigger like action (which creates an application/interest)
                         if (onLike) {
                           onLike(listing.id)
@@ -754,11 +759,13 @@ export function ListingCard({
                       <Pressable
                         style={styles.mapButton}
                         onPress={async () => {
+                          triggerLight()
                           const mapsUrl = Platform.OS === 'ios' 
                             ? `http://maps.apple.com/?q=${listing.location_lat},${listing.location_lng}`
                             : `https://www.google.com/maps/search/?api=1&query=${listing.location_lat},${listing.location_lng}`
                           try {
                             await Linking.openURL(mapsUrl)
+                            triggerSuccess()
                           } catch (error) {
                             console.error('Failed to open Maps:', error)
                           }
@@ -771,9 +778,11 @@ export function ListingCard({
                       <Pressable
                         style={styles.wazeButton}
                         onPress={async () => {
+                          triggerLight()
                           const wazeUrl = `https://waze.com/ul?ll=${listing.location_lat},${listing.location_lng}&navigate=yes&utm_source=izimate-job`
                           try {
                             await Linking.openURL(wazeUrl)
+                            triggerSuccess()
                           } catch (error) {
                             console.error('Failed to open Waze:', error)
                           }
@@ -837,7 +846,10 @@ export function ListingCard({
               {/* Dislike Button */}
               <Pressable
                 style={styles.dislikeButton}
-                onPress={() => onDislike?.(listing.id)}
+                onPress={() => {
+                  triggerLight()
+                  onDislike?.(listing.id)
+                }}
               >
                 <Ionicons name="close" size={24} color="#ef4444" />
               </Pressable>
@@ -845,7 +857,10 @@ export function ListingCard({
               {/* Chat/Message Button */}
               <Pressable
                 style={styles.chatButton}
-                onPress={() => onChat?.(listing.id)}
+                onPress={() => {
+                  triggerLight()
+                  onChat?.(listing.id)
+                }}
               >
                 <Ionicons name="chatbubble-ellipses-outline" size={18} color="#f59e0b" />
               </Pressable>
@@ -867,7 +882,10 @@ export function ListingCard({
               {/* Like Button */}
               <Pressable
                 style={styles.likeButton}
-                onPress={() => onLike?.(listing.id)}
+                onPress={() => {
+                  triggerSuccess()
+                  onLike?.(listing.id)
+                }}
               >
                 <Ionicons name="heart-outline" size={18} color="#10b981" />
               </Pressable>

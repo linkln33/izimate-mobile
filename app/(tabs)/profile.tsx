@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, ActivityIndicator, Alert, Image, Platform } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useRouter, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import { supabase } from '@/lib/supabase'
@@ -48,6 +48,39 @@ export default function ProfileScreen() {
   useEffect(() => {
     loadUserData()
   }, [])
+
+  // Reload user data when screen comes into focus (e.g., after currency change)
+  useFocusEffect(
+    useCallback(() => {
+      const reloadUser = async () => {
+        try {
+          const { data: { user: authUser } } = await supabase.auth.getUser()
+          if (!authUser) return
+
+          const { data: userData } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', authUser.id)
+            .single()
+
+          if (userData) {
+            setUser(userData)
+            // Also update form fields if needed
+            setName(userData.name || '')
+            setBio(userData.bio || '')
+            setPhone(userData.phone || '')
+            setAvatarUrl(userData.avatar_url || '')
+            setLocation(userData.location_address || '')
+          }
+        } catch (error) {
+          if (__DEV__) {
+            console.error('Error reloading user:', error)
+          }
+        }
+      }
+      reloadUser()
+    }, [])
+  )
 
   const loadUserData = async () => {
     try {

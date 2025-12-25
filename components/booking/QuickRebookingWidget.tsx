@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import type { Booking, User, Listing } from '@/lib/types'
+import { SkeletonLoader } from '@/components/common/SkeletonLoader'
+import { triggerLight, triggerSuccess } from '@/lib/utils/haptics'
 
 interface QuickRebookingItem {
   id: string
@@ -260,14 +262,18 @@ export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWid
   }
 
   const handleViewBooking = (bookingId: string) => {
+    triggerLight()
     router.push(`/bookings/${bookingId}`)
   }
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color="#f25842" />
-        <Text style={styles.loadingText}>Loading your favorites...</Text>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Upcoming Bookings</Text>
+          <Text style={styles.headerSubtitle}>Your scheduled appointments</Text>
+        </View>
+        <SkeletonLoader type="booking" count={3} />
       </View>
     )
   }

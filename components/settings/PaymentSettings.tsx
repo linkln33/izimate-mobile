@@ -3,6 +3,9 @@ import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, Alert, Modal,
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from 'react-i18next';
+import { useFocusEffect } from 'expo-router';
+import { CURRENCIES, type CurrencyCode } from '@/lib/utils/currency';
+import { triggerLight, triggerSuccess } from '@/lib/utils/haptics';
 
 interface PaymentMethod {
   id: string;
@@ -17,8 +20,11 @@ export const PaymentSettings: React.FC = () => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingCurrency, setSavingCurrency] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [showBankModal, setShowBankModal] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>('GBP');
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   
   // Bank account form state
   const [bankForm, setBankForm] = useState({
@@ -32,7 +38,36 @@ export const PaymentSettings: React.FC = () => {
 
   useEffect(() => {
     loadPaymentMethods();
+    loadUserCurrency();
   }, []);
+
+  // Reload currency when screen comes into focus (in case it was changed elsewhere)
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserCurrency();
+    }, [])
+  );
+
+  const loadUserCurrency = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('currency')
+        .eq('id', user.id)
+        .single();
+
+      if (userData?.currency) {
+        setSelectedCurrency(userData.currency as CurrencyCode);
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error loading user currency:', error);
+      }
+    }
+  };
 
   const loadPaymentMethods = async () => {
     try {
@@ -58,9 +93,50 @@ export const PaymentSettings: React.FC = () => {
         ]);
       }
     } catch (error) {
-      console.error('Error loading payment methods:', error);
+      if (__DEV__) {
+        console.error('Error loading payment methods:', error);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCurrencyChange = async (currency: CurrencyCode) => {
+    try {
+      setSavingCurrency(true);
+      triggerLight();
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      if (__DEV__) {
+        console.log('💱 Saving currency:', currency, 'for user:', user.id);
+      }
+
+      const { data, error } = await supabase
+        .from('users')
+        .update({ currency })
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (__DEV__) {
+        console.log('✅ Currency saved successfully:', data?.currency);
+      }
+
+      setSelectedCurrency(currency);
+      setShowCurrencyModal(false);
+      triggerSuccess();
+      Alert.alert('Success', `Currency changed to ${CURRENCIES.find(c => c.code === currency)?.name || currency}. All prices will now display in ${currency}.`);
+    } catch (error) {
+      if (__DEV__) {
+        console.error('❌ Error saving currency:', error);
+      }
+      Alert.alert('Error', 'Failed to update currency preference');
+    } finally {
+      setSavingCurrency(false);
     }
   };
 
@@ -234,9 +310,44 @@ export const PaymentSettings: React.FC = () => {
     );
   }
 
+  const currentCurrency = CURRENCIES.find(c => c.code === selectedCurrency);
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>{t('payment.title')}</Text>
+
+      {/* Currency Selector */}
+      <View style={styles.currencyCard}>
+        <View style={styles.currencyHeader}>
+          <View style={styles.currencyIconContainer}>
+            <Ionicons name="cash-outline" size={24} color="#f25842" />
+          </View>
+          <View style={styles.currencyInfo}>
+            <Text style={styles.currencyLabel}>Display Currency</Text>
+            <Text style={styles.currencyDescription}>
+              Choose the currency for displaying prices throughout the app
+            </Text>
+          </View>
+        </View>
+        <Pressable
+          style={styles.currencySelector}
+          onPress={() => {
+            triggerLight();
+            setShowCurrencyModal(true);
+          }}
+        >
+          <View style={styles.currencySelectorContent}>
+            <Text style={styles.currencyFlag}>{currentCurrency?.flag || '💰'}</Text>
+            <View style={styles.currencySelectorText}>
+              <Text style={styles.currencySelectorName}>
+                {currentCurrency?.name || selectedCurrency}
+              </Text>
+              <Text style={styles.currencySelectorCode}>{selectedCurrency}</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#6b7280" />
+        </Pressable>
+      </View>
 
       {/* Revolut */}
       <View style={styles.methodCard}>
@@ -428,6 +539,68 @@ export const PaymentSettings: React.FC = () => {
           </ScrollView>
         </View>
       </Modal>
+
+      {/* Currency Selection Modal */}
+      <Modal
+        visible={showCurrencyModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowCurrencyModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Currency</Text>
+            <Pressable onPress={() => setShowCurrencyModal(false)}>
+              <Ionicons name="close" size={24} color="#000" />
+            </Pressable>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            {CURRENCIES.map((currency) => {
+              const isSelected = selectedCurrency === currency.code;
+              return (
+                <Pressable
+                  key={currency.code}
+                  style={[
+                    styles.currencyOption,
+                    isSelected && styles.currencyOptionSelected,
+                  ]}
+                  onPress={() => handleCurrencyChange(currency.code)}
+                  disabled={savingCurrency}
+                >
+                  <View style={styles.currencyOptionContent}>
+                    <Text style={styles.currencyOptionFlag}>{currency.flag}</Text>
+                    <View style={styles.currencyOptionText}>
+                      <Text
+                        style={[
+                          styles.currencyOptionName,
+                          isSelected && styles.currencyOptionNameSelected,
+                        ]}
+                      >
+                        {currency.name}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.currencyOptionCode,
+                          isSelected && styles.currencyOptionCodeSelected,
+                        ]}
+                      >
+                        {currency.code} • {currency.symbol}
+                      </Text>
+                    </View>
+                  </View>
+                  {isSelected && (
+                    <Ionicons name="checkmark-circle" size={24} color="#f25842" />
+                  )}
+                  {savingCurrency && isSelected && (
+                    <ActivityIndicator size="small" color="#f25842" style={{ marginLeft: 8 }} />
+                  )}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -570,6 +743,118 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  currencyCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  currencyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  currencyIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fef2f2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  currencyInfo: {
+    flex: 1,
+  },
+  currencyLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  currencyDescription: {
+    fontSize: 13,
+    color: '#6b7280',
+    lineHeight: 18,
+  },
+  currencySelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  currencySelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  currencyFlag: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  currencySelectorText: {
+    flex: 1,
+  },
+  currencySelectorName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 2,
+  },
+  currencySelectorCode: {
+    fontSize: 13,
+    color: '#6b7280',
+  },
+  currencyOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  currencyOptionSelected: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#f25842',
+  },
+  currencyOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  currencyOptionFlag: {
+    fontSize: 28,
+    marginRight: 12,
+  },
+  currencyOptionText: {
+    flex: 1,
+  },
+  currencyOptionName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  currencyOptionNameSelected: {
+    color: '#f25842',
+  },
+  currencyOptionCode: {
+    fontSize: 13,
+    color: '#6b7280',
+  },
+  currencyOptionCodeSelected: {
+    color: '#dc2626',
   },
 });
 

@@ -2,6 +2,7 @@ import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
 import { View, ActivityIndicator } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useNotificationManager } from '@/lib/utils/notification-manager'
 import { loadLanguage } from '@/lib/i18n/config'
 
@@ -30,7 +31,7 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -50,6 +51,6 @@ export default function RootLayout() {
         {/* Offer screen is accessed through (tabs)/offer to show tab bar */}
       </Stack>
       <StatusBar style="dark" />
-    </>
+    </GestureHandlerRootView>
   )
 }

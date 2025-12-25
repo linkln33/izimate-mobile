@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { CustomerProfile } from './CustomerProfile';
 
 interface CustomerManagementProps {
   userId: string;
@@ -41,6 +42,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'bookings' | 'spent'>('name');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   useEffect(() => {
     loadCustomers();
@@ -223,6 +225,18 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
     );
   }
 
+  // Show customer profile if selected
+  if (selectedCustomer) {
+    return (
+      <CustomerProfile
+        customerId={selectedCustomer.isGuest ? undefined : selectedCustomer.id}
+        guestCustomerId={selectedCustomer.isGuest ? selectedCustomer.id : undefined}
+        providerId={userId}
+        onBack={() => setSelectedCustomer(null)}
+      />
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -339,13 +353,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
 
               <Pressable
                 style={styles.actionButton}
-                onPress={() => {
-                  Alert.alert(
-                    customer.name,
-                    `Total Bookings: ${customer.totalBookings}\nCompleted: ${customer.completedBookings}\nTotal Spent: £${customer.totalSpent.toFixed(2)}`,
-                    [{ text: 'OK' }]
-                  );
-                }}
+                onPress={() => setSelectedCustomer(customer)}
               >
                 <Ionicons name="chevron-forward" size={20} color="#6b7280" />
               </Pressable>

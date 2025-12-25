@@ -1,13 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, RefreshControl, Platform } from 'react-native'
-import { useRouter, useLocalSearchParams } from 'expo-router'
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase'
 import { getUnreadNotificationCount } from '@/lib/utils/notifications'
 import { BillingTab } from '@/components/dashboard/BillingTab'
 import { AffiliateTab } from '@/components/dashboard/AffiliateTab'
 import { VerificationTab } from '@/components/dashboard/VerificationTab'
-import { SettingsTab } from '@/components/dashboard/SettingsTab'
 import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { QuickRebookingWidget } from '@/components/booking/QuickRebookingWidget'
@@ -30,7 +29,6 @@ export default function DashboardScreen() {
   const { t } = useTranslation()
   const router = useRouter()
   const params = useLocalSearchParams()
-  const [activeSettingsSection, setActiveSettingsSection] = useState<'profile' | 'payment' | 'language'>('profile')
   
   const [user, setUser] = useState<User | null>(null)
   const [listings, setListings] = useState<Listing[]>([])
@@ -50,14 +48,34 @@ export default function DashboardScreen() {
     loadDashboardData()
   }, [])
 
-  // Handle section from query params
-  useEffect(() => {
-    if (params.section === 'payment') {
-      setActiveSettingsSection('payment')
-    } else if (params.section === 'language') {
-      setActiveSettingsSection('language')
-    }
-  }, [params.section])
+  // Reload user data when screen comes into focus (e.g., after currency change)
+  useFocusEffect(
+    useCallback(() => {
+      // Only reload user data, not all dashboard data
+      const reloadUser = async () => {
+        try {
+          const { data: { user: authUser } } = await supabase.auth.getUser()
+          if (!authUser) return
+
+          const { data: userData } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', authUser.id)
+            .single()
+
+          if (userData) {
+            setUser(userData)
+          }
+        } catch (error) {
+          if (__DEV__) {
+            console.error('Error reloading user:', error)
+          }
+        }
+      }
+      reloadUser()
+    }, [])
+  )
+
 
   const loadDashboardData = async () => {
     try {
@@ -211,6 +229,7 @@ export default function DashboardScreen() {
         <CollapsibleSection
           title={t('dashboard.overview')}
           icon="home"
+          iconColor="#3b82f6"
           defaultExpanded={true}
         >
           <OverviewTab
@@ -227,6 +246,7 @@ export default function DashboardScreen() {
         <CollapsibleSection
           title={t('dashboard.billing')}
           icon="card"
+          iconColor="#10b981"
         >
           <BillingTab user={user} />
         </CollapsibleSection>
@@ -235,6 +255,7 @@ export default function DashboardScreen() {
         <CollapsibleSection
           title={t('dashboard.affiliate')}
           icon="people"
+          iconColor="#8b5cf6"
           defaultExpanded={params.section === 'affiliate'}
         >
           <AffiliateTab user={user} />
@@ -244,31 +265,17 @@ export default function DashboardScreen() {
         <CollapsibleSection
           title={t('dashboard.verification')}
           icon="shield-checkmark"
+          iconColor="#f59e0b"
         >
           <VerificationTab user={user} />
         </CollapsibleSection>
 
-        {/* Settings Section */}
+        {/* My Bookings Section - Customer bookings */}
         {user && (
         <CollapsibleSection
-          title={t('dashboard.settings')}
-          icon="settings"
-          defaultExpanded={params.section === 'payment' || params.section === 'language'}
-        >
-          <SettingsTab 
-            user={user} 
-            onUserUpdate={setUser}
-            initialSection={activeSettingsSection}
-            onSectionChange={setActiveSettingsSection}
-          />
-        </CollapsibleSection>
-        )}
-
-        {/* Unified Bookings Section */}
-        {user && (
-        <CollapsibleSection
-            title={t('dashboard.bookings')}
+            title="My Bookings"
           icon="calendar"
+          iconColor="#14b8a6"
         >
             <UnifiedBookingsTab 
               userId={user.id}
@@ -276,11 +283,12 @@ export default function DashboardScreen() {
         </CollapsibleSection>
         )}
 
-        {/* Business Bookings Section - Only show if user has active listings */}
+        {/* Business Section - Provider business management */}
         {user && listings.length > 0 && (
         <CollapsibleSection
-            title={t('dashboard.bookings')}
+            title="Business"
           icon="briefcase"
+          iconColor="#6366f1"
         >
             <BusinessBookingsTab 
               userId={user.id}
