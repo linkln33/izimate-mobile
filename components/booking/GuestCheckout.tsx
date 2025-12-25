@@ -336,8 +336,8 @@ export function GuestCheckout({
               numberOfLines={2}
               textAlignVertical="top"
             />
-            <Pressable
-              style={styles.detectLocationButton}
+            <Button
+              mode="outlined"
               onPress={async () => {
                 try {
                   setDetectingLocation(true)
@@ -358,38 +358,13 @@ export function GuestCheckout({
                   setDetectingLocation(false)
                 }
               }}
+              loading={detectingLocation}
               disabled={detectingLocation}
+              icon="map-marker"
+              style={styles.detectLocationButton}
             >
-              <Button
-                mode="outlined"
-                onPress={async () => {
-                  try {
-                    setDetectingLocation(true)
-                    const location = await getCurrentLocation()
-                    const address = await reverseGeocode(location.lat, location.lng)
-                    setGuestInfo(prev => ({
-                      ...prev,
-                      serviceAddress: address,
-                      serviceAddressLat: location.lat,
-                      serviceAddressLng: location.lng
-                    }))
-                  } catch (error) {
-                    if (__DEV__) {
-                      console.error('Error detecting location:', error)
-                    }
-                    Alert.alert('Error', 'Failed to detect location. Please enter address manually.')
-                  } finally {
-                    setDetectingLocation(false)
-                  }
-                }}
-                loading={detectingLocation}
-                disabled={detectingLocation}
-                icon="map-marker"
-                style={styles.detectLocationButton}
-              >
-                Use My Location
-              </Button>
-            </Pressable>
+              Use My Location
+            </Button>
           </View>
 
           <View style={styles.inputGroup}>

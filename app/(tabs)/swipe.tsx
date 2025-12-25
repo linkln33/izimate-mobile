@@ -351,8 +351,7 @@ export default function FindScreen() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#f25842" />
-        <Text style={styles.loadingText}>Loading listings...</Text>
+        <SkeletonLoader type="card" count={3} />
       </View>
     )
   }
