@@ -197,8 +197,7 @@ export default function DashboardScreen() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#f25842" />
-        <Text style={styles.loadingText}>{t('common.loading')}</Text>
+        <SkeletonLoader type="card" count={3} />
       </View>
     )
   }
