@@ -124,6 +124,66 @@ export function GuestCheckout({
 
     setLoading(true)
     try {
+      // Get provider profile ID (bookings.provider_id references provider_profiles.id, not users.id)
+      let providerProfileId: string | null = null
+      
+      try {
+        // Try database function first
+        const { data: profileData, error: functionError } = await supabase
+          .rpc('get_provider_profile_id', { p_user_id: provider.id })
+
+        if (!functionError && profileData) {
+          providerProfileId = profileData
+        } else {
+          // Fallback: direct query
+          const { data: providerProfile, error: profileError } = await supabase
+            .from('provider_profiles')
+            .select('id')
+            .eq('user_id', provider.id)
+            .maybeSingle()
+
+          if (providerProfile) {
+            providerProfileId = providerProfile.id
+          }
+        }
+      } catch (error) {
+        console.error('Error getting provider profile:', error)
+      }
+
+      if (!providerProfileId) {
+        Alert.alert('Error', 'Provider profile not found. Please contact support.')
+        setLoading(false)
+        return
+      }
+
+      // Get service duration from service_settings
+      let serviceDuration = 60 // Default 1 hour
+      try {
+        const { data: serviceSettings } = await supabase
+          .from('service_settings')
+          .select('default_duration_minutes, service_options')
+          .eq('listing_id', listing.id)
+          .maybeSingle()
+
+        if (serviceSettings) {
+          // Try to find duration from service_options matching serviceName
+          if (serviceSettings.service_options && Array.isArray(serviceSettings.service_options)) {
+            const matchingService = serviceSettings.service_options.find(
+              (opt: any) => opt.name === serviceName
+            )
+            if (matchingService?.duration) {
+              serviceDuration = matchingService.duration
+            } else if (serviceSettings.default_duration_minutes) {
+              serviceDuration = serviceSettings.default_duration_minutes
+            }
+          } else if (serviceSettings.default_duration_minutes) {
+            serviceDuration = serviceSettings.default_duration_minutes
+          }
+        }
+      } catch (error) {
+        console.warn('Error getting service duration, using default:', error)
+      }
+
       // Create a temporary guest user record
       const { data: guestUser, error: userError } = await supabase
         .from('guest_users')
@@ -142,16 +202,16 @@ export function GuestCheckout({
         throw new Error('Failed to create guest user')
       }
 
-      // Create the booking
+      // Create the booking with correct duration
       const bookingDateTime = new Date(`${selectedDate}T${selectedTime}`)
-      const endDateTime = new Date(bookingDateTime.getTime() + 60 * 60 * 1000) // Default 1 hour duration
+      const endDateTime = new Date(bookingDateTime.getTime() + serviceDuration * 60 * 1000)
 
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
           listing_id: listing.id,
-          provider_id: provider.id,
-          customer_id: guestUser.id,
+          provider_id: providerProfileId, // Use provider_profile.id, not user.id
+          guest_customer_id: guestUser.id, // For guest bookings
           guest_booking: true,
           start_time: bookingDateTime.toISOString(),
           end_time: endDateTime.toISOString(),

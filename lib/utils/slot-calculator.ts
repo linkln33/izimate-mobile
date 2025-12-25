@@ -118,15 +118,17 @@ export class SlotCalculator {
     listingId: string,
     date: string // YYYY-MM-DD format
   ): Promise<BusyTime[]> {
-    const startOfDay = `${date}T00:00:00`;
-    const endOfDay = `${date}T23:59:59`;
+    // Use ISO datetime strings for date range (consistent with database schema)
+    const startOfDay = new Date(`${date}T00:00:00`).toISOString();
+    const endOfDay = new Date(`${date}T23:59:59`).toISOString();
 
-    // Get existing bookings
+    // Get existing bookings (using ISO datetime strings)
     const { data: bookings } = await supabase
       .from('bookings')
-      .select('booking_date, start_time, end_time, service_name, status')
+      .select('start_time, end_time, service_name, status')
       .eq('provider_id', providerId)
-      .eq('booking_date', date)
+      .gte('start_time', startOfDay)
+      .lte('start_time', endOfDay)
       .in('status', ['pending', 'confirmed']);
 
     // Get external calendar busy times
@@ -141,12 +143,12 @@ export class SlotCalculator {
 
     const busyTimes: BusyTime[] = [];
 
-    // Add bookings as busy times
+    // Add bookings as busy times (start_time and end_time are already ISO strings)
     if (bookings) {
       bookings.forEach(booking => {
         busyTimes.push({
-          start_time: `${booking.booking_date}T${booking.start_time}`,
-          end_time: `${booking.booking_date}T${booking.end_time}`,
+          start_time: booking.start_time, // Already ISO datetime string
+          end_time: booking.end_time, // Already ISO datetime string
           title: booking.service_name || 'Booking',
           source: 'booking'
         });
@@ -263,7 +265,7 @@ export class SlotCalculator {
       return [];
     }
 
-    // Get provider ID from listing
+    // Get provider profile ID from listing (bookings.provider_id references provider_profiles.id)
     const { data: listing } = await supabase
       .from('listings')
       .select('user_id')
@@ -274,10 +276,37 @@ export class SlotCalculator {
       return [];
     }
 
-    const providerId = listing.user_id;
+    // Get provider profile ID
+    let providerProfileId: string | null = null;
+    try {
+      // Try database function first
+      const { data: profileData } = await supabase
+        .rpc('get_provider_profile_id', { p_user_id: listing.user_id });
 
-    // Get busy times for this date
-    const busyTimes = await this.getBusyTimes(providerId, listingId, date);
+      if (profileData) {
+        providerProfileId = profileData;
+      } else {
+        // Fallback: direct query
+        const { data: providerProfile } = await supabase
+          .from('provider_profiles')
+          .select('id')
+          .eq('user_id', listing.user_id)
+          .maybeSingle();
+
+        if (providerProfile) {
+          providerProfileId = providerProfile.id;
+        }
+      }
+    } catch (error) {
+      console.error('Error getting provider profile in calculateAvailableSlots:', error);
+    }
+
+    if (!providerProfileId) {
+      return [];
+    }
+
+    // Get busy times for this date (using provider_profile.id)
+    const busyTimes = await this.getBusyTimes(providerProfileId, listingId, date);
 
     // Use provided duration or default
     const duration = serviceDuration || settings.default_duration_minutes;
@@ -461,6 +490,36 @@ export class SlotCalculator {
         return { success: false, error: 'Listing not found' };
       }
 
+      // Get provider profile ID (bookings.provider_id references provider_profiles.id, not users.id)
+      let providerProfileId: string | null = null;
+      
+      try {
+        // Try database function first (bypasses RLS)
+        const { data: profileData, error: functionError } = await supabase
+          .rpc('get_provider_profile_id', { p_user_id: listing.user_id });
+
+        if (!functionError && profileData) {
+          providerProfileId = profileData;
+        } else {
+          // Fallback: direct query
+          const { data: providerProfile, error: profileError } = await supabase
+            .from('provider_profiles')
+            .select('id')
+            .eq('user_id', listing.user_id)
+            .maybeSingle();
+
+          if (providerProfile) {
+            providerProfileId = providerProfile.id;
+          }
+        }
+      } catch (error) {
+        console.error('Error getting provider profile:', error);
+      }
+
+      if (!providerProfileId) {
+        return { success: false, error: 'Provider profile not found' };
+      }
+
       // Verify slot is still available
       const slots = await this.calculateAvailableSlots(listingId, slotData.date);
       const requestedSlot = slots.find(slot => 
@@ -471,27 +530,28 @@ export class SlotCalculator {
         return { success: false, error: 'Time slot is no longer available' };
       }
 
-      // Calculate duration
+      // Convert to ISO datetime strings (consistent with other components)
       const startDateTime = new Date(`${slotData.date}T${slotData.startTime}`);
       const endDateTime = new Date(`${slotData.date}T${slotData.endTime}`);
-      const duration = Math.round((endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60));
+      
+      // Get timezone
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-      // Create booking
+      // Create booking with correct field format
       const { data: booking, error } = await supabase
         .from('bookings')
         .insert({
           listing_id: listingId,
           customer_id: customerId,
-          provider_id: listing.user_id,
-          booking_date: slotData.date,
-          start_time: slotData.startTime,
-          end_time: slotData.endTime,
-          duration_minutes: duration,
+          provider_id: providerProfileId, // Use provider_profile.id, not user.id
+          start_time: startDateTime.toISOString(), // ISO datetime string
+          end_time: endDateTime.toISOString(), // ISO datetime string
           service_name: slotData.serviceName,
           service_price: slotData.servicePrice,
           currency: slotData.currency,
           customer_notes: slotData.customerNotes,
-          status: 'pending' // Will be confirmed by provider or auto-confirmed based on settings
+          status: 'pending', // Will be confirmed by provider or auto-confirmed based on settings
+          timezone: timezone,
         })
         .select()
         .single();

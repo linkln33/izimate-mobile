@@ -246,14 +246,21 @@ export interface Booking {
   id: string
   match_id?: string
   listing_id: string
-  provider_id: string
-  customer_id: string
+  provider_id: string // References provider_profiles.id, not users.id
+  customer_id?: string // Optional for guest bookings
+  guest_customer_id?: string // For guest bookings
+  guest_booking?: boolean // Flag for guest bookings
   cal_booking_id?: string
   cal_event_type_id?: string
-  start_time: string
-  end_time: string
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+  start_time: string // ISO datetime string
+  end_time: string // ISO datetime string
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show'
   timezone: string
+  service_name?: string
+  service_price?: number
+  currency?: string
+  customer_notes?: string
+  provider_notes?: string
   service_address?: string
   service_address_lat?: number
   service_address_lng?: number

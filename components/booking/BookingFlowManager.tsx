@@ -184,19 +184,37 @@ export function BookingFlowManager({
         return
       }
       
-      // Check if listing has auto_confirm enabled
+      // Get service settings (auto_confirm and duration)
       const { data: serviceSettings } = await supabase
         .from('service_settings')
-        .select('auto_confirm')
+        .select('auto_confirm, default_duration_minutes, service_options')
         .eq('listing_id', listing.id)
-        .single()
+        .maybeSingle()
 
       const autoConfirm = serviceSettings?.auto_confirm ?? false
       const bookingStatus = autoConfirm ? 'confirmed' : 'pending'
       
-      // Create booking for logged-in user
+      // Get service duration from service_settings
+      let serviceDuration = 60 // Default 1 hour
+      if (serviceSettings) {
+        // Try to find duration from service_options matching serviceName
+        if (serviceSettings.service_options && Array.isArray(serviceSettings.service_options)) {
+          const matchingService = serviceSettings.service_options.find(
+            (opt: any) => opt.name === updatedSelection.serviceName
+          )
+          if (matchingService?.duration) {
+            serviceDuration = matchingService.duration
+          } else if (serviceSettings.default_duration_minutes) {
+            serviceDuration = serviceSettings.default_duration_minutes
+          }
+        } else if (serviceSettings.default_duration_minutes) {
+          serviceDuration = serviceSettings.default_duration_minutes
+        }
+      }
+      
+      // Create booking for logged-in user with correct duration
       const bookingDateTime = new Date(`${updatedSelection.date}T${updatedSelection.time}`)
-      const endDateTime = new Date(bookingDateTime.getTime() + 60 * 60 * 1000) // Default 1 hour
+      const endDateTime = new Date(bookingDateTime.getTime() + serviceDuration * 60 * 1000)
 
       const { data: booking, error } = await supabase
         .from('bookings')

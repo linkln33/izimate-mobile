@@ -168,13 +168,43 @@ export const QuickCustomerRegistration: React.FC<QuickCustomerRegistrationProps>
         }
       }
 
+      // Get provider profile ID (provider_id references provider_profiles.id, not users.id)
+      let providerProfileId: string | null = null;
+      try {
+        const { data: profileData } = await supabase
+          .rpc('get_provider_profile_id', { p_user_id: userId });
+
+        if (profileData) {
+          providerProfileId = profileData;
+        } else {
+          // Fallback: direct query
+          const { data: providerProfile } = await supabase
+            .from('provider_profiles')
+            .select('id')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+          if (providerProfile) {
+            providerProfileId = providerProfile.id;
+          }
+        }
+      } catch (error) {
+        console.error('Error getting provider profile:', error);
+      }
+
+      if (!providerProfileId) {
+        Alert.alert('Error', 'Provider profile not found. Please contact support.');
+        setLoading(false);
+        return;
+      }
+
       // Save customer notes if provided
       if (customerNotes.trim() && customerId) {
         // Check if note exists
         const query = supabase
           .from('customer_notes')
           .select('id')
-          .eq('provider_id', userId)
+          .eq('provider_id', providerProfileId)
           .maybeSingle();
 
         if (isGuest) {
@@ -186,7 +216,7 @@ export const QuickCustomerRegistration: React.FC<QuickCustomerRegistrationProps>
         const { data: existingNote } = await query;
 
         const noteData: any = {
-          provider_id: userId,
+          provider_id: providerProfileId,
           notes: customerNotes.trim(),
         };
 
@@ -215,7 +245,7 @@ export const QuickCustomerRegistration: React.FC<QuickCustomerRegistrationProps>
           if (!tag) return null;
 
           const tagData: any = {
-            provider_id: userId,
+            provider_id: providerProfileId,
             tag_name: tag.name,
             tag_color: tag.color,
           };
@@ -236,7 +266,7 @@ export const QuickCustomerRegistration: React.FC<QuickCustomerRegistrationProps>
       const points = parseInt(initialLoyaltyPoints) || 0;
       if (points > 0 && customerId) {
         const loyaltyData: any = {
-          provider_id: userId,
+          provider_id: providerProfileId,
           points: points,
           total_earned: points,
           total_redeemed: 0,
@@ -272,7 +302,7 @@ export const QuickCustomerRegistration: React.FC<QuickCustomerRegistrationProps>
         const query = supabase
           .from('blocked_customers')
           .select('id')
-          .eq('provider_id', userId)
+          .eq('provider_id', providerProfileId)
           .eq('is_active', true)
           .maybeSingle();
 
@@ -285,7 +315,7 @@ export const QuickCustomerRegistration: React.FC<QuickCustomerRegistrationProps>
         const { data: existingBlock } = await query;
 
         const blockData: any = {
-          provider_id: userId,
+          provider_id: providerProfileId,
           is_active: true,
           reason: 'Blocked during registration',
         };
