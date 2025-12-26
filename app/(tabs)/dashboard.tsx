@@ -16,7 +16,7 @@ import { UnifiedBookingsTab } from '@/components/booking/UnifiedBookingsTab'
 import { BusinessBookingsTab } from '@/components/booking/BusinessBookingsTab'
 import type { Listing, Match, User } from '@/lib/types'
 import { useTranslation } from 'react-i18next'
-import { colors, spacing, elevation, borderRadius } from '@/lib/design-system'
+import { colors, spacing, elevation, borderRadius, gradients } from '@/lib/design-system'
 
 interface DashboardStats {
   totalListings: number
@@ -219,26 +219,26 @@ export default function DashboardScreen() {
     <View style={styles.container}>
       {/* Header with Gradient */}
       <LinearGradient
-        colors={['#f25842', '#ff6b55', '#ff8a7a']}
+        colors={gradients.primary}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
       >
-        <View style={styles.header}>
+      <View style={styles.header}>
           <View style={styles.headerContent}>
-            <Text style={styles.greeting}>{t('dashboard.welcomeBack')}</Text>
-            <Text style={styles.userName}>{user?.name || 'User'}</Text>
-          </View>
-          <View style={styles.headerActions}>
-            <NotificationBell />
+          <Text style={styles.greeting}>{t('dashboard.welcomeBack')}</Text>
+          <Text style={styles.userName}>{user?.name || 'User'}</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <NotificationBell />
             <Pressable 
               onPress={() => router.push('/(tabs)/profile')}
               style={styles.settingsButton}
             >
               <Ionicons name="settings-outline" size={24} color="#ffffff" />
-            </Pressable>
-          </View>
+          </Pressable>
         </View>
+      </View>
       </LinearGradient>
 
       {/* Scrollable Dashboard with Collapsible Sections */}
@@ -404,57 +404,57 @@ function OverviewTab({ user, listings, matches, stats, router }: any) {
       <View style={styles.statsGrid}>
         <Pressable onPress={handleNavigateToListings} style={styles.statCardWrapper}>
           <LinearGradient
-            colors={['#3b82f6', '#2563eb']}
+            colors={gradients.secondaryDark}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.statCard}
           >
             <Ionicons name="briefcase-outline" size={28} color="#ffffff" style={styles.statIcon} />
-            <Text style={styles.statValue}>{activeListings}/{maxListings}</Text>
+          <Text style={styles.statValue}>{activeListings}/{maxListings}</Text>
             <Text style={styles.statLabelLink}>{t('dashboard.activeListings')}</Text>
           </LinearGradient>
-        </Pressable>
+          </Pressable>
         
         <Pressable onPress={handleNavigateToRating} style={styles.statCardWrapper}>
           <LinearGradient
-            colors={['#f59e0b', '#d97706']}
+            colors={[colors.warning, colors.warningDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.statCard}
           >
             <Ionicons name="star" size={28} color="#ffffff" style={styles.statIcon} />
-            <View style={styles.ratingContainer}>
-              <Text style={styles.statValue}>{positivePercentage}%</Text>
-            </View>
+          <View style={styles.ratingContainer}>
+            <Text style={styles.statValue}>{positivePercentage}%</Text>
+          </View>
             <Text style={styles.statLabelLink}>{t('dashboard.positive')}</Text>
           </LinearGradient>
-        </Pressable>
+          </Pressable>
         
         <Pressable onPress={handleNavigateToMessages} style={styles.statCardWrapper}>
           <LinearGradient
-            colors={['#10b981', '#059669']}
+            colors={gradients.success}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.statCard}
           >
             <Ionicons name="chatbubbles-outline" size={28} color="#ffffff" style={styles.statIcon} />
-            <Text style={styles.statValue}>{stats.unreadMessages}</Text>
+          <Text style={styles.statValue}>{stats.unreadMessages}</Text>
             <Text style={styles.statLabelLink}>{t('dashboard.messages')}</Text>
           </LinearGradient>
-        </Pressable>
+          </Pressable>
         
         <Pressable onPress={handleNavigateToLiked} style={styles.statCardWrapper}>
           <LinearGradient
-            colors={['#8b5cf6', '#7c3aed']}
+            colors={gradients.cool}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.statCard}
           >
             <Ionicons name="heart-outline" size={28} color="#ffffff" style={styles.statIcon} />
-            <Text style={styles.statValue}>{stats.pendingLikes}</Text>
+          <Text style={styles.statValue}>{stats.pendingLikes}</Text>
             <Text style={styles.statLabelLink}>{t('dashboard.liked')}</Text>
           </LinearGradient>
-        </Pressable>
+          </Pressable>
       </View>
 
       {/* Quick Rebooking Widget */}

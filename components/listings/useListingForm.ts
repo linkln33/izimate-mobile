@@ -15,7 +15,7 @@ export interface ListingFormState {
   photos: string[]
   categoryDropdownOpen: boolean
   tagInput: string
-  listing_type?: 'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content'
+  listing_type?: 'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content' | 'experience' | 'subscription' | 'freelance' | 'auction' | 'space_sharing' | 'fundraising' | 'delivery' | 'taxi' | 'link' | 'experience' | 'subscription' | 'freelance' | 'auction' | 'space_sharing' | 'fundraising' | 'delivery' | 'taxi' | 'link'
   
   // Step 2: Budget & Urgency
   budgetType: BudgetType
@@ -42,24 +42,68 @@ export interface ListingFormState {
   delivery_cost?: string
   condition_notes?: string
   
-  // Step 3: Location
-  locationAddress: string
-  locationLat: number | null
-  locationLng: number | null
-  showExactAddress: boolean
-  streetAddress: string
-  city: string
-  state: string
-  postalCode: string
-  country: string
-  locationNotes: string
+  // Experience-specific fields
+  experience_duration_hours?: number
+  experience_max_participants?: number
+  experience_min_age?: number
+  experience_includes?: string[]
+  experience_meeting_point?: string
+  experience_cancellation_policy?: string
   
-  // Step 4: Booking Settings (Simplified)
+  // Subscription-specific fields
+  subscription_billing_cycle?: 'weekly' | 'monthly' | 'quarterly' | 'yearly'
+  subscription_trial_days?: number
+  subscription_auto_renew?: boolean
+  subscription_features?: string[]
+  
+  // Freelance-specific fields
+  freelance_category?: 'ugc' | 'design' | 'writing' | 'video' | 'photography' | 'social_media' | 'consulting' | 'other'
+  freelance_portfolio_url?: string
+  freelance_delivery_days?: number
+  freelance_revisions_included?: number
+  freelance_skills?: string[]
+  
+  // Auction-specific fields
+  auction_start_price?: string
+  auction_reserve_price?: string
+  auction_end_time?: string
+  auction_bid_increment?: string
+  auction_buy_now_price?: string
+  
+  // Space Sharing-specific fields
+  space_type?: 'parking' | 'storage' | 'workspace' | 'event_venue' | 'studio' | 'kitchen' | 'couchsurfing' | 'other'
+  space_capacity?: number
+  space_amenities?: string[]
+  space_hourly_rate?: string
+  space_daily_rate?: string
+  
+  // Fundraising-specific fields
+  fundraising_goal?: string
+  fundraising_end_date?: string
+  fundraising_category?: 'charity' | 'personal' | 'business' | 'event' | 'medical' | 'education' | 'other'
+  fundraising_beneficiary?: string
+  
+  // Delivery-specific fields
+  delivery_type?: 'food' | 'grocery' | 'package' | 'medicine' | 'other'
+  delivery_radius_km?: number
+  delivery_fee_structure?: 'fixed' | 'distance_based' | 'weight_based'
+  delivery_estimated_time?: number
+  
+  // Taxi-specific fields
+  taxi_vehicle_type?: 'standard' | 'luxury' | 'van' | 'motorcycle' | 'bike'
+  taxi_max_passengers?: number
+  taxi_license_number?: string
+  
+  // Link-specific fields
+  link_url?: string
+  link_type?: 'affiliate' | 'redirect' | 'short_link'
+  
+  // Step 3: Booking & Schedule
   booking_enabled?: boolean
   service_name?: string
   time_slots?: any[] // Array of TimeSlot objects
   
-  // Step 5: Settings (Cancellation & Review Incentives)
+  // Step 4: Settings (Cancellation & Review Incentives)
   cancellation_hours?: number // Hours before booking that cancellation is allowed
   cancellation_fee_enabled?: boolean
   cancellation_fee_percentage?: number // Percentage of booking price
@@ -83,6 +127,18 @@ export interface ListingFormState {
   facebook_page_url?: string
   google_place_id?: string
   google_business_url?: string
+  
+  // Step 5: Location
+  locationAddress: string
+  locationLat: number | null
+  locationLng: number | null
+  showExactAddress: boolean
+  streetAddress: string
+  city: string
+  state: string
+  postalCode: string
+  country: string
+  locationNotes: string
 }
 
 export interface ListingFormActions {
@@ -94,7 +150,7 @@ export interface ListingFormActions {
   setPhotos: (value: string[]) => void
   setCategoryDropdownOpen: (value: boolean) => void
   setTagInput: (value: string) => void
-  setListingType?: (value: 'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content') => void
+  setListingType?: (value: 'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content' | 'experience' | 'subscription' | 'freelance' | 'auction' | 'space_sharing' | 'fundraising' | 'delivery' | 'taxi' | 'link') => void
   
   // Step 2
   setBudgetType: (value: BudgetType) => void
@@ -105,24 +161,12 @@ export interface ListingFormActions {
   setPriceList?: (value: any[]) => void
   setCurrency?: (value: string) => void
   
-  // Step 3
-  setLocationAddress: (value: string) => void
-  setLocationLat: (value: number | null) => void
-  setLocationLng: (value: number | null) => void
-  setShowExactAddress: (value: boolean) => void
-  setStreetAddress: (value: string) => void
-  setCity: (value: string) => void
-  setState: (value: string) => void
-  setPostalCode: (value: string) => void
-  setCountry: (value: string) => void
-  setLocationNotes: (value: string) => void
-  
-  // Step 4: Booking Settings (Simplified)
+  // Step 3: Booking & Schedule
   setBookingEnabled?: (value: boolean) => void
   setServiceName?: (value: string) => void
   setTimeSlots?: (value: any[]) => void
   
-  // Step 5: Settings
+  // Step 4: Settings
   setCancellationHours?: (value: number) => void
   setCancellationFeeEnabled?: (value: boolean) => void
   setCancellationFeePercentage?: (value: number) => void
@@ -146,6 +190,18 @@ export interface ListingFormActions {
   setGooglePlaceId?: (value: string) => void
   setGoogleBusinessUrl?: (value: string) => void
   
+  // Step 5: Location
+  setLocationAddress: (value: string) => void
+  setLocationLat: (value: number | null) => void
+  setLocationLng: (value: number | null) => void
+  setShowExactAddress: (value: boolean) => void
+  setStreetAddress: (value: string) => void
+  setCity: (value: string) => void
+  setState: (value: string) => void
+  setPostalCode: (value: string) => void
+  setCountry: (value: string) => void
+  setLocationNotes: (value: string) => void
+  
   // Reset
   resetForm: () => void
   loadFromListing: (listing: Listing) => void
@@ -160,7 +216,7 @@ export function useListingForm(isEditMode: boolean) {
   const [photos, setPhotos] = useState<string[]>(() => [])
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(() => false)
   const [tagInput, setTagInput] = useState(() => '')
-  const [listingType, setListingType] = useState<'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content'>(() => 'service')
+  const [listingType, setListingType] = useState<'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content' | 'experience' | 'subscription' | 'freelance' | 'auction' | 'space_sharing' | 'fundraising' | 'delivery' | 'taxi' | 'link'>(() => 'service')
   
   // Step 2: Budget & Urgency
   const [budgetType, setBudgetType] = useState<BudgetType>(() => 'range')
@@ -187,24 +243,68 @@ export function useListingForm(isEditMode: boolean) {
   const [deliveryCost, setDeliveryCost] = useState(() => '')
   const [conditionNotes, setConditionNotes] = useState(() => '')
   
-  // Step 3: Location
-  const [locationAddress, setLocationAddress] = useState(() => '')
-  const [locationLat, setLocationLat] = useState<number | null>(() => null)
-  const [locationLng, setLocationLng] = useState<number | null>(() => null)
-  const [showExactAddress, setShowExactAddress] = useState(() => false)
-  const [streetAddress, setStreetAddress] = useState(() => '')
-  const [city, setCity] = useState(() => '')
-  const [state, setState] = useState(() => '')
-  const [postalCode, setPostalCode] = useState(() => '')
-  const [country, setCountry] = useState(() => '')
-  const [locationNotes, setLocationNotes] = useState(() => '')
+  // Experience-specific fields
+  const [experienceDurationHours, setExperienceDurationHours] = useState(() => 0)
+  const [experienceMaxParticipants, setExperienceMaxParticipants] = useState(() => 0)
+  const [experienceMinAge, setExperienceMinAge] = useState(() => 0)
+  const [experienceIncludes, setExperienceIncludes] = useState<string[]>(() => [])
+  const [experienceMeetingPoint, setExperienceMeetingPoint] = useState(() => '')
+  const [experienceCancellationPolicy, setExperienceCancellationPolicy] = useState(() => '')
   
-  // Step 4: Booking Settings (Simplified)
+  // Subscription-specific fields
+  const [subscriptionBillingCycle, setSubscriptionBillingCycle] = useState<'weekly' | 'monthly' | 'quarterly' | 'yearly'>(() => 'monthly')
+  const [subscriptionTrialDays, setSubscriptionTrialDays] = useState(() => 0)
+  const [subscriptionAutoRenew, setSubscriptionAutoRenew] = useState(() => true)
+  const [subscriptionFeatures, setSubscriptionFeatures] = useState<string[]>(() => [])
+  
+  // Freelance-specific fields
+  const [freelanceCategory, setFreelanceCategory] = useState<'ugc' | 'design' | 'writing' | 'video' | 'photography' | 'social_media' | 'consulting' | 'other'>(() => 'ugc')
+  const [freelancePortfolioUrl, setFreelancePortfolioUrl] = useState(() => '')
+  const [freelanceDeliveryDays, setFreelanceDeliveryDays] = useState(() => 0)
+  const [freelanceRevisionsIncluded, setFreelanceRevisionsIncluded] = useState(() => 0)
+  const [freelanceSkills, setFreelanceSkills] = useState<string[]>(() => [])
+  
+  // Auction-specific fields
+  const [auctionStartPrice, setAuctionStartPrice] = useState(() => '')
+  const [auctionReservePrice, setAuctionReservePrice] = useState(() => '')
+  const [auctionEndTime, setAuctionEndTime] = useState(() => '')
+  const [auctionBidIncrement, setAuctionBidIncrement] = useState(() => '')
+  const [auctionBuyNowPrice, setAuctionBuyNowPrice] = useState(() => '')
+  
+  // Space Sharing-specific fields
+  const [spaceType, setSpaceType] = useState<'parking' | 'storage' | 'workspace' | 'event_venue' | 'studio' | 'kitchen' | 'couchsurfing' | 'other'>(() => 'parking')
+  const [spaceCapacity, setSpaceCapacity] = useState(() => 0)
+  const [spaceAmenities, setSpaceAmenities] = useState<string[]>(() => [])
+  const [spaceHourlyRate, setSpaceHourlyRate] = useState(() => '')
+  const [spaceDailyRate, setSpaceDailyRate] = useState(() => '')
+  
+  // Fundraising-specific fields
+  const [fundraisingGoal, setFundraisingGoal] = useState(() => '')
+  const [fundraisingEndDate, setFundraisingEndDate] = useState(() => '')
+  const [fundraisingCategory, setFundraisingCategory] = useState<'charity' | 'personal' | 'business' | 'event' | 'medical' | 'education' | 'other'>(() => 'charity')
+  const [fundraisingBeneficiary, setFundraisingBeneficiary] = useState(() => '')
+  
+  // Delivery-specific fields
+  const [deliveryType, setDeliveryType] = useState<'food' | 'grocery' | 'package' | 'medicine' | 'other'>(() => 'food')
+  const [deliveryRadiusKm, setDeliveryRadiusKm] = useState(() => 0)
+  const [deliveryFeeStructure, setDeliveryFeeStructure] = useState<'fixed' | 'distance_based' | 'weight_based'>(() => 'fixed')
+  const [deliveryEstimatedTime, setDeliveryEstimatedTime] = useState(() => 0)
+  
+  // Taxi-specific fields
+  const [taxiVehicleType, setTaxiVehicleType] = useState<'standard' | 'luxury' | 'van' | 'motorcycle' | 'bike'>(() => 'standard')
+  const [taxiMaxPassengers, setTaxiMaxPassengers] = useState(() => 4)
+  const [taxiLicenseNumber, setTaxiLicenseNumber] = useState(() => '')
+  
+  // Link-specific fields
+  const [linkUrl, setLinkUrl] = useState(() => '')
+  const [linkType, setLinkType] = useState<'affiliate' | 'redirect' | 'short_link'>(() => 'redirect')
+  
+  // Step 3: Booking & Schedule
   const [bookingEnabled, setBookingEnabled] = useState(() => false)
   const [serviceName, setServiceName] = useState(() => '')
   const [timeSlots, setTimeSlots] = useState<any[]>(() => [])
   
-  // Step 5: Settings
+  // Step 4: Settings
   const [cancellationHours, setCancellationHours] = useState(() => 24)
   const [cancellationFeeEnabled, setCancellationFeeEnabled] = useState(() => false)
   const [cancellationFeePercentage, setCancellationFeePercentage] = useState(() => 0)
@@ -227,6 +327,18 @@ export function useListingForm(isEditMode: boolean) {
   const [facebookPageUrl, setFacebookPageUrl] = useState(() => '')
   const [googlePlaceId, setGooglePlaceId] = useState(() => '')
   const [googleBusinessUrl, setGoogleBusinessUrl] = useState(() => '')
+  
+  // Step 5: Location
+  const [locationAddress, setLocationAddress] = useState(() => '')
+  const [locationLat, setLocationLat] = useState<number | null>(() => null)
+  const [locationLng, setLocationLng] = useState<number | null>(() => null)
+  const [showExactAddress, setShowExactAddress] = useState(() => false)
+  const [streetAddress, setStreetAddress] = useState(() => '')
+  const [city, setCity] = useState(() => '')
+  const [state, setState] = useState(() => '')
+  const [postalCode, setPostalCode] = useState(() => '')
+  const [country, setCountry] = useState(() => '')
+  const [locationNotes, setLocationNotes] = useState(() => '')
 
   const resetForm = useCallback(() => {
     if (isEditMode) return // Don't reset if editing
@@ -266,24 +378,12 @@ export function useListingForm(isEditMode: boolean) {
     setDeliveryCost('')
     setConditionNotes('')
     
-    // Step 3
-    setLocationAddress('')
-    setLocationLat(null)
-    setLocationLng(null)
-    setShowExactAddress(false)
-    setStreetAddress('')
-    setCity('')
-    setState('')
-    setPostalCode('')
-    setCountry('')
-    setLocationNotes('')
-    
-    // Step 4
+    // Step 3: Booking & Schedule
     setBookingEnabled(false)
     setServiceName('')
     setTimeSlots([])
     
-    // Step 5: Settings
+    // Step 4: Settings
     setCancellationHours(24)
     setCancellationFeeEnabled(false)
     setCancellationFeePercentage(0)
@@ -306,6 +406,18 @@ export function useListingForm(isEditMode: boolean) {
     setFacebookPageUrl('')
     setGooglePlaceId('')
     setGoogleBusinessUrl('')
+    
+    // Step 5: Location
+    setLocationAddress('')
+    setLocationLat(null)
+    setLocationLng(null)
+    setShowExactAddress(false)
+    setStreetAddress('')
+    setCity('')
+    setState('')
+    setPostalCode('')
+    setCountry('')
+    setLocationNotes('')
   }, [isEditMode])
 
   const loadFromListing = useCallback((listing: Listing) => {
@@ -397,23 +509,7 @@ export function useListingForm(isEditMode: boolean) {
     
     console.log('💰 Loaded price_list:', listingAny.price_list)
     
-    // Step 3
-    setLocationAddress(listing.location_address || '')
-    setLocationLat(listing.location_lat || null)
-    setLocationLng(listing.location_lng || null)
-    
-    // Manual address fields (if stored in DB - these might be in the listing object)
-    const hasStreetAddress = !!(listingAny.street_address || listingAny.city || listingAny.postal_code)
-    setShowExactAddress(!!listingAny.show_exact_address || hasStreetAddress)
-    
-    if (listingAny.street_address) setStreetAddress(listingAny.street_address)
-    if (listingAny.city) setCity(listingAny.city)
-    if (listingAny.state) setState(listingAny.state)
-    if (listingAny.postal_code) setPostalCode(listingAny.postal_code)
-    if (listingAny.country) setCountry(listingAny.country)
-    if (listingAny.location_notes) setLocationNotes(listingAny.location_notes)
-    
-    // Step 4: Booking Settings (Simplified)
+    // Step 3: Booking & Schedule
     setBookingEnabled(listingAny.booking_enabled || false)
     setServiceName(listingAny.service_name || '')
     
@@ -435,7 +531,7 @@ export function useListingForm(isEditMode: boolean) {
     
     console.log('📅 Loaded time_slots:', listingAny.time_slots)
     
-    // Step 5: Settings - Load from service_settings and review_incentive_settings
+    // Step 4: Settings - Load from service_settings and review_incentive_settings
     // Cancellation settings from service_settings
     if (listingAny.service_settings?.cancellation_hours) {
       setCancellationHours(listingAny.service_settings.cancellation_hours)
@@ -473,6 +569,22 @@ export function useListingForm(isEditMode: boolean) {
         setGoogleBusinessUrl(listingAny.review_incentive_settings.google_business_url)
       }
     }
+    
+    // Step 5: Location
+    setLocationAddress(listing.location_address || '')
+    setLocationLat(listing.location_lat || null)
+    setLocationLng(listing.location_lng || null)
+    
+    // Manual address fields (if stored in DB - these might be in the listing object)
+    const hasStreetAddress = !!(listingAny.street_address || listingAny.city || listingAny.postal_code)
+    setShowExactAddress(!!listingAny.show_exact_address || hasStreetAddress)
+    
+    if (listingAny.street_address) setStreetAddress(listingAny.street_address)
+    if (listingAny.city) setCity(listingAny.city)
+    if (listingAny.state) setState(listingAny.state)
+    if (listingAny.postal_code) setPostalCode(listingAny.postal_code)
+    if (listingAny.country) setCountry(listingAny.country)
+    if (listingAny.location_notes) setLocationNotes(listingAny.location_notes)
     
     console.log('✅ loadFromListing completed, form state updated')
   }, [

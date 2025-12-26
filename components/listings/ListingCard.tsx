@@ -555,12 +555,12 @@ function ListingCardComponent({
                     {listing.price_list.map((item: any, index: number) => {
                       const displayCurrency = listing.currency || userCurrency || 'GBP'
                       return (
-                        <View key={index} style={styles.priceListItem}>
-                          <Text style={styles.priceListServiceName}>{item.serviceName}</Text>
+                      <View key={index} style={styles.priceListItem}>
+                        <Text style={styles.priceListServiceName}>{item.serviceName}</Text>
                           <Text style={styles.priceListPrice}>
                             {formatCurrency(item.price, displayCurrency)}
                           </Text>
-                        </View>
+                      </View>
                       )
                     })}
                   </View>

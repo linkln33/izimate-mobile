@@ -304,8 +304,12 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
         </>
       )}
 
-      {/* Budget Type Selector - Only show for non-rental listings */}
-      {listing_type !== 'rental' && (
+      {/* Budget Type Selector - Only show for listings that use standard pricing */}
+      {listing_type !== 'rental' && 
+       listing_type !== 'auction' && 
+       listing_type !== 'subscription' && 
+       listing_type !== 'link' && 
+       listing_type !== 'fundraising' && (
         <>
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Pricing Type</Text>

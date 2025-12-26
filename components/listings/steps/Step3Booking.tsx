@@ -1,5 +1,5 @@
 /**
- * Step 5: Simplified Booking Setup
+ * Step 3: Booking & Schedule
  * 
  * Simple, intuitive booking configuration:
  * 1. Text input for service name/description

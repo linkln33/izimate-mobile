@@ -4,13 +4,13 @@ import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase'
 import type { ListingFormState, ListingFormActions } from '../useListingForm'
 
-interface Step6SettingsProps {
+interface Step4SettingsProps {
   formState: ListingFormState
   formActions: ListingFormActions
   listingId?: string
 }
 
-export function Step6Settings({ formState, formActions, listingId }: Step6SettingsProps) {
+export function Step4Settings({ formState, formActions, listingId }: Step6SettingsProps) {
   const {
     cancellation_hours,
     cancellation_fee_enabled,

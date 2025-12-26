@@ -2,12 +2,12 @@ import { View, Text, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { ListingFormState } from '../useListingForm'
 
-interface Step4ReviewProps {
+interface Step6ReviewProps {
   formState: ListingFormState
   quota: any
 }
 
-export function Step4Review({ formState, quota }: Step4ReviewProps) {
+export function Step6Review({ formState, quota }: Step6ReviewProps) {
   const {
     title,
     description,
@@ -201,7 +201,7 @@ export function Step4Review({ formState, quota }: Step4ReviewProps) {
                 <Text style={styles.summaryValue}>
                   {cancellation_fee_percentage && cancellation_fee_percentage > 0
                     ? `${cancellation_fee_percentage}%`
-                    : cancellation_fee_amount
+                    : cancellation_fee_amount && cancellation_fee_amount > 0
                     ? `${currencySymbol}${cancellation_fee_amount}`
                     : 'Not set'}
                 </Text>
@@ -248,7 +248,7 @@ export function Step4Review({ formState, quota }: Step4ReviewProps) {
               <Text style={styles.summaryValue}>
                 {review_discount_percentage && review_discount_percentage > 0
                   ? `${review_discount_percentage}%`
-                  : review_discount_amount
+                  : review_discount_amount && review_discount_amount > 0
                   ? `${currencySymbol}${review_discount_amount}`
                   : 'Not set'}
               </Text>

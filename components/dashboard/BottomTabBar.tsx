@@ -53,16 +53,16 @@ export function BottomTabBar({ tabs, activeTab, onTabChange }: BottomTabBarProps
           const isActive = activeTab === tab.id
           
           return (
-              <Pressable
-                key={tab.id}
-                onPress={() => onTabChange(tab.id)}
-                style={({ pressed }) => [
-                  styles.primaryTab,
-                  isActive && styles.activePrimaryTab,
-                  pressed && styles.pressedTab,
-                ]}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
+            <Pressable
+              key={tab.id}
+              onPress={() => onTabChange(tab.id)}
+              style={({ pressed }) => [
+                styles.primaryTab,
+                isActive && styles.activePrimaryTab,
+                pressed && styles.pressedTab,
+              ]}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
                 {isActive && (
                   <LinearGradient
                     colors={[`${colors.primary}15`, `${colors.primary}08`]}

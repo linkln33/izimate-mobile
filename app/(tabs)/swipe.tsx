@@ -163,97 +163,97 @@ export default function FindScreen() {
         // Enrich listings with ratings and distance (all in-memory, no more queries)
         const enriched = listingsData.map((listing: any) => {
           const customer = listing.user as User | null
-          
+
           // Get customer rating from reviews map
-          let customerRating: number | undefined
-          let positivePercentage: number | undefined
-          if (customer) {
+            let customerRating: number | undefined
+            let positivePercentage: number | undefined
+            if (customer) {
             const reviews = reviewsMap.get(customer.id) || []
-            
+
             if (reviews.length > 0) {
               const avgRating = reviews.reduce((sum, r) => sum + (r || 0), 0) / reviews.length
-              customerRating = Math.round(avgRating * 10) / 10 // Round to 1 decimal
-              
-              // Calculate positive percentage (4+ stars)
+                customerRating = Math.round(avgRating * 10) / 10 // Round to 1 decimal
+                
+                // Calculate positive percentage (4+ stars)
               const positiveCount = reviews.filter((r) => (r || 0) >= 4).length
-              positivePercentage = Math.round((positiveCount / reviews.length) * 100)
+                positivePercentage = Math.round((positiveCount / reviews.length) * 100)
+              } else {
+                // Generate random rating for demo listings (3.5 to 5.0)
+                customerRating = Math.round((Math.random() * 1.5 + 3.5) * 10) / 10
+                // Random positive percentage (80-100%)
+                positivePercentage = Math.round(Math.random() * 20 + 80)
+              }
             } else {
-              // Generate random rating for demo listings (3.5 to 5.0)
+              // Generate random rating for demo listings when no customer data
               customerRating = Math.round((Math.random() * 1.5 + 3.5) * 10) / 10
-              // Random positive percentage (80-100%)
               positivePercentage = Math.round(Math.random() * 20 + 80)
             }
-          } else {
-            // Generate random rating for demo listings when no customer data
-            customerRating = Math.round((Math.random() * 1.5 + 3.5) * 10) / 10
-            positivePercentage = Math.round(Math.random() * 20 + 80)
-          }
 
-          let distance: number | undefined
-          if (userLocation && listing.location_lat && listing.location_lng) {
-            distance = calculateDistance(
-              userLocation.lat,
-              userLocation.lng,
-              listing.location_lat,
-              listing.location_lng
-            )
-          }
-
-          // Ensure photos is always an array and filter out invalid values
-          let photos: string[] = []
-          if (listing.photos) {
-            if (Array.isArray(listing.photos)) {
-              photos = listing.photos.filter(
-                (p: any) => p && typeof p === 'string' && p.trim().length > 0
+            let distance: number | undefined
+            if (userLocation && listing.location_lat && listing.location_lng) {
+              distance = calculateDistance(
+                userLocation.lat,
+                userLocation.lng,
+                listing.location_lat,
+                listing.location_lng
               )
-            } else if (typeof listing.photos === 'string') {
-              try {
-                const parsed = JSON.parse(listing.photos)
-                if (Array.isArray(parsed)) {
-                  photos = parsed.filter(
-                    (p: any) => p && typeof p === 'string' && p.trim().length > 0
-                  )
-                } else {
-                  photos = [listing.photos].filter(
-                    (p: any) => p && typeof p === 'string' && p.trim().length > 0
-                  )
-                }
-              } catch {
-                if (listing.photos.trim().length > 0) {
-                  photos = [listing.photos]
+            }
+
+            // Ensure photos is always an array and filter out invalid values
+            let photos: string[] = []
+            if (listing.photos) {
+              if (Array.isArray(listing.photos)) {
+                photos = listing.photos.filter(
+                  (p: any) => p && typeof p === 'string' && p.trim().length > 0
+                )
+              } else if (typeof listing.photos === 'string') {
+                try {
+                  const parsed = JSON.parse(listing.photos)
+                  if (Array.isArray(parsed)) {
+                    photos = parsed.filter(
+                      (p: any) => p && typeof p === 'string' && p.trim().length > 0
+                    )
+                  } else {
+                    photos = [listing.photos].filter(
+                      (p: any) => p && typeof p === 'string' && p.trim().length > 0
+                    )
+                  }
+                } catch {
+                  if (listing.photos.trim().length > 0) {
+                    photos = [listing.photos]
+                  }
                 }
               }
             }
-          }
-          
-          // Normalize all photo URLs using shared utility
-          photos = normalizePhotoUrls(photos)
-          
-          // Debug: log normalized URLs
-          if (photos.length > 0) {
-            console.log(`✅ Listing ${listing.id} normalized photos:`, photos[0])
-          }
-          
-          // Debug log for photos (after normalization)
-          if (photos.length > 0) {
-            console.log(`✅ Listing ${listing.id} has ${photos.length} photo(s):`, photos[0])
-          } else {
-            console.log(`⚠️ Listing ${listing.id} has no valid photos. Raw photos:`, listing.photos)
-          }
+            
+            // Normalize all photo URLs using shared utility
+            photos = normalizePhotoUrls(photos)
+            
+            // Debug: log normalized URLs
+            if (photos.length > 0) {
+              console.log(`✅ Listing ${listing.id} normalized photos:`, photos[0])
+            }
+            
+            // Debug log for photos (after normalization)
+            if (photos.length > 0) {
+              console.log(`✅ Listing ${listing.id} has ${photos.length} photo(s):`, photos[0])
+            } else {
+              console.log(`⚠️ Listing ${listing.id} has no valid photos. Raw photos:`, listing.photos)
+            }
 
-          // Check if this is the user's own listing
-          const isOwnListing = listing.user_id === authUser.id
+            // Check if this is the user's own listing
+            const isOwnListing = listing.user_id === authUser.id
 
-          return {
-            ...listing,
-            photos, // Normalize photos to always be an array
-            customer: customer || undefined,
-            customerRating,
-            positivePercentage,
-            distance,
-            isOwnListing, // Add flag to identify own listings
-          }
-        })
+            return {
+              ...listing,
+              photos, // Normalize photos to always be an array
+              customer: customer || undefined,
+              customerRating,
+              positivePercentage,
+              distance,
+              isOwnListing, // Add flag to identify own listings
+            }
+          })
 
         console.log('Enriched listings:', enriched.length)
         setListings(enriched)

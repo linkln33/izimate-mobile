@@ -163,33 +163,33 @@ export const QuickEventForm: React.FC<QuickEventFormProps> = ({
 
       // Enrich listings (all in-memory, no more queries)
       let enriched = (listingsData || []).map((listing: any) => {
-        const enrichedListing: EnrichedListing = {
-          ...listing,
-          provider: listing.provider as unknown as User,
-        };
+          const enrichedListing: EnrichedListing = {
+            ...listing,
+            provider: listing.provider as unknown as User,
+          };
 
-        // Calculate distance
-        if (userLocation && listing.location_lat && listing.location_lng) {
-          enrichedListing.distance = calculateDistance(
-            userLocation.lat,
-            userLocation.lng,
-            listing.location_lat,
-            listing.location_lng
-          );
-        }
+          // Calculate distance
+          if (userLocation && listing.location_lat && listing.location_lng) {
+            enrichedListing.distance = calculateDistance(
+              userLocation.lat,
+              userLocation.lng,
+              listing.location_lat,
+              listing.location_lng
+            );
+          }
 
         // Get rating from reviews map
-        if (listing.provider) {
-          const providerData = listing.provider as unknown as User;
+          if (listing.provider) {
+            const providerData = listing.provider as unknown as User;
           const reviews = reviewsMap.get(providerData.id) || [];
 
           if (reviews.length > 0) {
             const avgRating = reviews.reduce((sum, r) => sum + (r || 0), 0) / reviews.length;
-            enrichedListing.rating = Math.round(avgRating * 10) / 10;
+              enrichedListing.rating = Math.round(avgRating * 10) / 10;
+            }
           }
-        }
 
-        return enrichedListing;
+          return enrichedListing;
       });
 
       // Apply filters

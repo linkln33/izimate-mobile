@@ -68,7 +68,7 @@ export interface Listing {
   description: string
   category: string
   tags: string[]
-  listing_type?: 'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content'
+  listing_type?: 'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content' | 'experience' | 'subscription' | 'freelance' | 'auction' | 'space_sharing' | 'fundraising' | 'delivery' | 'taxi' | 'link'
   budget_min?: number
   budget_max?: number
   budget_type: 'fixed' | 'range' | 'hourly' | 'price_list'
@@ -130,6 +130,57 @@ export interface Listing {
   delivery_available?: boolean
   delivery_cost?: number
   condition_notes?: string
+  // Experience & Activity fields
+  experience_duration_hours?: number
+  experience_max_participants?: number
+  experience_min_age?: number
+  experience_includes?: string[] // What's included
+  experience_meeting_point?: string
+  experience_cancellation_policy?: string
+  // Subscription fields
+  subscription_billing_cycle?: 'weekly' | 'monthly' | 'quarterly' | 'yearly'
+  subscription_trial_days?: number
+  subscription_auto_renew?: boolean
+  subscription_features?: string[] // Feature list
+  // Freelance/UGC Creator fields
+  freelance_category?: 'ugc' | 'design' | 'writing' | 'video' | 'photography' | 'social_media' | 'consulting' | 'other'
+  freelance_portfolio_url?: string
+  freelance_delivery_days?: number
+  freelance_revisions_included?: number
+  freelance_skills?: string[]
+  // Auction fields
+  auction_start_price?: number
+  auction_reserve_price?: number
+  auction_end_time?: string // ISO datetime
+  auction_bid_increment?: number
+  auction_buy_now_price?: number
+  auction_current_bid?: number
+  auction_status?: 'upcoming' | 'active' | 'ended' | 'sold' | 'cancelled'
+  // Space Sharing fields (beyond accommodation)
+  space_type?: 'parking' | 'storage' | 'workspace' | 'event_venue' | 'studio' | 'kitchen' | 'couchsurfing' | 'other'
+  space_capacity?: number
+  space_amenities?: string[]
+  space_hourly_rate?: number
+  space_daily_rate?: number
+  // Fundraising fields
+  fundraising_goal?: number
+  fundraising_current_amount?: number
+  fundraising_end_date?: string
+  fundraising_category?: 'charity' | 'personal' | 'business' | 'event' | 'medical' | 'education' | 'other'
+  fundraising_beneficiary?: string
+  // Delivery fields
+  delivery_type?: 'food' | 'grocery' | 'package' | 'medicine' | 'other'
+  delivery_radius_km?: number
+  delivery_fee_structure?: 'fixed' | 'distance_based' | 'weight_based'
+  delivery_estimated_time?: number // minutes
+  // Taxi/Rideshare fields
+  taxi_vehicle_type?: 'standard' | 'luxury' | 'van' | 'motorcycle' | 'bike'
+  taxi_max_passengers?: number
+  taxi_license_number?: string
+  // Link fields (affiliate/redirect)
+  link_url?: string
+  link_type?: 'affiliate' | 'redirect' | 'short_link'
+  link_clicks?: number
   created_at: string
   updated_at: string
 }

@@ -68,34 +68,34 @@ export default function OfferScreen() {
       }
 
       // Batch fetch reviews for the user (all listings belong to same user)
-      let customerRating: number | undefined
-      let positivePercentage: number | undefined
+          let customerRating: number | undefined
+          let positivePercentage: number | undefined
       if (userData) {
-        const { data: reviews } = await supabase
-          .from('reviews')
-          .select('rating')
+            const { data: reviews } = await supabase
+              .from('reviews')
+              .select('rating')
           .eq('reviewee_id', userData.id)
 
-        if (reviews && reviews.length > 0) {
-          const avgRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
-          customerRating = Math.round(avgRating * 10) / 10
-          
-          const positiveCount = reviews.filter((r) => (r.rating || 0) >= 4).length
-          positivePercentage = Math.round((positiveCount / reviews.length) * 100)
-        }
-      }
+            if (reviews && reviews.length > 0) {
+              const avgRating = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
+              customerRating = Math.round(avgRating * 10) / 10
+              
+              const positiveCount = reviews.filter((r) => (r.rating || 0) >= 4).length
+              positivePercentage = Math.round((positiveCount / reviews.length) * 100)
+            }
+          }
 
       // Batch fetch all swipes for all listings in one query
       const listingIds = listingsData.map(l => l.id)
       const { data: allSwipes } = await supabase
-        .from('swipes')
+            .from('swipes')
         .select('listing_id, swiper_id, created_at, direction, swipe_type')
         .in('listing_id', listingIds)
-        .in('direction', ['right', 'super'])
+            .in('direction', ['right', 'super'])
 
       // Batch fetch all matches for all listings
       const { data: allMatches } = await supabase
-        .from('matches')
+              .from('matches')
         .select('listing_id, customer_id')
         .in('listing_id', listingIds)
 
@@ -110,8 +110,8 @@ export default function OfferScreen() {
       // Batch fetch all customer user data
       const { data: allCustomers } = allCustomerIds.length > 0
         ? await supabase
-            .from('users')
-            .select('id, name, avatar_url, verification_status')
+                .from('users')
+                .select('id, name, avatar_url, verification_status')
             .in('id', allCustomerIds)
         : { data: null }
 
@@ -155,24 +155,24 @@ export default function OfferScreen() {
         )
 
         const likedByUsers: Array<{ user: User; swipedAt: string }> = customerSwipes
-          .map(swipe => {
+                  .map(swipe => {
             const userData = allCustomers?.find(u => u.id === swipe.swiper_id)
-            return userData ? {
-              user: userData as User,
-              swipedAt: swipe.created_at,
-            } : null
-          })
-          .filter(Boolean) as Array<{ user: User; swipedAt: string }>
+                    return userData ? {
+                      user: userData as User,
+                      swipedAt: swipe.created_at,
+                    } : null
+                  })
+                  .filter(Boolean) as Array<{ user: User; swipedAt: string }>
 
-        return {
-          ...listing,
+          return {
+            ...listing,
           customer: userData as User | undefined,
-          customerRating,
-          positivePercentage,
+            customerRating,
+            positivePercentage,
           favoritesCount,
-          likedByUsers,
-        }
-      })
+            likedByUsers,
+          }
+        })
 
       setListings(enriched)
     } catch (error) {

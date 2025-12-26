@@ -57,11 +57,11 @@ export function CollapsibleSection({
       >
         <View style={styles.headerLeft}>
           <View style={[styles.iconContainer, { backgroundColor: `${iconBgColor}15` }]}>
-            <Ionicons
-              name={icon as any}
-              size={22}
+          <Ionicons
+            name={icon as any}
+            size={22}
               color={iconColor || (isExpanded ? colors.primary : colors.onSurfaceVariant)}
-            />
+          />
           </View>
           <Text style={[styles.title, isExpanded && styles.activeTitle]}>
             {title}

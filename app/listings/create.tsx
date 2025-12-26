@@ -8,10 +8,10 @@ import { useListingForm, type Step } from '@/components/listings/useListingForm'
 import { createListingHandlers } from '@/components/listings/listingHandlers'
 import { Step1BasicInfo } from '@/components/listings/steps/Step1BasicInfo'
 import { Step2Budget } from '@/components/listings/steps/Step2Budget'
-import { Step3Location } from '@/components/listings/steps/Step3Location'
-import { Step4Review } from '@/components/listings/steps/Step4Review'
-import { Step5BookingSimplified } from '@/components/listings/steps/Step5BookingSimplified'
-import { Step6Settings } from '@/components/listings/steps/Step6Settings'
+import { Step3Booking } from '@/components/listings/steps/Step3Booking'
+import { Step4Settings } from '@/components/listings/steps/Step4Settings'
+import { Step5Location } from '@/components/listings/steps/Step5Location'
+import { Step6Review } from '@/components/listings/steps/Step6Review'
 import { createListingStyles } from '@/components/listings/createListingStyles'
 import type { Listing } from '@/lib/types'
 
@@ -324,7 +324,7 @@ function CreateListingScreenContent() {
   }
 
   const handleNext = () => {
-    // Special handling for Step 3 (Booking - now swapped) - call its validation
+    // Step 3: Booking & Schedule (no validation needed, optional)
     if (step === 3) {
       const step5Validation = (window as any).__step5BookingValidation;
       if (step5Validation) {
@@ -392,26 +392,90 @@ function CreateListingScreenContent() {
 
   // Get categories based on listing type
   const getCategories = (listingType?: string) => {
-    if (listingType === 'rental') {
-      return [
-        // Vehicles
-        'Car', 'Motorcycle', 'Bike', 'Boat', 'RV', 'Scooter',
-        // Accommodation
-        'Home', 'Apartment', 'Room', 'Couchsurfing', 'Cabin', 'Villa',
-        // Equipment
-        'Tools', 'Electronics', 'Camera', 'Sports Equipment', 'Party Supplies', 'Furniture',
-        // Spaces
-        'Event Space', 'Parking', 'Storage', 'Workspace', 'Studio',
-        // Other
-        'Other', 'Custom',
-      ]
+    switch (listingType) {
+      case 'rental':
+        return [
+          // Vehicles
+          'Car', 'Motorcycle', 'Bike', 'Boat', 'RV', 'Scooter',
+          // Accommodation
+          'Home', 'Apartment', 'Room', 'Couchsurfing', 'Cabin', 'Villa',
+          // Equipment
+          'Tools', 'Electronics', 'Camera', 'Sports Equipment', 'Party Supplies', 'Furniture',
+          // Spaces
+          'Event Space', 'Parking', 'Storage', 'Workspace', 'Studio',
+          // Other
+          'Other', 'Custom',
+        ]
+      
+      case 'experience':
+        return [
+          'Tours', 'Workshops', 'Classes', 'Events', 'Concerts', 'Tickets',
+          'Adventure', 'Cooking', 'Art', 'Music', 'Sports', 'Wellness',
+          'Virtual Experience', 'Group Activity', 'Other', 'Custom',
+        ]
+      
+      case 'subscription':
+        return [
+          'Monthly Service', 'Membership', 'Subscription Box', 'Software',
+          'Content Access', 'Gym', 'Co-working', 'Streaming', 'Other', 'Custom',
+        ]
+      
+      case 'freelance':
+        return [
+          'UGC Creator', 'Design', 'Writing', 'Video Editing', 'Photography',
+          'Social Media', 'Consulting', 'Web Development', 'Marketing',
+          'Translation', 'Voice Over', 'Other', 'Custom',
+        ]
+      
+      case 'auction':
+        return [
+          'Collectibles', 'Electronics', 'Vehicles', 'Art', 'Jewelry',
+          'Antiques', 'Real Estate', 'Services', 'Other', 'Custom',
+        ]
+      
+      case 'space_sharing':
+        return [
+          'Parking', 'Storage', 'Workspace', 'Event Venue', 'Studio',
+          'Kitchen', 'Couchsurfing', 'Photo Studio', 'Music Studio',
+          'Warehouse', 'Other', 'Custom',
+        ]
+      
+      case 'fundraising':
+        return [
+          'Charity', 'Personal', 'Business', 'Event', 'Medical',
+          'Education', 'Disaster Relief', 'Animal Welfare', 'Other', 'Custom',
+        ]
+      
+      case 'delivery':
+        return [
+          'Food', 'Grocery', 'Package', 'Medicine', 'Flowers',
+          'Documents', 'Other', 'Custom',
+        ]
+      
+      case 'taxi':
+        return [
+          'Standard', 'Luxury', 'Van', 'Motorcycle', 'Bike',
+          'Airport Transfer', 'City Tour', 'Other', 'Custom',
+        ]
+      
+      case 'link':
+        return [
+          'Affiliate', 'Redirect', 'Short Link', 'Promotion', 'Other', 'Custom',
+        ]
+      
+      case 'goods':
+        return [
+          'Electronics', 'Clothing', 'Furniture', 'Books', 'Toys',
+          'Sports', 'Home & Garden', 'Other', 'Custom',
+        ]
+      
+      default: // service
+        return [
+          'Plumbing', 'Electrical', 'Handyman', 'Cleaning', 'Carpentry',
+          'HVAC', 'Painting', 'Roofing', 'Landscaping', 'Flooring',
+          'Tutoring', 'Pet Care', 'Beauty', 'Fitness', 'Other', 'Custom', 'Adult',
+        ]
     }
-    // Default service categories
-    return [
-      'Plumbing', 'Electrical', 'Handyman', 'Cleaning', 'Carpentry',
-      'HVAC', 'Painting', 'Roofing', 'Landscaping', 'Flooring',
-      'Other', 'Custom', 'Adult',
-    ]
   }
 
   const categories = getCategories(formState.listing_type)
@@ -466,7 +530,7 @@ function CreateListingScreenContent() {
         )}
 
         {step === 3 && (
-          <Step5BookingSimplified
+          <Step3Booking
             formState={formState}
             formActions={formActions}
             isLoading={loading}
@@ -474,7 +538,15 @@ function CreateListingScreenContent() {
         )}
 
         {step === 4 && (
-          <Step3Location
+          <Step4Settings
+            formState={formState}
+            formActions={formActions}
+            listingId={id}
+          />
+        )}
+
+        {step === 5 && (
+          <Step5Location
             formState={formState}
             formActions={formActions}
             loading={loading}
@@ -482,16 +554,8 @@ function CreateListingScreenContent() {
           />
         )}
 
-        {step === 5 && (
-          <Step6Settings
-            formState={formState}
-            formActions={formActions}
-            listingId={id}
-          />
-        )}
-
         {step === 6 && (
-          <Step4Review
+          <Step6Review
             formState={formState}
             quota={quota}
           />

@@ -533,7 +533,7 @@ export class SlotCalculator {
       // Convert to ISO datetime strings (consistent with other components)
       const startDateTime = new Date(`${slotData.date}T${slotData.startTime}`);
       const endDateTime = new Date(`${slotData.date}T${slotData.endTime}`);
-      
+
       // Get timezone
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 

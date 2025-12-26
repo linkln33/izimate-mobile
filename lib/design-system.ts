@@ -4,59 +4,138 @@
  * Based on Google Material Design 3 guidelines
  */
 
-// Material Design 3 Color System
+// Enhanced Color System - Modern Service Booking App Style
+// Based on research: Airbnb (coral), TaskRabbit (trust blue), modern marketplace apps
 export const colors = {
-  // Primary Brand Colors (Material Design 3)
+  // Primary Brand Colors - Warm Coral (Airbnb-inspired, builds trust)
   primary: '#f25842',
+  primaryLight: '#ff8a7a',
+  primaryDark: '#e04a35',
+  primary50: '#fff5f3',
+  primary100: '#ffe8e4',
+  primary200: '#ffd4cc',
+  primary300: '#ffb4a8',
+  primary400: '#ff8a7a',
+  primary500: '#f25842',
+  primary600: '#e04a35',
+  primary700: '#c93d28',
+  primary800: '#a83220',
+  primary900: '#8a2a1a',
   onPrimary: '#ffffff',
   primaryContainer: '#ffdad6',
   onPrimaryContainer: '#410002',
   
-  // Secondary Colors
+  // Secondary Colors - Trust Blue (Professional, reliable)
   secondary: '#4285F4',
+  secondaryLight: '#60a5fa',
+  secondaryDark: '#2563eb',
+  secondary50: '#eff6ff',
+  secondary100: '#dbeafe',
+  secondary200: '#bfdbfe',
+  secondary300: '#93c5fd',
+  secondary400: '#60a5fa',
+  secondary500: '#4285F4',
+  secondary600: '#2563eb',
+  secondary700: '#1d4ed8',
+  secondary800: '#1e40af',
+  secondary900: '#1e3a8a',
   onSecondary: '#ffffff',
   secondaryContainer: '#dbeafe',
   onSecondaryContainer: '#001e3c',
   
-  // Tertiary Colors
+  // Tertiary Colors - Fresh Green (Positive actions)
   tertiary: '#10b981',
+  tertiaryLight: '#4ade80',
+  tertiaryDark: '#059669',
+  tertiary50: '#f0fdf4',
+  tertiary100: '#dcfce7',
+  tertiary200: '#bbf7d0',
+  tertiary300: '#86efac',
+  tertiary400: '#4ade80',
+  tertiary500: '#10b981',
+  tertiary600: '#059669',
+  tertiary700: '#047857',
+  tertiary800: '#065f46',
+  tertiary900: '#064e3b',
   onTertiary: '#ffffff',
   tertiaryContainer: '#d1fae5',
   onTertiaryContainer: '#002114',
   
-  // Error Colors (Material Design 3)
-  error: '#ba1a1a',
+  // Error Colors
+  error: '#ef4444',
+  errorLight: '#f87171',
+  errorDark: '#dc2626',
   onError: '#ffffff',
-  errorContainer: '#ffdad6',
-  onErrorContainer: '#410002',
+  errorContainer: '#fee2e2',
+  onErrorContainer: '#7f1d1d',
   
   // Success Colors
   success: '#10b981',
+  successLight: '#4ade80',
+  successDark: '#059669',
   onSuccess: '#ffffff',
   successContainer: '#d1fae5',
-  onSuccessContainer: '#002114',
+  onSuccessContainer: '#064e3b',
   
   // Warning Colors
   warning: '#f59e0b',
+  warningLight: '#fbbf24',
+  warningDark: '#d97706',
   onWarning: '#ffffff',
   warningContainer: '#fef3c7',
   onWarningContainer: '#78350f',
   
   // Info Colors
-  info: '#3b82f6',
+  info: '#4285F4',
+  infoLight: '#60a5fa',
+  infoDark: '#2563eb',
   onInfo: '#ffffff',
   infoContainer: '#dbeafe',
   onInfoContainer: '#001e3c',
   
   // Surface Colors (Material Design 3)
   surface: '#ffffff',
-  onSurface: '#1a1a1a',
-  surfaceVariant: '#f3f4f6',
+  surfaceVariant: '#f9fafb',
+  surfaceContainer: '#f3f4f6',
+  surfaceContainerHigh: '#ffffff',
+  surfaceContainerHighest: '#ffffff',
+  surfaceContainerLow: '#fafbfc',
+  onSurface: '#111827',
   onSurfaceVariant: '#6b7280',
   
   // Background Colors
   background: '#ffffff',
-  onBackground: '#1a1a1a',
+  backgroundSecondary: '#f9fafb',
+  backgroundTertiary: '#f3f4f6',
+  onBackground: '#111827',
+  
+  // Text Colors (Enhanced hierarchy)
+  text: {
+    primary: '#111827',
+    secondary: '#4b5563',
+    tertiary: '#6b7280',
+    disabled: '#9ca3af',
+    inverse: '#ffffff',
+    link: '#4285F4',
+    linkHover: '#2563eb',
+  },
+  
+  // Border Colors
+  border: {
+    light: '#e5e7eb',
+    default: '#d1d5db',
+    dark: '#9ca3af',
+    focus: '#4285F4',
+  },
+  
+  // Status Colors (for bookings, listings)
+  status: {
+    pending: '#f59e0b',
+    confirmed: '#10b981',
+    completed: '#6366f1',
+    cancelled: '#ef4444',
+    noShow: '#6b7280',
+  },
   
   // Outline Colors
   outline: '#d1d5db',
@@ -66,14 +145,60 @@ export const colors = {
   shadow: '#000000',
   scrim: '#000000',
   
-  // Overlay
+  // Overlay Colors
   overlay: 'rgba(0, 0, 0, 0.5)',
   overlayLight: 'rgba(0, 0, 0, 0.1)',
+  overlayMedium: 'rgba(0, 0, 0, 0.3)',
+  overlayWhite: 'rgba(255, 255, 255, 0.9)',
   
   // Inverse Colors
-  inverseSurface: '#1a1a1a',
+  inverseSurface: '#1f2937',
   inverseOnSurface: '#ffffff',
   inversePrimary: '#ff6b55',
+  
+  // Gray Scale (for consistent neutrals)
+  gray: {
+    50: '#f9fafb',
+    100: '#f3f4f6',
+    200: '#e5e7eb',
+    300: '#d1d5db',
+    400: '#9ca3af',
+    500: '#6b7280',
+    600: '#4b5563',
+    700: '#374151',
+    800: '#1f2937',
+    900: '#111827',
+  },
+} as const
+
+// Modern Gradient Presets (for polished, professional look)
+export const gradients = {
+  // Primary Gradients
+  primary: ['#f25842', '#ff6b55', '#ff8a7a'],
+  primaryDark: ['#e04a35', '#f25842', '#ff6b55'],
+  primaryLight: ['#ff8a7a', '#ffb4a8', '#ffd4cc'],
+  
+  // Secondary Gradients
+  secondary: ['#4285F4', '#60a5fa', '#93c5fd'],
+  secondaryDark: ['#2563eb', '#4285F4', '#60a5fa'],
+  
+  // Success Gradients
+  success: ['#10b981', '#4ade80', '#86efac'],
+  
+  // Warm Gradients (for hero sections, CTAs)
+  warm: ['#f25842', '#ff8a7a', '#ffb4a8'],
+  warmSunset: ['#f25842', '#f59e0b', '#fbbf24'],
+  
+  // Cool Gradients (for professional sections)
+  cool: ['#4285F4', '#6366f1', '#8b5cf6'],
+  
+  // Neutral Gradients
+  neutral: ['#f9fafb', '#f3f4f6', '#e5e7eb'],
+  neutralDark: ['#374151', '#4b5563', '#6b7280'],
+  
+  // Overlay Gradients
+  overlayLight: ['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0.85)'],
+  overlayDark: ['rgba(0, 0, 0, 0.6)', 'rgba(0, 0, 0, 0.4)'],
 } as const
 
 // Material Design 3 Spacing System (4px base grid)
@@ -270,6 +395,7 @@ export const breakpoints = {
 // Export all as a single design system object
 export const designSystem = {
   colors,
+  gradients,
   spacing,
   typography,
   borderRadius,

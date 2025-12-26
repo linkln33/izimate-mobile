@@ -1,8 +1,10 @@
 import { View, Text, TextInput, Pressable, ScrollView, Image, ActivityIndicator, StyleSheet } from 'react-native'
 import { useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
+import { LinearGradient } from 'expo-linear-gradient'
 import type { ListingFormState, ListingFormActions } from '../useListingForm'
 import { normalizePhotoUrl } from '@/lib/utils/images'
+import { colors, gradients, spacing, borderRadius, elevation } from '@/lib/design-system'
 
 interface Step1BasicInfoProps {
   formState: ListingFormState
@@ -64,31 +66,74 @@ export function Step1BasicInfo({
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Listing Type *</Text>
         <View style={styles.listingTypeContainer}>
-          {(['service', 'goods', 'rental'] as const).map((type) => (
-            <Pressable
-              key={type}
-              style={[
-                styles.listingTypeButton,
-                formState.listing_type === type && styles.listingTypeButtonActive,
-              ]}
-              onPress={() => {
-                formActions.setListingType?.(type)
-                // Reset category when changing listing type
-                if (formState.listing_type !== type) {
-                  formActions.setCategory('')
-                }
-              }}
-            >
-              <Text
+          {([
+            'service', 
+            'goods', 
+            'rental', 
+            'experience', 
+            'subscription', 
+            'freelance', 
+            'auction', 
+            'space_sharing', 
+            'fundraising', 
+            'delivery', 
+            'taxi', 
+            'link'
+          ] as const).map((type) => {
+            const isActive = formState.listing_type === type
+            const typeConfig = {
+              service: { icon: 'construct-outline', gradient: gradients.primary, color: colors.primary, label: 'Service' },
+              goods: { icon: 'cube-outline', gradient: gradients.secondary, color: colors.secondary, label: 'Goods' },
+              rental: { icon: 'home-outline', gradient: gradients.success, color: colors.success, label: 'Rental' },
+              experience: { icon: 'ticket-outline', gradient: gradients.warmSunset, color: colors.warning, label: 'Experience' },
+              subscription: { icon: 'repeat-outline', gradient: gradients.cool, color: colors.secondary, label: 'Subscription' },
+              freelance: { icon: 'person-outline', gradient: gradients.primary, color: colors.primary, label: 'Freelance' },
+              auction: { icon: 'gavel-outline', gradient: gradients.warm, color: colors.error, label: 'Auction' },
+              space_sharing: { icon: 'square-outline', gradient: gradients.success, color: colors.success, label: 'Space' },
+              fundraising: { icon: 'heart-outline', gradient: gradients.primary, color: colors.error, label: 'Fundraising' },
+              delivery: { icon: 'car-outline', gradient: gradients.secondary, color: colors.secondary, label: 'Delivery' },
+              taxi: { icon: 'car-sport-outline', gradient: gradients.secondaryDark, color: colors.secondaryDark, label: 'Taxi' },
+              link: { icon: 'link-outline', gradient: gradients.neutralDark, color: colors.gray[600], label: 'Link' },
+            }[type]
+            
+            return (
+              <Pressable
+                key={type}
                 style={[
-                  styles.listingTypeButtonText,
-                  formState.listing_type === type && styles.listingTypeButtonTextActive,
+                  styles.listingTypeButton,
+                  isActive && styles.listingTypeButtonActive,
                 ]}
+                onPress={() => {
+                  formActions.setListingType?.(type)
+                  // Reset category when changing listing type
+                  if (formState.listing_type !== type) {
+                    formActions.setCategory('')
+                  }
+                }}
               >
-                {type.charAt(0).toUpperCase() + type.slice(1)}
-              </Text>
-            </Pressable>
-          ))}
+                {isActive ? (
+                  <LinearGradient
+                    colors={typeConfig.gradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.listingTypeGradient}
+                  >
+                    <Ionicons name={typeConfig.icon as any} size={20} color="#ffffff" />
+                    <Text style={styles.listingTypeButtonTextActive} numberOfLines={1} ellipsizeMode="tail">
+                      {typeConfig.label}
+                    </Text>
+                  </LinearGradient>
+                ) : (
+                  <View style={styles.listingTypeButtonContent}>
+                    <Ionicons name={typeConfig.icon as any} size={20} color={typeConfig.color} />
+                    <Text style={styles.listingTypeButtonText} numberOfLines={1} ellipsizeMode="tail">
+                      {typeConfig.label}
+                    </Text>
+                  </View>
+                )}
+              </Pressable>
+            )
+          })}
         </View>
       </View>
 
@@ -592,5 +637,53 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '600',
+  },
+  listingTypeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  listingTypeButton: {
+    width: '30%', // 3 columns with gaps
+    minWidth: 100,
+    minHeight: 90,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    ...elevation.level1,
+  },
+  listingTypeButtonActive: {
+    ...elevation.level3,
+  },
+  listingTypeGradient: {
+    flex: 1,
+    padding: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    borderRadius: borderRadius.lg,
+  },
+  listingTypeButtonContent: {
+    flex: 1,
+    padding: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    borderColor: colors.border.light,
+    borderRadius: borderRadius.lg,
+  },
+  listingTypeButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  listingTypeButtonTextActive: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#ffffff',
+    textAlign: 'center',
   },
 })

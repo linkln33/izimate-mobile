@@ -377,7 +377,7 @@ export function createListingHandlers(
   }
 
   const handleNext = (currentStep: Step, formState: ListingFormState): Step | null => {
-    // Step 1: Basic Info
+    // Step 1: Basic Information
     if (currentStep === 1) {
       if (!formState.title.trim() || !formState.description.trim() || !formState.category) {
         Alert.alert('Required Fields', 'Please fill in title, description, and category')
@@ -388,12 +388,86 @@ export function createListingHandlers(
     // Step 2: Services & Pricing
     else if (currentStep === 2) {
       console.log('🔍 Step 2 Validation:', {
+        listing_type: formState.listing_type,
         budgetType: formState.budgetType,
         budgetMin: formState.budgetMin,
         budgetMax: formState.budgetMax,
         price_list: formState.price_list,
+        rental_duration_type: formState.rental_duration_type,
+        rental_rate_hourly: formState.rental_rate_hourly,
+        rental_rate_daily: formState.rental_rate_daily,
+        rental_rate_weekly: formState.rental_rate_weekly,
+        rental_rate_monthly: formState.rental_rate_monthly,
       });
 
+      // Rental listings use rental rates instead of budget
+      if (formState.listing_type === 'rental') {
+        if (!formState.rental_duration_type) {
+          Alert.alert('Required Fields', 'Please select a rental duration type (hourly, daily, weekly, or monthly)')
+          return null
+        }
+        
+        // Validate that at least one rental rate is provided for the selected duration type
+        const hasRate = 
+          (formState.rental_duration_type === 'hourly' && formState.rental_rate_hourly && formState.rental_rate_hourly.trim() !== '') ||
+          (formState.rental_duration_type === 'daily' && formState.rental_rate_daily && formState.rental_rate_daily.trim() !== '') ||
+          (formState.rental_duration_type === 'weekly' && formState.rental_rate_weekly && formState.rental_rate_weekly.trim() !== '') ||
+          (formState.rental_duration_type === 'monthly' && formState.rental_rate_monthly && formState.rental_rate_monthly.trim() !== '')
+        
+        if (!hasRate) {
+          Alert.alert('Required Fields', `Please enter a ${formState.rental_duration_type} rental rate`)
+          return null
+        }
+        
+        // Validate rate is a positive number
+        const rateValue = 
+          formState.rental_duration_type === 'hourly' ? formState.rental_rate_hourly :
+          formState.rental_duration_type === 'daily' ? formState.rental_rate_daily :
+          formState.rental_duration_type === 'weekly' ? formState.rental_rate_weekly :
+          formState.rental_rate_monthly
+        
+        if (rateValue) {
+          const rate = parseFloat(rateValue)
+          if (isNaN(rate) || rate <= 0) {
+            Alert.alert('Invalid Rate', 'Please enter a valid positive number for the rental rate')
+            return null
+          }
+        }
+        
+        console.log('✅ Step 2 validation passed for rental, moving to step 3');
+        return 3
+      }
+
+      // Auction listings - validate start price and end time
+      if (formState.listing_type === 'auction') {
+        // Validation will be added when auction fields are implemented
+        console.log('✅ Step 2 validation passed for auction, moving to step 3');
+        return 3
+      }
+
+      // Subscription listings - validate billing cycle and price
+      if (formState.listing_type === 'subscription') {
+        // Validation will be added when subscription fields are implemented
+        console.log('✅ Step 2 validation passed for subscription, moving to step 3');
+        return 3
+      }
+
+      // Link listings - only need URL
+      if (formState.listing_type === 'link') {
+        // Validation will be added when link fields are implemented
+        console.log('✅ Step 2 validation passed for link, moving to step 3');
+        return 3
+      }
+
+      // Fundraising listings - validate goal amount
+      if (formState.listing_type === 'fundraising') {
+        // Validation will be added when fundraising fields are implemented
+        console.log('✅ Step 2 validation passed for fundraising, moving to step 3');
+        return 3
+      }
+
+      // Experience, Freelance, Space Sharing, Delivery, Taxi use standard budget/pricing
+      // Service and Goods listings use budget/pricing
       if (formState.budgetType === 'fixed') {
         if (!formState.budgetMin || formState.budgetMin.trim() === '') {
           Alert.alert('Required Fields', 'Please enter a fixed price')
@@ -409,7 +483,7 @@ export function createListingHandlers(
         // Validate min < max
         const min = parseFloat(formState.budgetMin);
         const max = parseFloat(formState.budgetMax);
-        if (min >= max) {
+        if (isNaN(min) || isNaN(max) || min >= max) {
           Alert.alert('Invalid Range', 'Minimum price must be less than maximum price')
         return null
       }
@@ -577,8 +651,10 @@ export function createListingHandlers(
         rental_rate_daily: formState.rental_rate_daily ? parseFloat(formState.rental_rate_daily) : null,
         rental_rate_weekly: formState.rental_rate_weekly ? parseFloat(formState.rental_rate_weekly) : null,
         rental_rate_monthly: formState.rental_rate_monthly ? parseFloat(formState.rental_rate_monthly) : null,
-        security_deposit: formState.security_deposit ? parseFloat(formState.security_deposit) : null,
-        cleaning_fee: formState.cleaning_fee ? parseFloat(formState.cleaning_fee) : null,
+        // Note: security_deposit and cleaning_fee columns may not exist in all database schemas
+        // Only include if they exist - commented out to avoid schema errors
+        // security_deposit: formState.security_deposit ? parseFloat(formState.security_deposit) : null,
+        // cleaning_fee: formState.cleaning_fee ? parseFloat(formState.cleaning_fee) : null,
         insurance_required: formState.insurance_required || false,
         pickup_available: formState.pickup_available || false,
         delivery_available: formState.delivery_available || false,

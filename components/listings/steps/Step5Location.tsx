@@ -3,14 +3,14 @@ import { Ionicons } from '@expo/vector-icons'
 import { LocationPickerMap } from '@/components/location/LocationPickerMap'
 import type { ListingFormState, ListingFormActions } from '../useListingForm'
 
-interface Step3LocationProps {
+interface Step5LocationProps {
   formState: ListingFormState
   formActions: ListingFormActions
   loading: boolean
   onDetectLocation: () => void
 }
 
-export function Step3Location({
+export function Step5Location({
   formState,
   formActions,
   loading,
