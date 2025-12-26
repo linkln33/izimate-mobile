@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
     backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     borderRadius: borderRadius.lg, // 16px - consistent
     padding: spacing.lg, // 16px - consistent
-    marginHorizontal: spacing.md, // 12px
+    marginHorizontal: 0, // No horizontal margin - same width as location box
     marginBottom: spacing.md, // 12px
     ...elevation.level2, // Subtle shadow like other cards
   },
@@ -739,7 +739,7 @@ const styles = StyleSheet.create({
     backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     borderRadius: borderRadius.lg, // 16px - consistent
     padding: spacing.lg, // 16px - consistent
-    marginHorizontal: spacing.md, // 12px
+    marginHorizontal: 0, // No horizontal margin - same width as location box
     marginBottom: spacing.md, // 12px
     ...elevation.level2, // Subtle shadow like other cards
   },

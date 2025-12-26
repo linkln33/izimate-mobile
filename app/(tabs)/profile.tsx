@@ -622,6 +622,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg, // 16px - consistent
     padding: spacing.xl, // 20px - consistent
     marginBottom: spacing.lg, // Consistent spacing between sections
+    marginHorizontal: 0, // No horizontal margin - same width as rating box
     ...elevation.level2, // Consistent elevation
   },
   sectionTitle: {
@@ -710,6 +711,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg, // 16px - consistent
     padding: spacing.lg, // 16px - consistent
     marginBottom: spacing.md, // Consistent spacing
+    marginHorizontal: 0, // No horizontal margin - same width as rating box
     ...elevation.level2, // Consistent elevation
   },
   statRow: {
@@ -816,6 +818,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg, // 16px - consistent
     padding: spacing.lg, // 16px - consistent
     marginBottom: spacing.md, // Consistent spacing
+    marginHorizontal: 0, // No horizontal margin - same width as rating box
     ...elevation.level2, // Consistent elevation
   },
   settingsCardContent: {
@@ -843,6 +846,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg, // 16px - consistent
     marginBottom: spacing.md, // Consistent spacing
     marginTop: -spacing.md,
+    marginHorizontal: 0, // No horizontal margin - same width as rating box
     borderBottomLeftRadius: borderRadius.lg, // 16px - consistent
     borderBottomRightRadius: borderRadius.lg, // 16px - consistent
   },
@@ -851,6 +855,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg, // 16px - consistent
     padding: spacing.lg, // 16px - consistent
     marginBottom: spacing.xl, // Consistent spacing
+    marginHorizontal: 0, // No horizontal margin - same width as rating box
     ...elevation.level2, // Consistent elevation
   },
   affiliateCardContent: {

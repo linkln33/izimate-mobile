@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     borderRadius: borderRadius.lg, // 16px - rounded corners
     padding: spacing.lg, // 16px
-    marginHorizontal: spacing.md, // 12px
+    marginHorizontal: 0, // No horizontal margin - same width as location box
     marginBottom: spacing.lg, // 16px
     ...elevation.level2, // Subtle shadow
   },

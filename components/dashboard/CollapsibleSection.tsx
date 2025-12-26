@@ -151,7 +151,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   content: {
-    padding: spacing.lg,
+    paddingVertical: spacing.lg, // Keep vertical padding
+    paddingHorizontal: 0, // Remove horizontal padding - match location box width
     overflow: 'hidden',
     backgroundColor: 'transparent',
   },

@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: spacing.lg, // 16px
-    marginHorizontal: spacing.md, // 12px
+    marginHorizontal: 0, // No horizontal margin - same width as location box
     marginBottom: spacing.sm, // 8px
     backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     borderRadius: borderRadius.lg, // 16px

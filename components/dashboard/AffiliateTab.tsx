@@ -890,12 +890,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   contentContainer: {
-    padding: spacing.md, // Small padding
+    paddingVertical: spacing.md, // Keep vertical padding
+    paddingHorizontal: 0, // Remove horizontal padding - match location box width
   },
   mainContainer: {
     backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     borderRadius: borderRadius.lg, // 16px
-    padding: spacing.md, // Small padding (12px)
+    padding: spacing.sm, // Smaller padding (8px) - wider boxes
+    marginHorizontal: 0, // No horizontal margin - same width as location box
     ...elevation.level2,
   },
   section: {
