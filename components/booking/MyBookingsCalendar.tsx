@@ -32,6 +32,8 @@ import { AuthRequest, AuthRequestConfig, AuthSessionResult, makeRedirectUri } fr
 import * as WebBrowser from 'expo-web-browser';
 import { GoogleCalendarService } from '@/lib/utils/google-calendar';
 import { OutlookCalendarService } from '@/lib/utils/outlook-calendar';
+import { pastelDesignSystem } from '@/lib/pastel-design-system';
+const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem;
 
 // Conditionally import native calendar service
 let NativeCalendarService: any = null;
@@ -621,13 +623,13 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
       {/* Calendar Header */}
       <View style={styles.calendarHeader}>
         <Pressable onPress={() => navigateMonth('prev')} style={styles.navButton}>
-          <Ionicons name="chevron-back" size={20} color="#374151" />
+          <Ionicons name="chevron-back" size={20} color={surfaces.onSurface} />
         </Pressable>
         <Text style={styles.monthYear}>
           {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
         </Text>
         <Pressable onPress={() => navigateMonth('next')} style={styles.navButton}>
-          <Ionicons name="chevron-forward" size={20} color="#374151" />
+          <Ionicons name="chevron-forward" size={20} color={surfaces.onSurface} />
         </Pressable>
       </View>
 
@@ -679,7 +681,7 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
     <View style={styles.dayViewContainer}>
       <View style={styles.dayViewHeader}>
         <Pressable onPress={() => navigateDay('prev')} style={styles.navButton}>
-          <Ionicons name="chevron-back" size={20} color="#374151" />
+          <Ionicons name="chevron-back" size={20} color={surfaces.onSurface} />
         </Pressable>
         <Text style={styles.dayViewTitle}>
           {currentDate.toLocaleDateString('en-US', {
@@ -690,7 +692,7 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
           })}
         </Text>
         <Pressable onPress={() => navigateDay('next')} style={styles.navButton}>
-          <Ionicons name="chevron-forward" size={20} color="#374151" />
+          <Ionicons name="chevron-forward" size={20} color={surfaces.onSurface} />
         </Pressable>
       </View>
       
@@ -725,14 +727,14 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
         {/* Week Navigation */}
         <View style={styles.weekViewHeader}>
           <Pressable onPress={() => navigateWeek('prev')} style={styles.navButton}>
-            <Ionicons name="chevron-back" size={20} color="#374151" />
+            <Ionicons name="chevron-back" size={20} color={surfaces.onSurface} />
           </Pressable>
           <Text style={styles.weekViewTitle}>
             {startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {' '}
             {weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </Text>
           <Pressable onPress={() => navigateWeek('next')} style={styles.navButton}>
-            <Ionicons name="chevron-forward" size={20} color="#374151" />
+            <Ionicons name="chevron-forward" size={20} color={surfaces.onSurface} />
           </Pressable>
         </View>
 
@@ -808,7 +810,7 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
             style={styles.createFirstEventButton}
             onPress={() => handleCreateEvent(formatLocalDateString(new Date()))}
           >
-            <Ionicons name="add" size={20} color="#ffffff" />
+            <Ionicons name="add" size={20} color="#FFFFFF" />
             <Text style={styles.createEventButtonText}>Create Your First Event</Text>
           </Pressable>
         </View>
@@ -849,17 +851,17 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
                 <View style={styles.bookingDetails}>
                   {booking.provider && (
                     <Text style={styles.bookingPerson}>
-                      <Ionicons name="person" size={14} color="#6b7280" /> Provider: {booking.provider}
+                      <Ionicons name="person" size={14} color={surfaces.onSurfaceVariant} /> Provider: {booking.provider}
                     </Text>
                   )}
                   {booking.customer && (
                     <Text style={styles.bookingPerson}>
-                      <Ionicons name="person" size={14} color="#6b7280" /> Customer: {booking.customer}
+                      <Ionicons name="person" size={14} color={surfaces.onSurfaceVariant} /> Customer: {booking.customer}
                     </Text>
                   )}
                   {booking.price && (
                     <Text style={styles.bookingPrice}>
-                      <Ionicons name="card" size={14} color="#10b981" /> {booking.currency || '$'}{booking.price}
+                      <Ionicons name="card" size={14} color={pastelColors.success[500]} /> {booking.currency || '$'}{booking.price}
                     </Text>
                   )}
                 </View>
@@ -894,7 +896,7 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
       <View style={styles.dayBookingsContainer}>
         {dayBookings.length === 0 ? (
           <View style={styles.noBookingsContainer}>
-            <Ionicons name="calendar-outline" size={48} color="#d1d5db" />
+            <Ionicons name="calendar-outline" size={48} color={surfaces.outline} />
             <Text style={styles.noBookingsText}>No bookings on this date</Text>
           </View>
         ) : (
@@ -929,17 +931,17 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
                 <View style={styles.bookingDetails}>
                   {booking.provider && (
                     <Text style={styles.bookingPerson}>
-                      <Ionicons name="person" size={14} color="#6b7280" /> Provider: {booking.provider}
+                      <Ionicons name="person" size={14} color={surfaces.onSurfaceVariant} /> Provider: {booking.provider}
                     </Text>
                   )}
                   {booking.customer && (
                     <Text style={styles.bookingPerson}>
-                      <Ionicons name="person" size={14} color="#6b7280" /> Customer: {booking.customer}
+                      <Ionicons name="person" size={14} color={surfaces.onSurfaceVariant} /> Customer: {booking.customer}
                     </Text>
                   )}
                   {booking.price && (
                     <Text style={styles.bookingPrice}>
-                      <Ionicons name="card" size={14} color="#10b981" /> {booking.currency || '$'}{booking.price}
+                      <Ionicons name="card" size={14} color={pastelColors.success[500]} /> {booking.currency || '$'}{booking.price}
                     </Text>
                   )}
                 </View>
@@ -1086,7 +1088,7 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
               style={styles.createEventButton}
               onPress={() => handleCreateEvent(selectedDate)}
             >
-              <Ionicons name="add" size={20} color="#ffffff" />
+              <Ionicons name="add" size={20} color="#FFFFFF" />
               <Text style={styles.createEventButtonText}>New Event</Text>
             </Pressable>
           </View>
@@ -1123,23 +1125,23 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
           <Text style={styles.summaryTitle}>This Month</Text>
           <View style={styles.summaryStats}>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{bookings.length}</Text>
+              <Text style={[styles.statNumber, styles.statNumberTotal]}>{bookings.length}</Text>
               <Text style={styles.statLabel}>Total Bookings</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>
+              <Text style={[styles.statNumber, styles.statNumberConfirmed]}>
                 {bookings.filter(b => b.status === 'confirmed').length}
               </Text>
               <Text style={styles.statLabel}>Confirmed</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>
+              <Text style={[styles.statNumber, styles.statNumberPending]}>
                 {bookings.filter(b => b.status === 'pending').length}
               </Text>
               <Text style={styles.statLabel}>Pending</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statNumber}>
+              <Text style={[styles.statNumber, styles.statNumberCompleted]}>
                 {bookings.filter(b => b.status === 'completed').length}
               </Text>
               <Text style={styles.statLabel}>Completed</Text>
@@ -1282,7 +1284,7 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
                   }
                 }}
               >
-                <Ionicons name="add" size={20} color="#ffffff" />
+                <Ionicons name="add" size={20} color="#FFFFFF" />
                 <Text style={styles.dayViewAddButtonText}>Add New Booking</Text>
               </Pressable>
             </View>
@@ -1306,7 +1308,7 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: surfaces.background,
   },
   loadingContainer: {
     flex: 1,
@@ -1315,9 +1317,9 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: spacing.md,
     fontSize: 16,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   calendarHeader: {
     flexDirection: 'row',
@@ -1332,7 +1334,7 @@ const styles = StyleSheet.create({
   monthYear: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
+    color: surfaces.onSurface,
   },
   dayNamesRow: {
     flexDirection: 'row',
@@ -1346,7 +1348,7 @@ const styles = StyleSheet.create({
   dayNameText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   calendarGrid: {
     flexDirection: 'row',
@@ -1361,48 +1363,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    borderRadius: 8,
+    borderRadius: borderRadius.sm,
     margin: 2,
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 1,
-    elevation: 1,
+    backgroundColor: surfaces.surface,
+    ...elevation.level1,
   },
   dayCellInactive: {
     opacity: 0.3,
-    backgroundColor: '#f9fafb',
+    backgroundColor: surfaces.surfaceVariant,
   },
   dayCellToday: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: pastelColors.primary[50],
     borderWidth: 2,
-    borderColor: '#f25842',
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    borderColor: pastelColors.primary[500],
+    ...elevation.level2,
   },
   dayCellSelected: {
-    backgroundColor: '#f25842',
-    borderRadius: 8,
+    backgroundColor: pastelColors.primary[500],
+    borderRadius: borderRadius.sm,
     transform: [{ scale: 1.05 }],
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    ...elevation.level3,
   },
   dayText: {
     fontSize: 16,
-    color: '#1f2937',
+    color: surfaces.onSurface,
   },
   dayTextInactive: {
-    color: '#9ca3af',
+    color: surfaces.onSurfaceVariant,
   },
   dayTextToday: {
-    color: '#92400e',
+    color: pastelColors.warning[700],
     fontWeight: '600',
   },
   dayTextSelected: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   bookingIndicator: {
@@ -1411,10 +1405,10 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#f25842',
+    backgroundColor: pastelColors.primary[500],
   },
   bookingIndicatorSelected: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
   },
   dayBookingsContainer: {
     paddingHorizontal: 20,
@@ -1423,12 +1417,11 @@ const styles = StyleSheet.create({
   daySummary: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: '#f9fafb',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    backgroundColor: surfaces.surface,
+    padding: spacing.md,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.lg,
+    ...elevation.level1,
   },
   daySummaryItem: {
     flexDirection: 'row',
@@ -1438,32 +1431,31 @@ const styles = StyleSheet.create({
   daySummaryText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: surfaces.onSurface,
   },
   dayBookingsTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 16,
+    color: surfaces.onSurface,
+    marginBottom: spacing.lg,
   },
   noBookingsContainer: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: spacing['4xl'],
   },
   noBookingsText: {
     fontSize: 16,
-    color: '#6b7280',
-    marginTop: 12,
+    color: surfaces.onSurfaceVariant,
+    marginTop: spacing.md,
   },
   bookingsList: {
-    gap: 12,
+    gap: spacing.md,
   },
   bookingCard: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    ...elevation.level2,
   },
   bookingHeader: {
     marginBottom: 12,
@@ -1477,48 +1469,54 @@ const styles = StyleSheet.create({
   bookingTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
+    color: surfaces.onSurface,
     flex: 1,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
+    gap: spacing.xs,
   },
   statusText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#ffffff',
+    color: '#FFFFFF',
   },
   bookingTime: {
     fontSize: 14,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
     fontWeight: '500',
   },
   bookingDetails: {
-    gap: 6,
+    gap: spacing.xs,
   },
   bookingPerson: {
     fontSize: 14,
-    color: '#374151',
+    color: surfaces.onSurface,
   },
   bookingPrice: {
     fontSize: 14,
-    color: '#10b981',
+    color: pastelColors.success[500],
     fontWeight: '600',
   },
   summaryContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    paddingBottom: spacing.xl,
+    backgroundColor: surfaces.surface, // Sand color
+    borderRadius: borderRadius.lg,
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.lg,
+    ...elevation.level3, // Increased elevation for better visibility
   },
   summaryTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 16,
+    color: surfaces.onSurface,
+    marginBottom: spacing.lg,
   },
   summaryStats: {
     flexDirection: 'row',
@@ -1531,12 +1529,23 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#f25842',
+  },
+  statNumberTotal: {
+    color: pastelColors.primary[500], // Red for total
+  },
+  statNumberConfirmed: {
+    color: pastelColors.success[500], // Green for confirmed
+  },
+  statNumberPending: {
+    color: pastelColors.warning[500], // Orange for pending
+  },
+  statNumberCompleted: {
+    color: pastelColors.secondary[500], // Blue for completed
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
+    color: surfaces.onSurfaceVariant,
+    marginTop: spacing.xs,
   },
   viewHeader: {
     paddingHorizontal: 20,
@@ -1546,12 +1555,12 @@ const styles = StyleSheet.create({
   viewTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
+    color: surfaces.onSurface,
+    marginBottom: spacing.xs,
   },
   viewSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   viewOptionsContainer: {
     paddingHorizontal: 20,
@@ -1559,68 +1568,56 @@ const styles = StyleSheet.create({
   },
   viewOptions: {
     flexDirection: 'row',
-    backgroundColor: '#f3f4f6',
-    borderRadius: 10,
+    backgroundColor: surfaces.surfaceVariant,
+    borderRadius: borderRadius.md,
     padding: 3,
   },
   viewOption: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 7,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.sm,
     alignItems: 'center',
   },
   activeViewOption: {
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: surfaces.surface,
+    ...elevation.level2,
   },
   viewOptionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   activeViewOptionText: {
-    color: '#f25842',
+    color: pastelColors.primary[500],
     fontWeight: '600',
   },
   externalCalendarContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderColor: '#e5e7eb',
-    marginTop: 16,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    marginTop: spacing.lg,
   },
   externalCalendarTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 16,
+    color: surfaces.onSurface,
+    marginBottom: spacing.lg,
     textAlign: 'center',
   },
   calendarProvidersRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    gap: 16,
+    gap: spacing.lg,
   },
   providerSquareBox: {
     flex: 1,
     aspectRatio: 1,
-    backgroundColor: '#ffffff',
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
+    backgroundColor: surfaces.surface, // Sand color
+    borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    gap: spacing.sm,
+    ...elevation.level3, // Increased elevation for better visibility
   },
   providerSquareBoxDisabled: {
     opacity: 0.6,
@@ -1635,7 +1632,7 @@ const styles = StyleSheet.create({
   providerTextSquare: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#374151',
+    color: surfaces.onSurface,
     textAlign: 'center',
   },
   dayViewContainer: {

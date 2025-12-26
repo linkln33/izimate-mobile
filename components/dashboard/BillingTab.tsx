@@ -5,6 +5,9 @@ import { useFocusEffect } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@/lib/types'
 import { getUserCurrency, formatCurrency, type CurrencyCode } from '@/lib/utils/currency'
+import { pastelDesignSystem } from '@/lib/pastel-design-system'
+import { Platform } from 'react-native'
+const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem
 
 interface Props {
   user: User | null
@@ -162,7 +165,7 @@ export function BillingTab({ user }: Props) {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#f25842" />
+        <ActivityIndicator size="large" color={pastelColors.primary[500]} />
       </View>
     )
   }
@@ -196,19 +199,19 @@ export function BillingTab({ user }: Props) {
           </View>
           <View style={styles.planFeatures}>
             <View style={styles.feature}>
-              <Ionicons name="checkmark" size={20} color="#10b981" />
+              <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
               <Text style={styles.featureText}>10 listings per month</Text>
             </View>
             <View style={styles.feature}>
-              <Ionicons name="checkmark" size={20} color="#10b981" />
+              <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
               <Text style={styles.featureText}>Priority support</Text>
             </View>
             <View style={styles.feature}>
-              <Ionicons name="checkmark" size={20} color="#10b981" />
+              <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
               <Text style={styles.featureText}>Advanced search filters</Text>
             </View>
             <View style={styles.feature}>
-              <Ionicons name="checkmark" size={20} color="#10b981" />
+              <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
               <Text style={styles.featureText}>Analytics dashboard</Text>
             </View>
           </View>
@@ -238,23 +241,23 @@ export function BillingTab({ user }: Props) {
           </View>
           <View style={styles.planFeatures}>
             <View style={styles.feature}>
-              <Ionicons name="checkmark" size={20} color="#10b981" />
+              <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
               <Text style={styles.featureText}>Unlimited listings</Text>
             </View>
             <View style={styles.feature}>
-              <Ionicons name="checkmark" size={20} color="#10b981" />
+              <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
               <Text style={styles.featureText}>24/7 priority support</Text>
             </View>
             <View style={styles.feature}>
-              <Ionicons name="checkmark" size={20} color="#10b981" />
+              <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
               <Text style={styles.featureText}>All Pro features</Text>
             </View>
             <View style={styles.feature}>
-              <Ionicons name="checkmark" size={20} color="#10b981" />
+              <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
               <Text style={styles.featureText}>Custom branding</Text>
             </View>
             <View style={styles.feature}>
-              <Ionicons name="checkmark" size={20} color="#10b981" />
+              <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
               <Text style={styles.featureText}>API access</Text>
             </View>
           </View>
@@ -280,7 +283,7 @@ export function BillingTab({ user }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: surfaces.background,
   },
   centerContainer: {
     flex: 1,
@@ -290,116 +293,111 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
-    padding: 20,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    color: surfaces.onSurface,
+    padding: spacing.xl,
+    backgroundColor: 'transparent',
   },
   currentPlan: {
-    backgroundColor: '#ffffff',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    backgroundColor: surfaces.surface,
+    padding: spacing.xl,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.md,
+    ...elevation.level2,
   },
   currentPlanLabel: {
     fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
+    color: surfaces.onSurfaceVariant,
+    marginBottom: spacing.xs,
   },
   currentPlanName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: surfaces.onSurface,
   },
   plansContainer: {
-    padding: 20,
-    gap: 16,
+    padding: spacing.xl,
+    gap: spacing.lg,
   },
   planCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    ...elevation.level2,
   },
   planCardActive: {
-    borderColor: '#f25842',
-    backgroundColor: '#fef2f2',
+    ...elevation.level3,
   },
   proPlanCard: {
-    backgroundColor: 'rgba(99, 102, 241, 0.05)', // Semi-transparent indigo
-    borderColor: 'rgba(99, 102, 241, 0.2)',
+    // No special styling needed
   },
   proPlanCardActive: {
-    borderColor: '#6366f1',
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    // No special styling needed
   },
   proPlanPrice: {
-    color: '#6366f1',
+    color: surfaces.onSurface,
   },
   businessPlanCard: {
-    backgroundColor: 'rgba(245, 158, 11, 0.05)', // Semi-transparent amber
-    borderColor: 'rgba(245, 158, 11, 0.2)',
+    // No special styling needed
   },
   businessPlanCardActive: {
-    borderColor: '#f59e0b',
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    ...elevation.level3,
   },
   businessPlanPrice: {
-    color: '#f59e0b',
+    color: surfaces.onSurface,
   },
   planHeader: {
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   planName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 8,
+    color: surfaces.onSurface,
+    marginBottom: spacing.sm,
   },
   planPrice: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#f25842',
+    color: pastelColors.primary[500],
   },
   planPeriod: {
     fontSize: 16,
     fontWeight: 'normal',
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   planFeatures: {
-    marginBottom: 20,
-    gap: 12,
+    marginBottom: spacing.xl,
+    gap: spacing.md,
   },
   feature: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.md,
   },
   featureText: {
     fontSize: 14,
-    color: '#1a1a1a',
+    color: surfaces.onSurface,
   },
   upgradeButton: {
-    backgroundColor: '#f25842',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: pastelColors.primary[500],
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
     alignItems: 'center',
+    ...elevation.level1,
   },
   upgradeButtonText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
   currentBadge: {
-    backgroundColor: '#d1fae5',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: pastelColors.success[100],
+    borderRadius: borderRadius.sm,
+    padding: spacing.md,
     alignItems: 'center',
+    ...elevation.level1,
   },
   currentBadgeText: {
-    color: '#10b981',
+    color: pastelColors.success[600],
     fontSize: 14,
     fontWeight: '600',
   },

@@ -6,7 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { PaperProvider } from 'react-native-paper'
 import { useNotificationManager } from '@/lib/utils/notification-manager'
 import { loadLanguage } from '@/lib/i18n/config'
-import { paperTheme } from '@/lib/paper-theme'
+import { pastelPaperTheme } from '@/lib/pastel-paper-theme'
 
 export default function RootLayout() {
   const [languageLoaded, setLanguageLoaded] = useState(false)
@@ -34,7 +34,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <PaperProvider theme={paperTheme}>
+      <PaperProvider theme={pastelPaperTheme}>
         <Stack
           screenOptions={{
             headerShown: false,

@@ -294,6 +294,10 @@ export const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({
   const handleBookingComplete = async (bookingData: {
     notes?: string
     recurringPattern?: RecurringPattern
+    participantCount?: number
+    deliveryAddress?: string
+    pickupAddress?: string
+    estimatedArrival?: string
   }) => {
     if (!selectedSlot || !selectedService || !selectedDate || !currentUser || !listingId) {
       Alert.alert('Error', 'Missing booking information')
@@ -362,7 +366,22 @@ export const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({
             currency: selectedService.currency,
             status: 'pending',
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            customer_notes: bookingData.notes,
+            customer_notes: (() => {
+              let notes = bookingData.notes || ''
+              if (bookingData.participantCount) {
+                notes += `${notes ? '\n\n' : ''}Participants: ${bookingData.participantCount}`
+              }
+              if (bookingData.deliveryAddress) {
+                notes += `${notes ? '\n\n' : ''}Delivery Address: ${bookingData.deliveryAddress}`
+              }
+              if (bookingData.pickupAddress) {
+                notes += `${notes ? '\n\n' : ''}Pickup: ${bookingData.pickupAddress}`
+                if (bookingData.deliveryAddress) {
+                  notes += `\nDrop-off: ${bookingData.deliveryAddress}`
+                }
+              }
+              return notes.trim() || undefined
+            })(),
           })
           .select()
           .single()
@@ -649,6 +668,8 @@ export const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({
           allowRecurring={showRecurring}
           allowNotes={true}
           loading={bookingLoading}
+          listingType={listing?.listing_type}
+          maxParticipants={(listing as any)?.experience_max_participants}
         />
       )}
 

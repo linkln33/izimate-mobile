@@ -8,6 +8,8 @@ import { checkListingQuota } from '@/lib/utils/listings'
 import { ListingCard } from '@/components/listings/ListingCard'
 import type { Listing, User } from '@/lib/types'
 import { normalizePhotoUrls } from '@/lib/utils/images'
+import { pastelDesignSystem } from '@/lib/pastel-design-system'
+const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem
 
 interface EnrichedListing extends Listing {
   customer?: User
@@ -446,7 +448,7 @@ export default function OfferScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: surfaces.background,
     paddingBottom: 0, // Tab bar will handle bottom spacing
     paddingTop: Platform.OS === 'ios' ? 50 : 12, // Add top padding for status bar
   },
@@ -454,23 +456,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.xl,
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: spacing.lg,
     fontSize: 16,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   quotaContainer: {
-    backgroundColor: '#fef3c7',
-    padding: 12,
-    margin: 16,
-    borderRadius: 8,
+    backgroundColor: pastelColors.warning[50],
+    padding: spacing.md,
+    margin: spacing.lg,
+    borderRadius: borderRadius.lg,
+    ...elevation.level2,
   },
   quotaText: {
     fontSize: 14,
-    color: '#92400e',
+    color: surfaces.onSurface,
     textAlign: 'center',
+    fontWeight: '500',
   },
   list: {
     flex: 1,
@@ -485,15 +489,11 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   likesContainer: {
-    padding: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    marginTop: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: spacing.lg,
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    marginTop: spacing.md,
+    ...elevation.level2,
   },
   likesSection: {
     marginTop: 16,
@@ -571,14 +571,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   createListingButton: {
-    marginTop: 24,
-    backgroundColor: '#f25842',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
+    marginTop: spacing['2xl'],
+    backgroundColor: pastelColors.primary[500],
+    paddingHorizontal: spacing['2xl'],
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    ...elevation.level1,
   },
   createListingButtonText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -586,23 +587,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    marginTop: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#f25842',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: pastelColors.primary[300],
     borderStyle: 'dashed',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...elevation.level1,
   },
   createNewButtonText: {
-    color: '#f25842',
+    color: pastelColors.primary[500],
     fontSize: 16,
     fontWeight: '600',
   },

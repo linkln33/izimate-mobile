@@ -100,11 +100,17 @@ export interface BookingFormProps {
   onComplete: (bookingData: {
     notes?: string
     recurringPattern?: RecurringPattern
+    participantCount?: number // For Experience
+    deliveryAddress?: string // For Delivery/Taxi
+    pickupAddress?: string // For Taxi
+    estimatedArrival?: string // For Delivery
   }) => Promise<void>
   onCancel: () => void
   allowRecurring?: boolean
   allowNotes?: boolean
   loading?: boolean
+  listingType?: string // To show conditional fields
+  maxParticipants?: number // For Experience
 }
 
 export interface EventDisplayProps {

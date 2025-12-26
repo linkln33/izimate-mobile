@@ -32,6 +32,7 @@ interface TimeSlot {
 }
 
 import type { ListingFormState, ListingFormActions } from '../useListingForm'
+import { RentalAvailabilityCalendar, type AvailabilityPeriod } from '../booking/RentalAvailabilityCalendar'
 
 interface Step5BookingSimplifiedProps {
   formState: ListingFormState;
@@ -58,24 +59,22 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
 }) => {
   const {
     booking_enabled,
-    service_name,
-    budget_min,
     time_slots,
     urgency,
     preferredDate,
+    listing_type,
+    rental_availability_periods,
   } = formState;
 
   const {
     setBookingEnabled,
-    setServiceName,
     setTimeSlots,
     setUrgency,
     setPreferredDate,
+    setRentalAvailabilityPeriods,
   } = formActions;
 
   const [bookingEnabled, setBookingEnabledLocal] = useState(booking_enabled || false);
-  const [serviceName, setServiceNameLocal] = useState(service_name || '');
-  const [defaultPrice, setDefaultPrice] = useState(budget_min?.toString() || '');
   const [timeSlots, setTimeSlotsLocal] = useState<TimeSlot[]>(time_slots || []);
   const [scheduleTimingEnabled, setScheduleTimingEnabled] = useState(
     !!(urgency || preferredDate) || false
@@ -120,21 +119,25 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
   // Update parent whenever data changes
   useEffect(() => {
     setBookingEnabled?.(bookingEnabled);
-    setServiceName?.(serviceName);
     setTimeSlots?.(timeSlots);
-  }, [bookingEnabled, serviceName, timeSlots, setBookingEnabled, setServiceName, setTimeSlots]);
+  }, [bookingEnabled, timeSlots, setBookingEnabled, setTimeSlots]);
 
   // Expose validation function for parent
   useEffect(() => {
     (window as any).validateStep5Booking = async () => {
       if (bookingEnabled) {
-        if (!serviceName.trim()) {
-          alert('Please enter a service name');
-          return false;
-        }
-        if (timeSlots.length === 0) {
-          alert('Please create at least one time slot');
-          return false;
+        // For rentals, check availability periods instead of time slots
+        if (listing_type === 'rental') {
+          if (!rental_availability_periods || rental_availability_periods.length === 0) {
+            alert('Please set at least one availability period for your rental');
+            return false;
+          }
+        } else {
+          // For services, check time slots (service name is already in Step 1 as title)
+          if (timeSlots.length === 0) {
+            alert('Please create at least one time slot');
+            return false;
+          }
         }
       }
       return true;
@@ -142,16 +145,11 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
     return () => {
       delete (window as any).validateStep5Booking;
     };
-  }, [bookingEnabled, serviceName, timeSlots]);
+  }, [bookingEnabled, timeSlots, listing_type, rental_availability_periods]);
 
   const handleBookingEnabledChange = (value: boolean) => {
     setBookingEnabledLocal(value);
     setBookingEnabled?.(value);
-  };
-
-  const handleServiceNameChange = (value: string) => {
-    setServiceNameLocal(value);
-    setServiceName?.(value);
   };
 
   const handleTimeSlotsChange = (slots: TimeSlot[]) => {
@@ -494,38 +492,23 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
 
         {bookingEnabled && (
           <>
-            {/* Service Name */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>What service do you provide?</Text>
-              <TextInput
-                style={styles.serviceInput}
-                value={serviceName}
-                onChangeText={handleServiceNameChange}
-                placeholder="e.g., Haircut, Manicure, Massage Therapy..."
-                placeholderTextColor="#9ca3af"
-              />
-              <Text style={styles.inputHelp}>
-                Describe the service you offer in a few words
-              </Text>
-            </View>
-
-            {/* Default Price */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Default Price (£)</Text>
-              <TextInput
-                style={styles.priceInput}
-                value={defaultPrice}
-                onChangeText={setDefaultPrice}
-                placeholder="50"
-                keyboardType="numeric"
-                placeholderTextColor="#9ca3af"
-              />
-              <Text style={styles.inputHelp}>
-                Starting price for your service (can be customized per slot)
-              </Text>
-            </View>
-
-            {/* Weekly Calendar */}
+            {listing_type === 'rental' ? (
+              /* Rental Availability Calendar */
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Set Rental Availability</Text>
+                <Text style={styles.inputHelp}>
+                  Mark date ranges when your rental (house, car, tool, etc.) is available or blocked
+                </Text>
+                <RentalAvailabilityCalendar
+                  availabilityPeriods={rental_availability_periods || []}
+                  onAvailabilityChange={(periods) => {
+                    setRentalAvailabilityPeriods?.(periods)
+                  }}
+                />
+              </View>
+            ) : (
+              <>
+                {/* Weekly Calendar */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Set Your Available Time Slots</Text>
               <Text style={styles.sectionSubtitle}>
@@ -584,6 +567,8 @@ export const Step5BookingSimplified: React.FC<Step5BookingSimplifiedProps> = ({
                 </View>
               )}
             </View>
+              </>
+            )}
           </>
         )}
       </View>
@@ -653,24 +638,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     marginBottom: 16,
-  },
-  serviceInput: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#1a1a1a',
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
-  },
-  priceInput: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#1a1a1a',
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
   },
   inputHelp: {
     fontSize: 13,
@@ -963,4 +930,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+
+// Export as Step3Booking for consistency with file name and step order
+export const Step3Booking = Step5BookingSimplified;
 

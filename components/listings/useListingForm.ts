@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import type { Listing } from '@/lib/types'
 import { normalizePhotoUrls } from '@/lib/utils/images'
 
@@ -41,6 +41,13 @@ export interface ListingFormState {
   delivery_available?: boolean
   delivery_cost?: string
   condition_notes?: string
+  rental_availability_periods?: Array<{
+    id: string
+    start_date: string
+    end_date: string
+    is_available: boolean
+    notes?: string
+  }>
   
   // Experience-specific fields
   experience_duration_hours?: number
@@ -161,6 +168,85 @@ export interface ListingFormActions {
   setPriceList?: (value: any[]) => void
   setCurrency?: (value: string) => void
   
+  // Rental-specific setters
+  setRentalDurationType?: (value: 'hourly' | 'daily' | 'weekly' | 'monthly') => void
+  setRentalMinDuration?: (value: number) => void
+  setRentalMaxDuration?: (value: number) => void
+  setRentalRateHourly?: (value: string) => void
+  setRentalRateDaily?: (value: string) => void
+  setRentalRateWeekly?: (value: string) => void
+  setRentalRateMonthly?: (value: string) => void
+  setSecurityDeposit?: (value: string) => void
+  setCleaningFee?: (value: string) => void
+  setInsuranceRequired?: (value: boolean) => void
+  setPickupAvailable?: (value: boolean) => void
+  setDeliveryAvailable?: (value: boolean) => void
+  setDeliveryCost?: (value: string) => void
+  setConditionNotes?: (value: string) => void
+  setRentalAvailabilityPeriods?: (value: Array<{
+    id: string
+    start_date: string
+    end_date: string
+    is_available: boolean
+    notes?: string
+  }>) => void
+  
+  // Experience-specific setters
+  setExperienceDurationHours?: (value: number) => void
+  setExperienceMaxParticipants?: (value: number) => void
+  setExperienceMinAge?: (value: number) => void
+  setExperienceIncludes?: (value: string[]) => void
+  setExperienceMeetingPoint?: (value: string) => void
+  setExperienceCancellationPolicy?: (value: string) => void
+  
+  // Subscription-specific setters
+  setSubscriptionBillingCycle?: (value: 'weekly' | 'monthly' | 'quarterly' | 'yearly') => void
+  setSubscriptionTrialDays?: (value: number) => void
+  setSubscriptionAutoRenew?: (value: boolean) => void
+  setSubscriptionFeatures?: (value: string[]) => void
+  
+  // Freelance-specific setters
+  setFreelanceCategory?: (value: 'ugc' | 'design' | 'writing' | 'video' | 'photography' | 'social_media' | 'consulting' | 'other') => void
+  setFreelancePortfolioUrl?: (value: string) => void
+  setFreelanceDeliveryDays?: (value: number) => void
+  setFreelanceRevisionsIncluded?: (value: number) => void
+  setFreelanceSkills?: (value: string[]) => void
+  
+  // Auction-specific setters
+  setAuctionStartPrice?: (value: string) => void
+  setAuctionReservePrice?: (value: string) => void
+  setAuctionEndTime?: (value: string) => void
+  setAuctionBidIncrement?: (value: string) => void
+  setAuctionBuyNowPrice?: (value: string) => void
+  
+  // Space Sharing-specific setters
+  setSpaceType?: (value: 'parking' | 'storage' | 'workspace' | 'event_venue' | 'studio' | 'kitchen' | 'couchsurfing' | 'other') => void
+  setSpaceCapacity?: (value: number) => void
+  setSpaceAmenities?: (value: string[]) => void
+  setSpaceHourlyRate?: (value: string) => void
+  setSpaceDailyRate?: (value: string) => void
+  
+  // Fundraising-specific setters
+  setFundraisingGoal?: (value: string) => void
+  setFundraisingEndDate?: (value: string) => void
+  setFundraisingCategory?: (value: 'charity' | 'personal' | 'business' | 'event' | 'medical' | 'education' | 'other') => void
+  setFundraisingBeneficiary?: (value: string) => void
+  
+  // Delivery-specific setters
+  setDeliveryType?: (value: 'food' | 'grocery' | 'package' | 'medicine' | 'other') => void
+  setDeliveryRadiusKm?: (value: number) => void
+  setDeliveryFeeStructure?: (value: 'fixed' | 'distance_based' | 'weight_based') => void
+  setDeliveryEstimatedTime?: (value: number) => void
+  
+  // Taxi-specific setters
+  setTaxiVehicleType?: (value: 'standard' | 'luxury' | 'van' | 'motorcycle' | 'bike') => void
+  setTaxiMaxPassengers?: (value: number) => void
+  setTaxiLicenseNumber?: (value: string) => void
+  
+  // Link-specific setters
+  setLinkUrl?: (value: string) => void
+  setLinkType?: (value: 'affiliate' | 'redirect' | 'short_link') => void
+  
   // Step 3: Booking & Schedule
   setBookingEnabled?: (value: boolean) => void
   setServiceName?: (value: string) => void
@@ -237,6 +323,13 @@ export function useListingForm(isEditMode: boolean) {
   const [rentalRateMonthly, setRentalRateMonthly] = useState(() => '')
   const [securityDeposit, setSecurityDeposit] = useState(() => '')
   const [cleaningFee, setCleaningFee] = useState(() => '')
+  const [rentalAvailabilityPeriods, setRentalAvailabilityPeriods] = useState<Array<{
+    id: string
+    start_date: string
+    end_date: string
+    is_available: boolean
+    notes?: string
+  }>>(() => [])
   const [insuranceRequired, setInsuranceRequired] = useState(() => false)
   const [pickupAvailable, setPickupAvailable] = useState(() => false)
   const [deliveryAvailable, setDeliveryAvailable] = useState(() => false)
@@ -372,6 +465,7 @@ export function useListingForm(isEditMode: boolean) {
     setRentalRateMonthly('')
     setSecurityDeposit('')
     setCleaningFee('')
+    setRentalAvailabilityPeriods([])
     setInsuranceRequired(false)
     setPickupAvailable(false)
     setDeliveryAvailable(false)
@@ -531,6 +625,94 @@ export function useListingForm(isEditMode: boolean) {
     
     console.log('📅 Loaded time_slots:', listingAny.time_slots)
     
+    // Load rental availability periods
+    if (listingAny.rental_availability_periods) {
+      if (Array.isArray(listingAny.rental_availability_periods)) {
+        setRentalAvailabilityPeriods(listingAny.rental_availability_periods)
+      } else if (typeof listingAny.rental_availability_periods === 'string') {
+        try {
+          const parsed = JSON.parse(listingAny.rental_availability_periods)
+          setRentalAvailabilityPeriods(Array.isArray(parsed) ? parsed : [])
+        } catch {
+          setRentalAvailabilityPeriods([])
+        }
+      }
+    } else {
+      setRentalAvailabilityPeriods([])
+    }
+    
+    // Load Rental fields
+    if (listingAny.rental_duration_type) setRentalDurationType(listingAny.rental_duration_type)
+    if (listingAny.rental_min_duration) setRentalMinDuration(listingAny.rental_min_duration)
+    if (listingAny.rental_max_duration) setRentalMaxDuration(listingAny.rental_max_duration)
+    if (listingAny.rental_rate_hourly) setRentalRateHourly(String(listingAny.rental_rate_hourly))
+    if (listingAny.rental_rate_daily) setRentalRateDaily(String(listingAny.rental_rate_daily))
+    if (listingAny.rental_rate_weekly) setRentalRateWeekly(String(listingAny.rental_rate_weekly))
+    if (listingAny.rental_rate_monthly) setRentalRateMonthly(String(listingAny.rental_rate_monthly))
+    if (listingAny.security_deposit) setSecurityDeposit(String(listingAny.security_deposit))
+    if (listingAny.cleaning_fee) setCleaningFee(String(listingAny.cleaning_fee))
+    if (listingAny.insurance_required !== undefined) setInsuranceRequired(listingAny.insurance_required)
+    if (listingAny.pickup_available !== undefined) setPickupAvailable(listingAny.pickup_available)
+    if (listingAny.delivery_available !== undefined) setDeliveryAvailable(listingAny.delivery_available)
+    if (listingAny.delivery_cost) setDeliveryCost(String(listingAny.delivery_cost))
+    if (listingAny.condition_notes) setConditionNotes(listingAny.condition_notes)
+    
+    // Load Experience fields
+    if (listingAny.experience_duration_hours) setExperienceDurationHours(listingAny.experience_duration_hours)
+    if (listingAny.experience_max_participants) setExperienceMaxParticipants(listingAny.experience_max_participants)
+    if (listingAny.experience_min_age) setExperienceMinAge(listingAny.experience_min_age)
+    if (listingAny.experience_includes) setExperienceIncludes(Array.isArray(listingAny.experience_includes) ? listingAny.experience_includes : [])
+    if (listingAny.experience_meeting_point) setExperienceMeetingPoint(listingAny.experience_meeting_point)
+    if (listingAny.experience_cancellation_policy) setExperienceCancellationPolicy(listingAny.experience_cancellation_policy)
+    
+    // Load Subscription fields
+    if (listingAny.subscription_billing_cycle) setSubscriptionBillingCycle(listingAny.subscription_billing_cycle)
+    if (listingAny.subscription_trial_days) setSubscriptionTrialDays(listingAny.subscription_trial_days)
+    if (listingAny.subscription_auto_renew !== undefined) setSubscriptionAutoRenew(listingAny.subscription_auto_renew)
+    if (listingAny.subscription_features) setSubscriptionFeatures(Array.isArray(listingAny.subscription_features) ? listingAny.subscription_features : [])
+    
+    // Load Freelance fields
+    if (listingAny.freelance_category) setFreelanceCategory(listingAny.freelance_category)
+    if (listingAny.freelance_portfolio_url) setFreelancePortfolioUrl(listingAny.freelance_portfolio_url)
+    if (listingAny.freelance_delivery_days) setFreelanceDeliveryDays(listingAny.freelance_delivery_days)
+    if (listingAny.freelance_revisions_included) setFreelanceRevisionsIncluded(listingAny.freelance_revisions_included)
+    if (listingAny.freelance_skills) setFreelanceSkills(Array.isArray(listingAny.freelance_skills) ? listingAny.freelance_skills : [])
+    
+    // Load Auction fields
+    if (listingAny.auction_start_price) setAuctionStartPrice(String(listingAny.auction_start_price))
+    if (listingAny.auction_reserve_price) setAuctionReservePrice(String(listingAny.auction_reserve_price))
+    if (listingAny.auction_end_time) setAuctionEndTime(listingAny.auction_end_time)
+    if (listingAny.auction_bid_increment) setAuctionBidIncrement(String(listingAny.auction_bid_increment))
+    if (listingAny.auction_buy_now_price) setAuctionBuyNowPrice(String(listingAny.auction_buy_now_price))
+    
+    // Load Space Sharing fields
+    if (listingAny.space_type) setSpaceType(listingAny.space_type)
+    if (listingAny.space_capacity) setSpaceCapacity(listingAny.space_capacity)
+    if (listingAny.space_amenities) setSpaceAmenities(Array.isArray(listingAny.space_amenities) ? listingAny.space_amenities : [])
+    if (listingAny.space_hourly_rate) setSpaceHourlyRate(String(listingAny.space_hourly_rate))
+    if (listingAny.space_daily_rate) setSpaceDailyRate(String(listingAny.space_daily_rate))
+    
+    // Load Fundraising fields
+    if (listingAny.fundraising_goal) setFundraisingGoal(String(listingAny.fundraising_goal))
+    if (listingAny.fundraising_end_date) setFundraisingEndDate(listingAny.fundraising_end_date)
+    if (listingAny.fundraising_category) setFundraisingCategory(listingAny.fundraising_category)
+    if (listingAny.fundraising_beneficiary) setFundraisingBeneficiary(listingAny.fundraising_beneficiary)
+    
+    // Load Delivery fields
+    if (listingAny.delivery_type) setDeliveryType(listingAny.delivery_type)
+    if (listingAny.delivery_radius_km) setDeliveryRadiusKm(listingAny.delivery_radius_km)
+    if (listingAny.delivery_fee_structure) setDeliveryFeeStructure(listingAny.delivery_fee_structure)
+    if (listingAny.delivery_estimated_time) setDeliveryEstimatedTime(listingAny.delivery_estimated_time)
+    
+    // Load Taxi fields
+    if (listingAny.taxi_vehicle_type) setTaxiVehicleType(listingAny.taxi_vehicle_type)
+    if (listingAny.taxi_max_passengers) setTaxiMaxPassengers(listingAny.taxi_max_passengers)
+    if (listingAny.taxi_license_number) setTaxiLicenseNumber(listingAny.taxi_license_number)
+    
+    // Load Link fields
+    if (listingAny.link_url) setLinkUrl(listingAny.link_url)
+    if (listingAny.link_type) setLinkType(listingAny.link_type)
+    
     // Step 4: Settings - Load from service_settings and review_incentive_settings
     // Cancellation settings from service_settings
     if (listingAny.service_settings?.cancellation_hours) {
@@ -635,11 +817,59 @@ export function useListingForm(isEditMode: boolean) {
     rental_rate_monthly: rentalRateMonthly,
     security_deposit: securityDeposit,
     cleaning_fee: cleaningFee,
+    rental_availability_periods: rentalAvailabilityPeriods,
     insurance_required: insuranceRequired,
     pickup_available: pickupAvailable,
     delivery_available: deliveryAvailable,
     delivery_cost: deliveryCost,
     condition_notes: conditionNotes,
+    // Experience-specific fields
+    experience_duration_hours: experienceDurationHours,
+    experience_max_participants: experienceMaxParticipants,
+    experience_min_age: experienceMinAge,
+    experience_includes: experienceIncludes,
+    experience_meeting_point: experienceMeetingPoint,
+    experience_cancellation_policy: experienceCancellationPolicy,
+    // Subscription-specific fields
+    subscription_billing_cycle: subscriptionBillingCycle,
+    subscription_trial_days: subscriptionTrialDays,
+    subscription_auto_renew: subscriptionAutoRenew,
+    subscription_features: subscriptionFeatures,
+    // Freelance-specific fields
+    freelance_category: freelanceCategory,
+    freelance_portfolio_url: freelancePortfolioUrl,
+    freelance_delivery_days: freelanceDeliveryDays,
+    freelance_revisions_included: freelanceRevisionsIncluded,
+    freelance_skills: freelanceSkills,
+    // Auction-specific fields
+    auction_start_price: auctionStartPrice,
+    auction_reserve_price: auctionReservePrice,
+    auction_end_time: auctionEndTime,
+    auction_bid_increment: auctionBidIncrement,
+    auction_buy_now_price: auctionBuyNowPrice,
+    // Space Sharing-specific fields
+    space_type: spaceType,
+    space_capacity: spaceCapacity,
+    space_amenities: spaceAmenities,
+    space_hourly_rate: spaceHourlyRate,
+    space_daily_rate: spaceDailyRate,
+    // Fundraising-specific fields
+    fundraising_goal: fundraisingGoal,
+    fundraising_end_date: fundraisingEndDate,
+    fundraising_category: fundraisingCategory,
+    fundraising_beneficiary: fundraisingBeneficiary,
+    // Delivery-specific fields
+    delivery_type: deliveryType,
+    delivery_radius_km: deliveryRadiusKm,
+    delivery_fee_structure: deliveryFeeStructure,
+    delivery_estimated_time: deliveryEstimatedTime,
+    // Taxi-specific fields
+    taxi_vehicle_type: taxiVehicleType,
+    taxi_max_passengers: taxiMaxPassengers,
+    taxi_license_number: taxiLicenseNumber,
+    // Link-specific fields
+    link_url: linkUrl,
+    link_type: linkType,
     locationAddress,
     locationLat,
     locationLng,
@@ -701,11 +931,59 @@ export function useListingForm(isEditMode: boolean) {
     setRentalRateMonthly,
     setSecurityDeposit,
     setCleaningFee,
+    setRentalAvailabilityPeriods,
     setInsuranceRequired,
     setPickupAvailable,
     setDeliveryAvailable,
     setDeliveryCost,
     setConditionNotes,
+    // Experience setters
+    setExperienceDurationHours,
+    setExperienceMaxParticipants,
+    setExperienceMinAge,
+    setExperienceIncludes,
+    setExperienceMeetingPoint,
+    setExperienceCancellationPolicy,
+    // Subscription setters
+    setSubscriptionBillingCycle,
+    setSubscriptionTrialDays,
+    setSubscriptionAutoRenew,
+    setSubscriptionFeatures,
+    // Freelance setters
+    setFreelanceCategory,
+    setFreelancePortfolioUrl,
+    setFreelanceDeliveryDays,
+    setFreelanceRevisionsIncluded,
+    setFreelanceSkills,
+    // Auction setters
+    setAuctionStartPrice,
+    setAuctionReservePrice,
+    setAuctionEndTime,
+    setAuctionBidIncrement,
+    setAuctionBuyNowPrice,
+    // Space Sharing setters
+    setSpaceType,
+    setSpaceCapacity,
+    setSpaceAmenities,
+    setSpaceHourlyRate,
+    setSpaceDailyRate,
+    // Fundraising setters
+    setFundraisingGoal,
+    setFundraisingEndDate,
+    setFundraisingCategory,
+    setFundraisingBeneficiary,
+    // Delivery setters
+    setDeliveryType,
+    setDeliveryRadiusKm,
+    setDeliveryFeeStructure,
+    setDeliveryEstimatedTime,
+    // Taxi setters
+    setTaxiVehicleType,
+    setTaxiMaxPassengers,
+    setTaxiLicenseNumber,
+    // Link setters
+    setLinkUrl,
+    setLinkType,
     setLocationAddress,
     setLocationLat,
     setLocationLng,

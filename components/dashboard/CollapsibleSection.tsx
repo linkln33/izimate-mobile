@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
-import { colors, spacing, borderRadius, elevation } from '@/lib/design-system'
+import { pastelDesignSystem } from '@/lib/pastel-design-system'
+import { Platform } from 'react-native'
+const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem
 
 interface CollapsibleSectionProps {
   title: string
@@ -44,7 +46,7 @@ export function CollapsibleSection({
     transform: [{ rotate: `${rotation.value * 180}deg` }],
   }))
 
-  const iconBgColor = iconColor || colors.primary
+  const iconBgColor = iconColor || pastelColors.primary[500]
 
   return (
     <View style={styles.container}>
@@ -60,7 +62,7 @@ export function CollapsibleSection({
           <Ionicons
             name={icon as any}
             size={22}
-              color={iconColor || (isExpanded ? colors.primary : colors.onSurfaceVariant)}
+              color={iconColor || (isExpanded ? pastelColors.primary[500] : surfaces.onSurfaceVariant)}
           />
           </View>
           <Text style={[styles.title, isExpanded && styles.activeTitle]}>
@@ -78,7 +80,7 @@ export function CollapsibleSection({
           <Ionicons
             name="chevron-down"
             size={20}
-            color={colors.onSurfaceVariant}
+            color={surfaces.onSurfaceVariant}
           />
         </Animated.View>
       </Pressable>
@@ -94,23 +96,20 @@ export function CollapsibleSection({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
+    backgroundColor: 'transparent',
+    borderRadius: borderRadius.lg,
     marginBottom: spacing.md,
-    ...elevation.level1,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: spacing.lg,
-    backgroundColor: colors.surface,
+    backgroundColor: 'transparent',
   },
   pressedHeader: {
-    backgroundColor: colors.surfaceVariant,
+    backgroundColor: pastelColors.secondary[100],
   },
   headerLeft: {
     flexDirection: 'row',
@@ -124,19 +123,20 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: pastelColors.secondary[100],
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.onSurface,
+    color: surfaces.onSurface,
     flex: 1,
   },
   activeTitle: {
-    color: colors.primary,
+    color: pastelColors.primary[500],
     fontWeight: '700',
   },
   badge: {
-    backgroundColor: colors.error,
+    backgroundColor: pastelColors.primary[500],
     borderRadius: borderRadius.full,
     minWidth: 24,
     height: 24,
@@ -146,13 +146,13 @@ const styles = StyleSheet.create({
     ...elevation.level1,
   },
   badgeText: {
-    color: colors.onError,
+    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: 'bold',
   },
   content: {
     padding: spacing.lg,
     overflow: 'hidden',
-    backgroundColor: colors.surface,
+    backgroundColor: 'transparent',
   },
 })

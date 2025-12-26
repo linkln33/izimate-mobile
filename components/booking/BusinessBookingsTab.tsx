@@ -10,6 +10,8 @@ import { UnifiedCalendar } from '../calendar';
 import { QuickCustomerRegistration } from './QuickCustomerRegistration';
 import { BusinessAnalytics } from './BusinessAnalytics';
 import { CustomerManagement } from './CustomerManagement';
+import { pastelDesignSystem } from '@/lib/pastel-design-system';
+const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem;
 
 interface BusinessBookingsTabProps {
   userId: string;
@@ -73,7 +75,7 @@ export const BusinessBookingsTab: React.FC<BusinessBookingsTabProps> = ({
           <Ionicons
             name={activeView === 'calendar' ? 'calendar' : 'calendar-outline'}
             size={20}
-            color={activeView === 'calendar' ? '#f25842' : '#6b7280'}
+            color={activeView === 'calendar' ? pastelColors.primary[500] : surfaces.onSurfaceVariant}
           />
           <Text
             style={[
@@ -92,7 +94,7 @@ export const BusinessBookingsTab: React.FC<BusinessBookingsTabProps> = ({
           <Ionicons
             name={activeView === 'register' ? 'person-add' : 'person-add-outline'}
             size={20}
-            color={activeView === 'register' ? '#f25842' : '#6b7280'}
+            color={activeView === 'register' ? pastelColors.primary[500] : surfaces.onSurfaceVariant}
           />
           <Text
             style={[
@@ -111,7 +113,7 @@ export const BusinessBookingsTab: React.FC<BusinessBookingsTabProps> = ({
           <Ionicons
             name={activeView === 'analytics' ? 'analytics' : 'analytics-outline'}
             size={20}
-            color={activeView === 'analytics' ? '#f25842' : '#6b7280'}
+            color={activeView === 'analytics' ? pastelColors.primary[500] : surfaces.onSurfaceVariant}
           />
           <Text
             style={[
@@ -130,7 +132,7 @@ export const BusinessBookingsTab: React.FC<BusinessBookingsTabProps> = ({
           <Ionicons
             name={activeView === 'customers' ? 'people' : 'people-outline'}
             size={20}
-            color={activeView === 'customers' ? '#f25842' : '#6b7280'}
+            color={activeView === 'customers' ? pastelColors.primary[500] : surfaces.onSurfaceVariant}
           />
           <Text
             style={[
@@ -154,40 +156,38 @@ export const BusinessBookingsTab: React.FC<BusinessBookingsTabProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: surfaces.background,
   },
   tabScrollView: {
     maxHeight: 60,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: surfaces.outline,
   },
   tabScrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 8,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
   },
   businessTab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#f9fafb',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.sm,
+    backgroundColor: surfaces.surface,
+    gap: spacing.xs,
+    ...elevation.level1,
   },
   activeBusinessTab: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#f25842',
+    backgroundColor: pastelColors.primary[100],
   },
   businessTabText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   activeBusinessTabText: {
-    color: '#f25842',
+    color: pastelColors.primary[600],
     fontWeight: '600',
   },
   content: {

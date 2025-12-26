@@ -6,7 +6,9 @@
 import React from 'react'
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { pastelDesignSystem } from '@/lib/pastel-design-system'
 import type { CalendarGridProps, CalendarEvent, CalendarViewMode } from './types'
+const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem
 
 export const CalendarGrid: React.FC<CalendarGridProps> = ({
   currentDate,
@@ -120,7 +122,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                         onAddEvent?.(date)
                       }}
                     >
-                      <Ionicons name="add" size={14} color="#f25842" />
+                      <Ionicons name="add" size={14} color={pastelColors.primary[500]} />
                     </Pressable>
                   )}
                 </View>
@@ -131,7 +133,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                         key={idx}
                         style={[
                           styles.eventDot,
-                          { backgroundColor: event.color || '#f25842' },
+                          { backgroundColor: event.color || pastelColors.primary[500] },
                         ]}
                       />
                     ))}
@@ -217,7 +219,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                         key={idx}
                         style={[
                           styles.eventDot,
-                          { backgroundColor: event.color || '#f25842' },
+                          { backgroundColor: event.color || pastelColors.primary[500] },
                         ]}
                       />
                     ))}
@@ -252,7 +254,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
         </View>
         {dayEvents.length === 0 ? (
           <View style={styles.emptyDay}>
-            <Ionicons name="calendar-outline" size={48} color="#d1d5db" />
+            <Ionicons name="calendar-outline" size={48} color={surfaces.outline} />
             <Text style={styles.emptyDayText}>No events for this day</Text>
           </View>
         ) : (
@@ -262,7 +264,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                 key={event.id}
                 style={[
                   styles.dayEventItem,
-                  { borderLeftColor: event.color || '#f25842' },
+                  { borderLeftColor: event.color || pastelColors.primary[500] },
                 ]}
                 onPress={() => {}}
               >
@@ -295,7 +297,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
       <View style={styles.listView}>
         {sortedEvents.length === 0 ? (
           <View style={styles.emptyList}>
-            <Ionicons name="calendar-outline" size={48} color="#d1d5db" />
+            <Ionicons name="calendar-outline" size={48} color={surfaces.outline} />
             <Text style={styles.emptyListText}>No events found</Text>
           </View>
         ) : (
@@ -382,11 +384,11 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
       {/* Navigation Header */}
       <View style={styles.header}>
         <Pressable onPress={() => onNavigate('prev')} style={styles.navButton}>
-          <Ionicons name="chevron-back" size={24} color="#1f2937" />
+          <Ionicons name="chevron-back" size={24} color={surfaces.onSurface} />
         </Pressable>
         <Text style={styles.dateHeaderText}>{formatDateHeader()}</Text>
         <Pressable onPress={() => onNavigate('next')} style={styles.navButton}>
-          <Ionicons name="chevron-forward" size={24} color="#1f2937" />
+          <Ionicons name="chevron-forward" size={24} color={surfaces.onSurface} />
         </Pressable>
       </View>
 
@@ -401,24 +403,24 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#ffffff',
+    backgroundColor: surfaces.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: surfaces.outline,
   },
   navButton: {
-    padding: 8,
+    padding: spacing.sm,
   },
   dateHeaderText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
+    color: surfaces.onSurface,
   },
   // Month View
   monthView: {
@@ -452,12 +454,12 @@ const styles = StyleSheet.create({
     margin: 2,
   },
   todayCell: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: pastelColors.primary[50],
     borderWidth: 2,
-    borderColor: '#f25842',
+    borderColor: pastelColors.primary[500],
   },
   selectedCell: {
-    backgroundColor: '#f25842',
+    backgroundColor: pastelColors.primary[500],
   },
   pastCell: {
     opacity: 0.4,
@@ -467,21 +469,21 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontSize: 14,
-    color: '#1f2937',
+    color: surfaces.onSurface,
   },
   todayText: {
-    color: '#f25842',
+    color: pastelColors.primary[500],
     fontWeight: '600',
   },
   selectedText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   pastText: {
-    color: '#9ca3af',
+    color: surfaces.onSurfaceVariant,
   },
   disabledText: {
-    color: '#d1d5db',
+    color: surfaces.outline,
   },
   eventDots: {
     position: 'absolute',
@@ -505,12 +507,13 @@ const styles = StyleSheet.create({
   weekDayCell: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.sm,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
+    borderColor: surfaces.outline,
+    backgroundColor: surfaces.surface,
     position: 'relative',
+    ...elevation.level1,
   },
   weekDayContent: {
     width: '100%',
@@ -524,24 +527,20 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: surfaces.surface,
     borderWidth: 1,
-    borderColor: '#f25842',
+    borderColor: pastelColors.primary[500],
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    ...elevation.level2,
   },
   weekDayToday: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#f25842',
+    backgroundColor: pastelColors.primary[50],
+    borderColor: pastelColors.primary[500],
   },
   weekDaySelected: {
-    backgroundColor: '#f25842',
-    borderColor: '#f25842',
+    backgroundColor: pastelColors.primary[500],
+    borderColor: pastelColors.primary[500],
   },
   weekDayPast: {
     opacity: 0.4,
@@ -557,16 +556,16 @@ const styles = StyleSheet.create({
   weekDayNumber: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
+    color: surfaces.onSurface,
   },
   weekDayNumberToday: {
-    color: '#f25842',
+    color: pastelColors.primary[500],
   },
   weekDayNumberSelected: {
-    color: '#ffffff',
+    color: '#FFFFFF',
   },
   weekDayNumberPast: {
-    color: '#9ca3af',
+    color: surfaces.onSurfaceVariant,
   },
   weekEventDots: {
     marginTop: 4,

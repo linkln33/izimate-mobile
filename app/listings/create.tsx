@@ -60,27 +60,7 @@ function CreateListingScreenContent() {
   // Use custom hook for form state
   const { state: formState, actions: formActions } = useListingForm(isEditMode)
   
-  // Handle Ctrl+A / Cmd+A for title input on web
-  useEffect(() => {
-    if (Platform.OS === 'web' && titleInputRef.current) {
-      const handleKeyDown = (event: KeyboardEvent) => {
-        if ((event.key === 'a' || event.key === 'A') && 
-            (event.ctrlKey || event.metaKey)) {
-          const inputElement = (titleInputRef.current as any)?._nativeNode || 
-                             (titleInputRef.current as any)?._internalFiberInstanceHandleDEV?.stateNode
-          if (inputElement === document.activeElement && formState.title.length > 0) {
-            event.preventDefault()
-            inputElement.setSelectionRange(0, formState.title.length)
-          }
-        }
-      }
-      
-      document.addEventListener('keydown', handleKeyDown)
-      return () => {
-        document.removeEventListener('keydown', handleKeyDown)
-      }
-    }
-  }, [formState.title])
+  // Note: Cmd+A handling is now done in Step1BasicInfo component for both title and description
 
   // Track current user and create a key for forcing remount
   const [userKey, setUserKey] = useState<string>(() => {
@@ -315,27 +295,52 @@ function CreateListingScreenContent() {
     if (step > 1) {
       setStep((step - 1) as Step)
     } else {
-      router.back()
+      // Check if we can go back, otherwise navigate to offer tab
+      if (typeof router.canGoBack === 'function' && router.canGoBack()) {
+        router.back()
+      } else {
+        router.replace('/(tabs)/offer')
+      }
     }
   }
 
   const handleClose = () => {
-    router.back()
+    // Check if we can go back, otherwise navigate to offer tab
+    if (typeof router.canGoBack === 'function' && router.canGoBack()) {
+      router.back()
+    } else {
+      router.replace('/(tabs)/offer')
+    }
   }
 
-  const handleNext = () => {
-    // Step 3: Booking & Schedule (no validation needed, optional)
+  const handleNext = async () => {
+    console.log('🔘 Continue button pressed, step:', step)
+    console.log('📋 Form state:', {
+      title: formState.title,
+      description: formState.description,
+      category: formState.category,
+      listing_type: formState.listing_type,
+    })
+    
+    // Step 3: Booking & Schedule (optional validation if booking is enabled)
     if (step === 3) {
-      const step5Validation = (window as any).__step5BookingValidation;
-      if (step5Validation) {
-        step5Validation();
-        return;
+      const step3Validation = (window as any).validateStep5Booking;
+      if (step3Validation) {
+        const isValid = await step3Validation();
+        if (!isValid) {
+          console.log('❌ Step 3 validation failed')
+          return; // Validation failed, don't proceed
+        }
       }
     }
     
     const nextStep = handlers.handleNext(step, formState)
+    console.log('➡️ Next step result:', nextStep)
     if (nextStep) {
+      console.log('✅ Moving to step:', nextStep)
       setStep(nextStep)
+    } else {
+      console.log('❌ No next step returned (validation likely failed)')
     }
   }
 
@@ -427,35 +432,19 @@ function CreateListingScreenContent() {
           'Translation', 'Voice Over', 'Other', 'Custom',
         ]
       
-      case 'auction':
-        return [
-          'Collectibles', 'Electronics', 'Vehicles', 'Art', 'Jewelry',
-          'Antiques', 'Real Estate', 'Services', 'Other', 'Custom',
-        ]
-      
-      case 'space_sharing':
-        return [
-          'Parking', 'Storage', 'Workspace', 'Event Venue', 'Studio',
-          'Kitchen', 'Couchsurfing', 'Photo Studio', 'Music Studio',
-          'Warehouse', 'Other', 'Custom',
-        ]
-      
       case 'fundraising':
         return [
           'Charity', 'Personal', 'Business', 'Event', 'Medical',
           'Education', 'Disaster Relief', 'Animal Welfare', 'Other', 'Custom',
         ]
       
-      case 'delivery':
+      case 'transportation':
         return [
-          'Food', 'Grocery', 'Package', 'Medicine', 'Flowers',
-          'Documents', 'Other', 'Custom',
-        ]
-      
-      case 'taxi':
-        return [
-          'Standard', 'Luxury', 'Van', 'Motorcycle', 'Bike',
-          'Airport Transfer', 'City Tour', 'Other', 'Custom',
+          // Delivery types
+          'Food Delivery', 'Grocery Delivery', 'Package Delivery', 'Medicine Delivery', 'Flowers Delivery',
+          // Taxi/Rideshare types
+          'Taxi', 'Rideshare', 'Luxury Car', 'Van', 'Motorcycle', 'Bike',
+          'Airport Transfer', 'City Tour', 'Moving/Relocation', 'Other', 'Custom',
         ]
       
       case 'link':
@@ -570,7 +559,13 @@ function CreateListingScreenContent() {
           </Pressable>
         )}
         {step < 6 ? (
-          <Pressable style={createListingStyles.nextButton} onPress={handleNext}>
+          <Pressable 
+            style={createListingStyles.nextButton} 
+            onPress={() => {
+              console.log('🔘 Continue button onPress triggered')
+              handleNext()
+            }}
+          >
             <Text style={createListingStyles.nextButtonText}>Continue</Text>
           </Pressable>
         ) : (

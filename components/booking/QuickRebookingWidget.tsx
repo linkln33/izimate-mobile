@@ -7,6 +7,8 @@ import type { Booking, User, Listing } from '@/lib/types'
 import { SkeletonLoader } from '@/components/common/SkeletonLoader'
 import { triggerLight, triggerSuccess } from '@/lib/utils/haptics'
 import { getUserCurrency, formatCurrency, type CurrencyCode } from '@/lib/utils/currency'
+import { pastelDesignSystem } from '@/lib/pastel-design-system'
+const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem
 
 interface QuickRebookingItem {
   id: string
@@ -311,7 +313,7 @@ export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWid
     if (upcomingBookings.length === 0) {
       return (
         <View style={styles.emptyContainer}>
-          <Ionicons name="calendar-outline" size={48} color="#d1d5db" />
+          <Ionicons name="calendar-outline" size={48} color={surfaces.onSurfaceVariant} />
           <Text style={styles.emptyTitle}>No upcoming bookings</Text>
           <Text style={styles.emptyText}>You don't have any upcoming bookings scheduled</Text>
         </View>
@@ -390,7 +392,7 @@ export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWid
 
                 <View style={styles.viewButton}>
                   <Text style={styles.viewButtonText}>View Details</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#f25842" />
+                  <Ionicons name="chevron-forward" size={16} color={pastelColors.secondary[600]} />
                 </View>
               </Pressable>
             </View>
@@ -488,53 +490,58 @@ export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWid
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#ffffff',
-    marginVertical: 8,
+    backgroundColor: surfaces.surface,
+    marginVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    paddingBottom: spacing.sm,
+    ...elevation.level2,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#ffffff',
+    padding: spacing.xl,
+    backgroundColor: surfaces.surface,
   },
   loadingText: {
-    marginLeft: 8,
+    marginLeft: spacing.sm,
     fontSize: 14,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   emptyContainer: {
     alignItems: 'center',
-    padding: 32,
-    backgroundColor: '#ffffff',
+    padding: spacing['3xl'],
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    ...elevation.level2,
   },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#374151',
-    marginTop: 12,
+    color: surfaces.onSurface,
+    marginTop: spacing.md,
   },
   emptyText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: spacing.xs,
     lineHeight: 20,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 2,
+    color: surfaces.onSurface,
+    marginBottom: spacing.xxs,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   scrollView: {
     paddingLeft: 20,
@@ -545,16 +552,10 @@ const styles = StyleSheet.create({
   },
   rebookingCard: {
     width: 280,
-    marginRight: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    marginRight: spacing.lg,
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    ...elevation.level3,
   },
   cardContent: {
     padding: 12,
@@ -574,15 +575,15 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#f25842',
+    backgroundColor: pastelColors.primary[500],
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    marginRight: spacing.sm,
   },
   providerInitial: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: '#FFFFFF',
   },
   providerDetails: {
     flex: 1,
@@ -590,12 +591,12 @@ const styles = StyleSheet.create({
   providerName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 2,
+    color: surfaces.onSurface,
+    marginBottom: spacing.xxs,
   },
   categoryText: {
     fontSize: 11,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
     textTransform: 'capitalize',
   },
   viewProviderButton: {
@@ -607,37 +608,37 @@ const styles = StyleSheet.create({
   serviceName: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#374151',
-    marginBottom: 6,
+    color: surfaces.onSurface,
+    marginBottom: spacing.xs,
     lineHeight: 18,
   },
   bookingMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   lastBookingText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   bookingCountText: {
     fontSize: 12,
-    color: '#6b7280',
-    marginLeft: 4,
+    color: surfaces.onSurfaceVariant,
+    marginLeft: spacing.xs,
   },
   priceText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#f25842',
+    color: surfaces.onSurface,
   },
   rebookButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f25842',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: pastelColors.primary[500],
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   rebookButtonText: {
     fontSize: 14,
@@ -647,58 +648,52 @@ const styles = StyleSheet.create({
   },
   bookingCard: {
     width: 240,
-    marginRight: 12,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    marginRight: spacing.md,
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    ...elevation.level3,
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
   },
   statusPending: {
-    backgroundColor: '#fef3c7',
+    backgroundColor: pastelColors.warning[100],
   },
   statusConfirmed: {
-    backgroundColor: '#d1fae5',
+    backgroundColor: pastelColors.success[100],
   },
   statusText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#374151',
+    color: surfaces.onSurface,
     textTransform: 'capitalize',
   },
   timeText: {
     fontSize: 12,
-    color: '#6b7280',
-    marginLeft: 4,
+    color: surfaces.onSurfaceVariant,
+    marginLeft: spacing.xs,
   },
   dateText: {
     fontSize: 12,
-    color: '#6b7280',
-    marginLeft: 4,
+    color: surfaces.onSurfaceVariant,
+    marginLeft: spacing.xs,
     fontWeight: '500',
   },
   viewButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    marginTop: 8,
+    paddingVertical: spacing.sm,
+    borderTopWidth: 0.5,
+    borderTopColor: surfaces.outline,
+    marginTop: spacing.sm,
   },
   viewButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#f25842',
-    marginRight: 4,
+    color: pastelColors.secondary[600],
+    marginRight: spacing.xs,
   },
 })

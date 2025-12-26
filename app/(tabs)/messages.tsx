@@ -5,6 +5,8 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase'
 import type { Match, User, Listing, Message } from '@/lib/types'
+import { pastelDesignSystem } from '@/lib/pastel-design-system'
+const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem
 
 interface EnrichedMatch extends Match {
   otherUser: User
@@ -228,58 +230,53 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: surfaces.background,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.xl,
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: spacing.lg,
     fontSize: 16,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   emptyTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginTop: 16,
+    color: surfaces.onSurface,
+    marginTop: spacing.lg,
   },
   emptyText: {
     fontSize: 16,
-    color: '#6b7280',
-    marginTop: 8,
+    color: surfaces.onSurfaceVariant,
+    marginTop: spacing.sm,
     textAlign: 'center',
   },
   header: {
-    backgroundColor: '#ffffff',
-    padding: 20,
+    backgroundColor: surfaces.surface,
+    padding: spacing.xl,
     paddingTop: Platform.OS === 'ios' ? 50 : 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    ...elevation.level2,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: surfaces.onSurface,
   },
   listContent: {
-    padding: 16,
+    padding: spacing.lg,
   },
   matchItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...elevation.level2,
   },
   avatarContainer: {
     position: 'relative',
@@ -305,9 +302,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#f25842',
+    backgroundColor: pastelColors.primary[500],
     borderWidth: 2,
-    borderColor: '#ffffff',
+    borderColor: '#FFFFFF',
   },
   matchContent: {
     flex: 1,
@@ -316,27 +313,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   matchName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: surfaces.onSurface,
     flex: 1,
   },
   matchTime: {
     fontSize: 12,
-    color: '#9ca3af',
-    marginLeft: 8,
+    color: surfaces.onSurfaceVariant,
+    marginLeft: spacing.sm,
   },
   matchListing: {
     fontSize: 14,
-    color: '#f25842',
+    color: pastelColors.primary[500],
     fontWeight: '500',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   matchLastMessage: {
     fontSize: 14,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
 })

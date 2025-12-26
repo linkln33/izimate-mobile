@@ -27,7 +27,9 @@ interface GuestCheckoutProps {
   listing: Listing
   provider: User
   selectedDate: string
-  selectedTime: string
+  selectedTime?: string // Optional for rentals
+  endDate?: string // For rental bookings
+  duration?: number // For rental bookings
   serviceName: string
   servicePrice: number
   currency?: string
@@ -50,6 +52,8 @@ export function GuestCheckout({
   provider,
   selectedDate,
   selectedTime,
+  endDate,
+  duration,
   serviceName,
   servicePrice,
   currency,
@@ -203,8 +207,19 @@ export function GuestCheckout({
       }
 
       // Create the booking with correct duration
-      const bookingDateTime = new Date(`${selectedDate}T${selectedTime}`)
-      const endDateTime = new Date(bookingDateTime.getTime() + serviceDuration * 60 * 1000)
+      // Handle rental bookings (date range) vs service bookings (time slot)
+      let bookingDateTime: Date
+      let endDateTime: Date
+
+      if (listing.listing_type === 'rental' && endDate) {
+        // Rental booking: use date range
+        bookingDateTime = new Date(`${selectedDate}T00:00:00`)
+        endDateTime = new Date(`${endDate}T23:59:59`)
+      } else {
+        // Service booking: use time slot
+        bookingDateTime = new Date(`${selectedDate}T${selectedTime || '09:00'}`)
+        endDateTime = new Date(bookingDateTime.getTime() + serviceDuration * 60 * 1000)
+      }
 
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
@@ -278,22 +293,43 @@ export function GuestCheckout({
   }
 
   const formatDateTime = () => {
-    const date = new Date(`${selectedDate}T${selectedTime}`)
-    return {
-      date: date.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      }),
-      time: date.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      })
+    if (listing.listing_type === 'rental' && endDate) {
+      // Rental: show date range
+      const startDate = new Date(`${selectedDate}T00:00:00`)
+      const endDateObj = new Date(`${endDate}T23:59:59`)
+      return {
+        date: `${startDate.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric',
+          year: 'numeric'
+        })} - ${endDateObj.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric',
+          year: 'numeric'
+        })}`,
+        time: `${duration || 1} ${(listing as any).rental_duration_type === 'daily' ? 'days' : (listing as any).rental_duration_type === 'weekly' ? 'weeks' : (listing as any).rental_duration_type === 'monthly' ? 'months' : 'hours'}`,
+        isRental: true
+      }
+    } else {
+      // Service: show date and time
+      const date = new Date(`${selectedDate}T${selectedTime || '09:00'}`)
+      return {
+        date: date.toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }),
+        time: date.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        }),
+        isRental: false
+      }
     }
   }
 
-  const { date, time } = formatDateTime()
+  const { date, time, isRental } = formatDateTime()
 
   return (
     <KeyboardAvoidingView 

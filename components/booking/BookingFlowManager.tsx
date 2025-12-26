@@ -3,12 +3,16 @@ import { View, StyleSheet, Alert, Text, Pressable } from 'react-native'
 import { useRouter } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import { UnifiedCalendar } from '../calendar'
+import { RentalBookingCalendar } from '../listings/booking/RentalBookingCalendar'
+import { SubscriptionBooking } from '../listings/booking/SubscriptionBooking'
+import { ProjectBooking } from '../listings/booking/ProjectBooking'
 import { GuestCheckout } from './GuestCheckout'
 import { BiometricBookingConfirmation } from './BiometricBookingConfirmation'
 import { authenticateForBooking } from '@/lib/utils/biometric-auth'
 import { sendBookingConfirmation } from '@/lib/utils/booking-notifications'
 import { NativeCalendarService } from '@/lib/utils/native-calendar'
 import type { Listing, User } from '@/lib/types'
+import type { AvailabilityPeriod } from '../listings/booking/RentalAvailabilityCalendar'
 
 interface BookingFlowManagerProps {
   listing: Listing
@@ -22,13 +26,15 @@ type BookingStep = 'calendar' | 'guest-checkout' | 'user-checkout' | 'biometric-
 
 interface BookingSelection {
   date: string
-  time: string
+  time?: string // Optional for rentals (date range bookings)
+  endDate?: string // For rental bookings
   serviceName: string
   servicePrice: number
   currency: string
   serviceAddress?: string
   serviceAddressLat?: number
   serviceAddressLng?: number
+  duration?: number // For rental bookings (number of days)
 }
 
 export function BookingFlowManager({
@@ -43,10 +49,34 @@ export function BookingFlowManager({
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [bookingSelection, setBookingSelection] = useState<BookingSelection | null>(null)
   const [loading, setLoading] = useState(true)
+  const [rentalAvailabilityPeriods, setRentalAvailabilityPeriods] = useState<AvailabilityPeriod[]>([])
 
   useEffect(() => {
     checkUserAuth()
-  }, [])
+    if (listing.listing_type === 'rental' && listing.booking_enabled) {
+      loadRentalAvailability()
+    }
+  }, [listing.id])
+
+  const loadRentalAvailability = async () => {
+    try {
+      const listingAny = listing as any
+      if (listingAny.rental_availability_periods) {
+        if (Array.isArray(listingAny.rental_availability_periods)) {
+          setRentalAvailabilityPeriods(listingAny.rental_availability_periods)
+        } else if (typeof listingAny.rental_availability_periods === 'string') {
+          try {
+            const parsed = JSON.parse(listingAny.rental_availability_periods)
+            setRentalAvailabilityPeriods(Array.isArray(parsed) ? parsed : [])
+          } catch {
+            setRentalAvailabilityPeriods([])
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading rental availability:', error)
+    }
+  }
 
   const checkUserAuth = async () => {
     try {
@@ -73,14 +103,18 @@ export function BookingFlowManager({
 
   const handleCalendarSelection = (selection: {
     date: string
-    time: string
+    time?: string
     serviceName: string
     servicePrice: number
     currency?: string
+    endDate?: string
+    duration?: number
   }) => {
     setBookingSelection({
       date: selection.date,
       time: selection.time,
+      endDate: selection.endDate,
+      duration: selection.duration,
       serviceName: selection.serviceName,
       servicePrice: selection.servicePrice,
       currency: selection.currency || listing.currency || 'GBP'
@@ -110,6 +144,42 @@ export function BookingFlowManager({
         ]
       )
     }
+  }
+
+  const handleRentalBookingSelect = (selection: {
+    startDate: string
+    endDate: string
+    duration: number
+    totalPrice: number
+  }) => {
+    const listingAny = listing as any
+    const rentalDurationType = listingAny.rental_duration_type || 'daily'
+    
+    // Get the appropriate rate
+    let rate = 0
+    switch (rentalDurationType) {
+      case 'hourly':
+        rate = listingAny.rental_rate_hourly || 0
+        break
+      case 'daily':
+        rate = listingAny.rental_rate_daily || 0
+        break
+      case 'weekly':
+        rate = listingAny.rental_rate_weekly || 0
+        break
+      case 'monthly':
+        rate = listingAny.rental_rate_monthly || 0
+        break
+    }
+
+    handleCalendarSelection({
+      date: selection.startDate,
+      endDate: selection.endDate,
+      duration: selection.duration,
+      serviceName: listing.title || 'Rental',
+      servicePrice: selection.totalPrice,
+      currency: listing.currency || 'GBP',
+    })
   }
 
   const handleUserCheckout = async (addressData?: { address: string; lat?: number; lng?: number }) => {
@@ -357,6 +427,138 @@ export function BookingFlowManager({
 
   switch (currentStep) {
     case 'calendar':
+      // Show project booking for freelance (date-only, no time slots)
+      if (listing.listing_type === 'freelance') {
+        return (
+          <ProjectBooking
+            listing={listing}
+            providerName={provider.name}
+            onBookingSelect={(selection) => {
+              setBookingSelection({
+                date: selection.deliveryDate,
+                time: '00:00', // Not relevant for projects
+                serviceName: listing.title || 'Project',
+                servicePrice: selection.price,
+                currency: selection.currency,
+                endDate: undefined,
+                duration: undefined,
+              })
+
+              if (currentUser) {
+                setCurrentStep('biometric-confirmation')
+              } else {
+                Alert.alert(
+                  'Complete Your Booking',
+                  'How would you like to proceed?',
+                  [
+                    {
+                      text: 'Continue as Guest',
+                      onPress: () => setCurrentStep('guest-checkout')
+                    },
+                    {
+                      text: 'Sign In',
+                      onPress: () => router.push('/(auth)/login')
+                    },
+                    {
+                      text: 'Create Account',
+                      onPress: () => router.push('/(auth)/signup')
+                    }
+                  ]
+                )
+              }
+            }}
+            onClose={handleCancel}
+            visible={true}
+          />
+        )
+      }
+
+      // Show subscription booking for subscriptions
+      if (listing.listing_type === 'subscription') {
+        return (
+          <SubscriptionBooking
+            listing={listing}
+            providerName={provider.name}
+            onBookingSelect={(selection) => {
+              setBookingSelection({
+                date: selection.startDate,
+                time: '00:00', // Not relevant for subscriptions
+                serviceName: listing.title || 'Subscription',
+                servicePrice: selection.price,
+                currency: selection.currency,
+                // Store subscription-specific data
+                endDate: undefined,
+                duration: undefined,
+              })
+
+              if (currentUser) {
+                setCurrentStep('biometric-confirmation')
+              } else {
+                Alert.alert(
+                  'Complete Your Subscription',
+                  'How would you like to proceed?',
+                  [
+                    {
+                      text: 'Continue as Guest',
+                      onPress: () => setCurrentStep('guest-checkout')
+                    },
+                    {
+                      text: 'Sign In',
+                      onPress: () => router.push('/(auth)/login')
+                    },
+                    {
+                      text: 'Create Account',
+                      onPress: () => router.push('/(auth)/signup')
+                    }
+                  ]
+                )
+              }
+            }}
+            onClose={handleCancel}
+            visible={true}
+          />
+        )
+      }
+
+      // Show rental calendar for rentals (date-range bookings)
+      // Show UnifiedCalendar for services, experience, transportation (time-slot bookings)
+      if (listing.listing_type === 'rental') {
+        const listingAny = listing as any
+        const rentalDurationType = listingAny.rental_duration_type || 'daily'
+        
+        // Get the appropriate rate
+        let rate = 0
+        switch (rentalDurationType) {
+          case 'hourly':
+            rate = listingAny.rental_rate_hourly || 0
+            break
+          case 'daily':
+            rate = listingAny.rental_rate_daily || 0
+            break
+          case 'weekly':
+            rate = listingAny.rental_rate_weekly || 0
+            break
+          case 'monthly':
+            rate = listingAny.rental_rate_monthly || 0
+            break
+        }
+
+        return (
+          <RentalBookingCalendar
+            listingId={listing.id}
+            listingTitle={listing.title}
+            providerId={listing.user_id}
+            rentalDurationType={rentalDurationType}
+            rentalRate={rate}
+            currency={listing.currency || 'GBP'}
+            availabilityPeriods={rentalAvailabilityPeriods}
+            onBookingSelect={handleRentalBookingSelect}
+            onClose={handleCancel}
+            visible={true}
+          />
+        )
+      }
+
       return (
         <UnifiedCalendar
           mode="booking"
@@ -394,6 +596,8 @@ export function BookingFlowManager({
           provider={provider}
           selectedDate={bookingSelection.date}
           selectedTime={bookingSelection.time}
+          endDate={bookingSelection.endDate}
+          duration={bookingSelection.duration}
           serviceName={bookingSelection.serviceName}
           servicePrice={bookingSelection.servicePrice}
           currency={bookingSelection.currency}

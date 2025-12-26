@@ -8,6 +8,7 @@ import { formatDate, formatRelativeTime } from '@/lib/utils/date'
 import { getUserCurrency, formatCurrency } from '@/lib/utils/currency'
 import { useRouter } from 'expo-router'
 import { triggerLight, triggerSuccess } from '@/lib/utils/haptics'
+import { colors } from '@/lib/design-system'
 
 const getDimensions = () => Dimensions.get('window')
 
@@ -907,8 +908,19 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: '#e6f2ff', // Very light blue color
+    backgroundColor: colors.vibrant.cyan50, // Light blue background
+    borderWidth: 1,
+    borderColor: colors.vibrant.yellow300, // Thin yellow border
     alignSelf: 'center',
+    ...(Platform.OS === 'web' ? {
+      boxShadow: `0 1px 2px rgba(0, 0, 0, 0.08)`,
+    } : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08,
+      shadowRadius: 2,
+      elevation: 1,
+    }),
   },
   imageContainer: {
     position: 'relative',
@@ -1009,9 +1021,11 @@ const styles = StyleSheet.create({
     padding: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    borderRadius: 8,
-    backgroundColor: '#f9fafb',
+    borderBottomColor: colors.vibrant.cyan200,
+    borderRadius: 16,
+    backgroundColor: colors.vibrant.cyan50,
+    borderWidth: 1,
+    borderColor: colors.vibrant.yellow300,
   },
   customerInfo: {
     flexDirection: 'row',
@@ -1312,11 +1326,20 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   expandedSection: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
+    backgroundColor: colors.vibrant.cyan50,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.vibrant.yellow300,
+    ...(Platform.OS === 'web' ? {
+      boxShadow: `0 1px 2px rgba(0, 0, 0, 0.08)`,
+    } : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08,
+      shadowRadius: 2,
+      elevation: 1,
+    }),
   },
   applyButton: {
     backgroundColor: '#f25842',
@@ -1413,10 +1436,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
+    backgroundColor: colors.vibrant.cyan50,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.vibrant.yellow300,
   },
   priceListServiceName: {
     fontSize: 15,
@@ -1515,13 +1538,22 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
+    backgroundColor: colors.vibrant.cyan50,
+    borderRadius: 16,
     padding: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.vibrant.yellow300,
     gap: 4,
+    ...(Platform.OS === 'web' ? {
+      boxShadow: `0 1px 2px rgba(0, 0, 0, 0.08)`,
+    } : {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08,
+      shadowRadius: 2,
+      elevation: 1,
+    }),
   },
   statNumber: {
     fontSize: 18,

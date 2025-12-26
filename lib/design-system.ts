@@ -93,20 +93,20 @@ export const colors = {
   infoContainer: '#dbeafe',
   onInfoContainer: '#001e3c',
   
-  // Surface Colors (Material Design 3)
-  surface: '#ffffff',
-  surfaceVariant: '#f9fafb',
-  surfaceContainer: '#f3f4f6',
-  surfaceContainerHigh: '#ffffff',
-  surfaceContainerHighest: '#ffffff',
-  surfaceContainerLow: '#fafbfc',
+  // Surface Colors (Material Design 3) - using vibrant palette tints
+  surface: '#fffef5', // Very light yellow tint (vibrant.yellow50)
+  surfaceVariant: '#f0fcfe', // Very light cyan tint (vibrant.cyan50)
+  surfaceContainer: '#f0fff0', // Very light green tint (vibrant.green50)
+  surfaceContainerHigh: '#fffef5', // Very light yellow tint
+  surfaceContainerHighest: '#ffffff', // Pure white for contrast
+  surfaceContainerLow: '#fef0f5', // Very light pink tint (vibrant.pink50)
   onSurface: '#111827',
   onSurfaceVariant: '#6b7280',
   
-  // Background Colors
-  background: '#ffffff',
-  backgroundSecondary: '#f9fafb',
-  backgroundTertiary: '#f3f4f6',
+  // Background Colors (using vibrant palette - soft pastel tones)
+  background: '#fffef5', // Very light yellow tint (vibrant.yellow50)
+  backgroundSecondary: '#f0fff0', // Very light green tint (vibrant.green50)
+  backgroundTertiary: '#f0fcfe', // Very light cyan tint (vibrant.cyan50)
   onBackground: '#111827',
   
   // Text Colors (Enhanced hierarchy)
@@ -169,6 +169,84 @@ export const colors = {
     800: '#1f2937',
     900: '#111827',
   },
+  
+  // Vibrant Palette Colors (from Coolors.co: fff07c-80ff72-7ee8fa-e83f6f-2274a5)
+  vibrant: {
+    // Yellow (#FFF07C) - Soft pastel yellow
+    yellow: '#fff07c',
+    yellowLight: '#fff9b8',
+    yellowDark: '#e6d86f',
+    yellow50: '#fffef5',
+    yellow100: '#fffceb',
+    yellow200: '#fff9d6',
+    yellow300: '#fff5c2',
+    yellow400: '#fff2ad',
+    yellow500: '#fff07c',
+    yellow600: '#e6d86f',
+    yellow700: '#ccc062',
+    yellow800: '#b3a855',
+    yellow900: '#999048',
+    
+    // Green (#80FF72) - Bright neon green
+    green: '#80ff72',
+    greenLight: '#b3ffab',
+    greenDark: '#5ce64f',
+    green50: '#f0fff0',
+    green100: '#e0ffe0',
+    green200: '#c0ffc0',
+    green300: '#a0ffa0',
+    green400: '#90ff90',
+    green500: '#80ff72',
+    green600: '#5ce64f',
+    green700: '#47cc3c',
+    green800: '#33b329',
+    green900: '#1f9916',
+    
+    // Cyan (#7EE8FA) - Light sky blue
+    cyan: '#7ee8fa',
+    cyanLight: '#b0f4fc',
+    cyanDark: '#5cc8d8',
+    cyan50: '#f0fcfe',
+    cyan100: '#e0f9fd',
+    cyan200: '#c0f3fb',
+    cyan300: '#a0edf9',
+    cyan400: '#8feaf9',
+    cyan500: '#7ee8fa',
+    cyan600: '#5cc8d8',
+    cyan700: '#4aa8b6',
+    cyan800: '#388894',
+    cyan900: '#266872',
+    
+    // Pink (#E83F6F) - Vibrant pinkish-red
+    pink: '#e83f6f',
+    pinkLight: '#f27fa7',
+    pinkDark: '#d12f5f',
+    pink50: '#fef0f5',
+    pink100: '#fce1eb',
+    pink200: '#f9c3d7',
+    pink300: '#f6a5c3',
+    pink400: '#f2649b',
+    pink500: '#e83f6f',
+    pink600: '#d12f5f',
+    pink700: '#ba1f4f',
+    pink800: '#a30f3f',
+    pink900: '#8c002f',
+    
+    // Blue (#2274A5) - Deep rich blue
+    blue: '#2274a5',
+    blueLight: '#5aa3d4',
+    blueDark: '#1a5a85',
+    blue50: '#e8f4fa',
+    blue100: '#d1e9f5',
+    blue200: '#a3d3eb',
+    blue300: '#75bde1',
+    blue400: '#4da7d7',
+    blue500: '#2274a5',
+    blue600: '#1a5a85',
+    blue700: '#134065',
+    blue800: '#0d2645',
+    blue900: '#060c25',
+  },
 } as const
 
 // Modern Gradient Presets (for polished, professional look)
@@ -195,6 +273,24 @@ export const gradients = {
   // Neutral Gradients
   neutral: ['#f9fafb', '#f3f4f6', '#e5e7eb'],
   neutralDark: ['#374151', '#4b5563', '#6b7280'],
+  
+  // Vibrant Palette Gradients (from Coolors.co palette)
+  vibrant: {
+    // Yellow to Green gradient
+    sunny: ['#fff07c', '#bfff7e', '#80ff72'],
+    // Sky Blue gradient
+    sky: ['#7ee8fa', '#a8f0ff', '#d0f7ff'],
+    // Pink to Blue gradient
+    sunset: ['#e83f6f', '#7ee8fa', '#2274a5'],
+    // Full vibrant spectrum
+    rainbow: ['#fff07c', '#80ff72', '#7ee8fa', '#e83f6f', '#2274a5'],
+    // Warm tones
+    warm: ['#fff07c', '#e83f6f'],
+    // Cool tones
+    cool: ['#7ee8fa', '#2274a5'],
+    // Energy (yellow + pink)
+    energy: ['#fff07c', '#e83f6f', '#ff6b9d'],
+  },
   
   // Overlay Gradients
   overlayLight: ['rgba(255, 255, 255, 0.95)', 'rgba(255, 255, 255, 0.85)'],

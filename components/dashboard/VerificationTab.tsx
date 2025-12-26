@@ -3,6 +3,9 @@ import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase'
 import type { User, ProviderProfile } from '@/lib/types'
+import { pastelDesignSystem } from '@/lib/pastel-design-system'
+import { Platform } from 'react-native'
+const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem
 
 interface Props {
   user: User | null
@@ -93,7 +96,7 @@ export function VerificationTab({ user }: Props) {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#f25842" />
+        <ActivityIndicator size="large" color={pastelColors.primary[500]} />
       </View>
     )
   }
@@ -113,7 +116,7 @@ export function VerificationTab({ user }: Props) {
             <Ionicons
               name={identityVerified ? 'checkmark-circle' : 'person-outline'}
               size={32}
-              color={identityVerified ? '#10b981' : '#6b7280'}
+              color={identityVerified ? pastelColors.success[500] : surfaces.onSurfaceVariant}
             />
             <View style={styles.verificationHeaderText}>
               <Text style={styles.verificationTitle}>Identity Verification</Text>
@@ -140,21 +143,21 @@ export function VerificationTab({ user }: Props) {
 
         {identityStatus === 'processing' && (
           <View style={styles.statusInfo}>
-            <ActivityIndicator size="small" color="#fbbf24" />
+            <ActivityIndicator size="small" color={pastelColors.warning[500]} />
             <Text style={styles.statusText}>Verification in progress...</Text>
           </View>
         )}
 
         {identityStatus === 'verified' && (
           <View style={styles.statusInfo}>
-            <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+            <Ionicons name="checkmark-circle" size={20} color={pastelColors.success[500]} />
             <Text style={styles.statusText}>Identity verified</Text>
           </View>
         )}
 
         {identityStatus === 'failed' || identityStatus === 'rejected' && (
           <View style={styles.statusInfo}>
-            <Ionicons name="close-circle" size={20} color="#ef4444" />
+            <Ionicons name="close-circle" size={20} color={pastelColors.error[500]} />
             <Text style={styles.statusText}>Verification {identityStatus}</Text>
           </View>
         )}
@@ -167,7 +170,7 @@ export function VerificationTab({ user }: Props) {
             <Ionicons
               name={businessVerified ? 'checkmark-circle' : 'business-outline'}
               size={32}
-              color={businessVerified ? '#10b981' : '#6b7280'}
+              color={businessVerified ? pastelColors.success[500] : surfaces.onSurfaceVariant}
             />
             <View style={styles.verificationHeaderText}>
               <Text style={styles.verificationTitle}>Business Verification</Text>
@@ -200,7 +203,7 @@ export function VerificationTab({ user }: Props) {
 
         {businessVerified && (
           <View style={styles.statusInfo}>
-            <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+            <Ionicons name="checkmark-circle" size={20} color={pastelColors.success[500]} />
             <Text style={styles.statusText}>Business verified</Text>
           </View>
         )}
@@ -228,7 +231,7 @@ export function VerificationTab({ user }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: surfaces.background,
   },
   centerContainer: {
     flex: 1,
@@ -236,21 +239,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   contentContainer: {
-    padding: 20,
+    padding: spacing.xl,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 20,
+    color: surfaces.onSurface,
+    marginBottom: spacing.xl,
   },
   verificationCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    marginBottom: spacing.lg,
+    ...elevation.level2,
   },
   verificationHeader: {
     flexDirection: 'row',
@@ -270,75 +272,78 @@ const styles = StyleSheet.create({
   verificationTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 4,
+    color: surfaces.onSurface,
+    marginBottom: spacing.xs,
   },
   verificationSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   verifiedBadge: {
-    backgroundColor: '#d1fae5',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    backgroundColor: pastelColors.success[100],
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
+    ...elevation.level1,
   },
   verifiedBadgeText: {
-    color: '#10b981',
+    color: pastelColors.success[600],
     fontSize: 12,
     fontWeight: '600',
   },
   verifyButton: {
-    backgroundColor: '#f25842',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: pastelColors.primary[500],
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
     alignItems: 'center',
+    ...elevation.level1,
   },
   verifyButtonText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
   statusInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   statusText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   infoText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
     fontStyle: 'italic',
   },
   scoreCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    marginTop: 8,
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    marginTop: spacing.sm,
+    ...elevation.level2,
   },
   scoreTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 8,
+    color: surfaces.onSurface,
+    marginBottom: spacing.sm,
   },
   scoreValue: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#f25842',
-    marginBottom: 12,
+    color: pastelColors.primary[500],
+    marginBottom: spacing.md,
   },
   scoreBar: {
     height: 8,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: surfaces.surfaceVariant,
     borderRadius: 4,
     overflow: 'hidden',
   },
   scoreBarFill: {
     height: '100%',
-    backgroundColor: '#f25842',
+    backgroundColor: pastelColors.primary[500],
   },
 })

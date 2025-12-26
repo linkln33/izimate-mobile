@@ -1,5 +1,5 @@
-import { View, Text, TextInput, Pressable, ScrollView, Image, ActivityIndicator, StyleSheet } from 'react-native'
-import { useState } from 'react'
+import { View, Text, TextInput, Pressable, ScrollView, Image, ActivityIndicator, StyleSheet, Platform } from 'react-native'
+import { useState, useRef, useEffect } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
 import type { ListingFormState, ListingFormActions } from '../useListingForm'
@@ -45,6 +45,47 @@ export function Step1BasicInfo({
 
   // Track image loading errors
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set())
+  
+  // Refs for description input to handle Cmd+A
+  const descriptionInputRef = useRef<TextInput>(null)
+
+  // Handle Cmd+A / Ctrl+A for text selection on web
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if ((event.key === 'a' || event.key === 'A') && (event.ctrlKey || event.metaKey)) {
+          const activeElement = document.activeElement
+          
+          // Check if title input is focused
+          if (titleInputRef.current) {
+            const titleElement = (titleInputRef.current as any)?._nativeNode || 
+                               (titleInputRef.current as any)?._internalFiberInstanceHandleDEV?.stateNode
+            if (titleElement === activeElement && title.length > 0) {
+              event.preventDefault()
+              titleElement.setSelectionRange(0, title.length)
+              return
+            }
+          }
+          
+          // Check if description input is focused
+          if (descriptionInputRef.current) {
+            const descElement = (descriptionInputRef.current as any)?._nativeNode || 
+                              (descriptionInputRef.current as any)?._internalFiberInstanceHandleDEV?.stateNode
+            if (descElement === activeElement && description.length > 0) {
+              event.preventDefault()
+              descElement.setSelectionRange(0, description.length)
+              return
+            }
+          }
+        }
+      }
+      
+      document.addEventListener('keydown', handleKeyDown)
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown)
+      }
+    }
+  }, [title, description])
 
   const handleAddTag = () => {
     const newTag = tagInput.trim()
@@ -73,11 +114,8 @@ export function Step1BasicInfo({
             'experience', 
             'subscription', 
             'freelance', 
-            'auction', 
-            'space_sharing', 
             'fundraising', 
-            'delivery', 
-            'taxi', 
+            'transportation', 
             'link'
           ] as const).map((type) => {
             const isActive = formState.listing_type === type
@@ -88,11 +126,8 @@ export function Step1BasicInfo({
               experience: { icon: 'ticket-outline', gradient: gradients.warmSunset, color: colors.warning, label: 'Experience' },
               subscription: { icon: 'repeat-outline', gradient: gradients.cool, color: colors.secondary, label: 'Subscription' },
               freelance: { icon: 'person-outline', gradient: gradients.primary, color: colors.primary, label: 'Freelance' },
-              auction: { icon: 'gavel-outline', gradient: gradients.warm, color: colors.error, label: 'Auction' },
-              space_sharing: { icon: 'square-outline', gradient: gradients.success, color: colors.success, label: 'Space' },
               fundraising: { icon: 'heart-outline', gradient: gradients.primary, color: colors.error, label: 'Fundraising' },
-              delivery: { icon: 'car-outline', gradient: gradients.secondary, color: colors.secondary, label: 'Delivery' },
-              taxi: { icon: 'car-sport-outline', gradient: gradients.secondaryDark, color: colors.secondaryDark, label: 'Taxi' },
+              transportation: { icon: 'car-outline', gradient: gradients.secondaryDark, color: colors.secondaryDark, label: 'Transport' },
               link: { icon: 'link-outline', gradient: gradients.neutralDark, color: colors.gray[600], label: 'Link' },
             }[type]
             
@@ -144,7 +179,10 @@ export function Step1BasicInfo({
           ref={titleInputRef}
           style={styles.input}
           value={title}
-          onChangeText={setTitle}
+          onChangeText={(text) => {
+            console.log('📝 Title changed:', text)
+            setTitle(text)
+          }}
           placeholder="e.g., Need a plumber for bathroom repair"
           selectTextOnFocus={false}
           textContentType="none"
@@ -157,9 +195,13 @@ export function Step1BasicInfo({
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Description *</Text>
         <TextInput
+          ref={descriptionInputRef}
           style={[styles.input, styles.textArea]}
           value={description}
-          onChangeText={setDescription}
+          onChangeText={(text) => {
+            console.log('📝 Description changed:', text)
+            setDescription(text)
+          }}
           placeholder="Describe what you need..."
           multiline
           numberOfLines={6}
@@ -197,6 +239,7 @@ export function Step1BasicInfo({
                     category === cat && styles.categoryDropdownItemActive,
                   ]}
                   onPress={() => {
+                    console.log('📝 Category selected:', cat)
                     setCategory(cat)
                     setCategoryDropdownOpen(false)
                   }}

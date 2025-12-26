@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, Platform } from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
 import { SkeletonLoader } from '@/components/common/SkeletonLoader'
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -16,7 +15,8 @@ import { UnifiedBookingsTab } from '@/components/booking/UnifiedBookingsTab'
 import { BusinessBookingsTab } from '@/components/booking/BusinessBookingsTab'
 import type { Listing, Match, User } from '@/lib/types'
 import { useTranslation } from 'react-i18next'
-import { colors, spacing, elevation, borderRadius, gradients } from '@/lib/design-system'
+import { pastelDesignSystem } from '@/lib/pastel-design-system'
+const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem
 
 interface DashboardStats {
   totalListings: number
@@ -217,13 +217,8 @@ export default function DashboardScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header with Gradient */}
-      <LinearGradient
-        colors={gradients.primary}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
-      >
+      {/* Header */}
+      <View style={styles.headerGradient}>
       <View style={styles.header}>
           <View style={styles.headerContent}>
           <Text style={styles.greeting}>{t('dashboard.welcomeBack')}</Text>
@@ -235,18 +230,19 @@ export default function DashboardScreen() {
               onPress={() => router.push('/(tabs)/profile')}
               style={styles.settingsButton}
             >
-              <Ionicons name="settings-outline" size={24} color="#ffffff" />
+              <Ionicons name="settings-outline" size={24} color={surfaces.onSurface} />
           </Pressable>
         </View>
       </View>
-      </LinearGradient>
+      </View>
 
       {/* Scrollable Dashboard with Collapsible Sections */}
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        showsVerticalScrollIndicator={true}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
       >
         {/* Overview Section - Combined listings, messages, liked, and approvals */}
         <CollapsibleSection
@@ -329,7 +325,7 @@ export default function DashboardScreen() {
             ]} 
             onPress={handleLogout}
           >
-            <Ionicons name="log-out-outline" size={20} color={colors.error} />
+            <Ionicons name="log-out-outline" size={20} color={pastelColors.error[500]} />
             <Text style={styles.logoutButtonText}>Log Out</Text>
           </Pressable>
         </View>
@@ -403,57 +399,37 @@ function OverviewTab({ user, listings, matches, stats, router }: any) {
       {/* Stats Grid */}
       <View style={styles.statsGrid}>
         <Pressable onPress={handleNavigateToListings} style={styles.statCardWrapper}>
-          <LinearGradient
-            colors={gradients.secondaryDark}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.statCard}
-          >
-            <Ionicons name="briefcase-outline" size={28} color="#ffffff" style={styles.statIcon} />
+          <View style={[styles.statCard, styles.statCardCyan]}>
+            <Ionicons name="briefcase-outline" size={28} color={pastelColors.secondary[500]} style={styles.statIcon} />
           <Text style={styles.statValue}>{activeListings}/{maxListings}</Text>
             <Text style={styles.statLabelLink}>{t('dashboard.activeListings')}</Text>
-          </LinearGradient>
+          </View>
           </Pressable>
         
         <Pressable onPress={handleNavigateToRating} style={styles.statCardWrapper}>
-          <LinearGradient
-            colors={[colors.warning, colors.warningDark]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.statCard}
-          >
-            <Ionicons name="star" size={28} color="#ffffff" style={styles.statIcon} />
+          <View style={[styles.statCard, styles.statCardYellow]}>
+            <Ionicons name="star" size={28} color={pastelColors.warning[500]} style={styles.statIcon} />
           <View style={styles.ratingContainer}>
             <Text style={styles.statValue}>{positivePercentage}%</Text>
           </View>
             <Text style={styles.statLabelLink}>{t('dashboard.positive')}</Text>
-          </LinearGradient>
+          </View>
           </Pressable>
         
         <Pressable onPress={handleNavigateToMessages} style={styles.statCardWrapper}>
-          <LinearGradient
-            colors={gradients.success}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.statCard}
-          >
-            <Ionicons name="chatbubbles-outline" size={28} color="#ffffff" style={styles.statIcon} />
+          <View style={[styles.statCard, styles.statCardPink]}>
+            <Ionicons name="chatbubbles-outline" size={28} color={pastelColors.primary[500]} style={styles.statIcon} />
           <Text style={styles.statValue}>{stats.unreadMessages}</Text>
             <Text style={styles.statLabelLink}>{t('dashboard.messages')}</Text>
-          </LinearGradient>
+          </View>
           </Pressable>
         
         <Pressable onPress={handleNavigateToLiked} style={styles.statCardWrapper}>
-          <LinearGradient
-            colors={gradients.cool}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.statCard}
-          >
-            <Ionicons name="heart-outline" size={28} color="#ffffff" style={styles.statIcon} />
+          <View style={[styles.statCard, styles.statCardGreen]}>
+            <Ionicons name="heart-outline" size={28} color={pastelColors.accent[500]} style={styles.statIcon} />
           <Text style={styles.statValue}>{stats.pendingLikes}</Text>
             <Text style={styles.statLabelLink}>{t('dashboard.liked')}</Text>
-          </LinearGradient>
+          </View>
           </Pressable>
       </View>
 
@@ -471,21 +447,22 @@ function OverviewTab({ user, listings, matches, stats, router }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: surfaces.background,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: surfaces.background,
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: spacing.lg,
     fontSize: 16,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   headerGradient: {
     paddingTop: Platform.OS === 'ios' ? 50 : 12,
+    backgroundColor: surfaces.surface,
     ...elevation.level2,
   },
   header: {
@@ -500,29 +477,23 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: surfaces.onSurfaceVariant,
     fontWeight: '500',
   },
   userName: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: surfaces.onSurface,
     marginTop: spacing.xs,
-    ...(Platform.OS === 'web' ? {
-      textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
-    } : {
-      textShadowColor: 'rgba(0, 0, 0, 0.1)',
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 2,
-    }),
   },
   settingsButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: pastelColors.secondary[100],
     justifyContent: 'center',
     alignItems: 'center',
+    ...elevation.level1,
   },
   headerActions: {
     flexDirection: 'row',
@@ -536,7 +507,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#f25842',
+    backgroundColor: pastelColors.primary[500],
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -554,8 +525,9 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: spacing.md,
-    paddingBottom: spacing.xl * 2,
+    paddingBottom: spacing.xl * 4, // Increased padding to ensure logout button is fully visible
     paddingTop: spacing.lg,
+    flexGrow: 1,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -570,43 +542,40 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     alignItems: 'center',
-    ...(Platform.OS === 'web' ? {
-      boxShadow: `0 4px 8px rgba(0, 0, 0, 0.12)`,
-    } : {
-      shadowColor: elevation.level3.shadowColor,
-      shadowOffset: elevation.level3.shadowOffset,
-      shadowOpacity: elevation.level3.shadowOpacity,
-      shadowRadius: elevation.level3.shadowRadius,
-      elevation: elevation.level3.elevation,
-    }),
+    backgroundColor: surfaces.surface,
     minHeight: 140,
     justifyContent: 'center',
+    ...elevation.level2,
+  },
+  statCardCyan: {
+    // No border needed - elevation provides depth
+  },
+  statCardYellow: {
+    // No border needed - elevation provides depth
+  },
+  statCardPink: {
+    // No border needed - elevation provides depth
+  },
+  statCardGreen: {
+    // No border needed - elevation provides depth
   },
   statIcon: {
     marginBottom: spacing.sm,
-    opacity: 0.9,
   },
   statValue: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: surfaces.onSurface,
     marginTop: spacing.xs,
-    ...(Platform.OS === 'web' ? {
-      textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
-    } : {
-      textShadowColor: 'rgba(0, 0, 0, 0.2)',
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 2,
-    }),
   },
   statLabel: {
     fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
+    color: surfaces.onSurfaceVariant,
+    marginTop: spacing.xs,
   },
   statLabelLink: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.95)',
+    color: pastelColors.secondary[600],
     marginTop: spacing.xs,
     fontWeight: '600',
     textAlign: 'center',
@@ -620,42 +589,41 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   actionButton: {
-    backgroundColor: '#f25842',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: pastelColors.primary[500],
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
     alignItems: 'center',
+    ...elevation.level1,
   },
   actionButtonText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
   listingCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...elevation.level2,
   },
   listingTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 8,
+    color: surfaces.onSurface,
+    marginBottom: spacing.sm,
   },
   listingDescription: {
     fontSize: 14,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
     lineHeight: 20,
   },
   matchCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...elevation.level2,
   },
   matchTitle: {
     fontSize: 16,
@@ -677,12 +645,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: surfaces.surface,
     borderRadius: borderRadius.md,
     padding: spacing.lg,
-    borderWidth: 2,
-    borderColor: colors.error,
+    borderWidth: 1,
+    borderColor: pastelColors.error[500],
     gap: spacing.sm,
+    alignSelf: 'center',
+    width: '50%',
     ...elevation.level1,
   },
   logoutButtonPressed: {
@@ -692,6 +662,6 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.error,
+    color: pastelColors.error[500],
   },
 })

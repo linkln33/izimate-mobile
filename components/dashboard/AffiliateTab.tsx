@@ -6,6 +6,9 @@ import * as Clipboard from 'expo-clipboard'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, getUserCurrency } from '@/lib/utils/currency'
 import type { User, Affiliate, Referral } from '@/lib/types'
+import { pastelDesignSystem } from '@/lib/pastel-design-system'
+import { Platform } from 'react-native'
+const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem
 
 interface Props {
   user: User | null
@@ -456,7 +459,7 @@ export function AffiliateTab({ user }: Props) {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#f25842" />
+        <ActivityIndicator size="large" color={pastelColors.primary[500]} />
         <Text style={styles.loadingText}>Loading affiliate data...</Text>
       </View>
     )
@@ -875,7 +878,7 @@ export function AffiliateTab({ user }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: surfaces.background,
   },
   centerContainer: {
     flex: 1,
@@ -883,40 +886,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   contentContainer: {
-    padding: 20,
+    padding: spacing.xl,
   },
   welcomeCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 32,
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing['2xl'],
     alignItems: 'center',
+    ...elevation.level2,
   },
   welcomeTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginTop: 16,
-    marginBottom: 8,
+    color: surfaces.onSurface,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
   },
   welcomeText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 24,
+    marginBottom: spacing['2xl'],
   },
   registerButton: {
-    backgroundColor: '#f25842',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
+    backgroundColor: pastelColors.primary[500],
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 52,
     flexDirection: 'row',
+    ...elevation.level1,
   },
   registerButtonDisabled: {
-    backgroundColor: '#d1d5db',
+    backgroundColor: pastelColors.neutral[300],
   },
   registerButtonText: {
     color: '#ffffff',
@@ -932,44 +937,46 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
     alignItems: 'center',
+    ...elevation.level2,
   },
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: surfaces.onSurface,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
+    color: surfaces.onSurfaceVariant,
+    marginTop: spacing.xs,
   },
   referralCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    marginBottom: spacing.xl,
     alignItems: 'center',
+    ...elevation.level2,
   },
   referralTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 8,
+    color: surfaces.onSurface,
+    marginBottom: spacing.sm,
   },
   codeExplanation: {
     fontSize: 12,
-    color: '#6b7280',
-    marginBottom: 12,
+    color: surfaces.onSurfaceVariant,
+    marginBottom: spacing.md,
     lineHeight: 16,
   },
   referralCode: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#f25842',
+    color: pastelColors.primary[500],
     letterSpacing: 1,
     textAlign: 'center',
   },
@@ -978,11 +985,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f25842',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    gap: 6,
+    backgroundColor: pastelColors.primary[500],
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.sm,
+    gap: spacing.xs,
+    ...elevation.level1,
   },
   shareButtonText: {
     color: '#ffffff',
@@ -995,80 +1003,83 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   tierCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    marginBottom: spacing.xl,
+    ...elevation.level2,
   },
   tierTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 8,
+    color: surfaces.onSurface,
+    marginBottom: spacing.sm,
   },
   tierDescription: {
     fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 8,
+    color: surfaces.onSurfaceVariant,
+    marginBottom: spacing.sm,
   },
   proUserNote: {
     fontSize: 12,
-    color: '#f25842',
+    color: pastelColors.primary[500],
     fontStyle: 'italic',
     fontWeight: '500',
   },
   referralsSection: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 16,
+    color: surfaces.onSurface,
+    marginBottom: spacing.lg,
   },
   referralItem: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...elevation.level2,
   },
   referralItemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   referralItemCode: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: surfaces.onSurface,
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: '#f3f4f6',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
+    backgroundColor: pastelColors.secondary[100],
+    ...elevation.level1,
   },
   statusBadgeSuccess: {
-    backgroundColor: '#d1fae5',
+    backgroundColor: pastelColors.success[100],
   },
   statusBadgeActive: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: pastelColors.secondary[100],
   },
   statusBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: surfaces.onSurface,
   },
   referralItemPlan: {
     fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
+    color: surfaces.onSurfaceVariant,
+    marginBottom: spacing.xs,
   },
   referralItemEarnings: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#10b981',
+    color: pastelColors.success[500],
   },
   codeDisplayContainer: {
     flexDirection: 'row',
@@ -1085,13 +1096,14 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
   },
   copyCodeButton: {
-    backgroundColor: '#f25842',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: pastelColors.primary[500],
+    borderRadius: borderRadius.sm,
+    padding: spacing.md,
     justifyContent: 'center',
     alignItems: 'center',
     minWidth: 44,
     minHeight: 44,
+    ...elevation.level1,
   },
   copyButton: {
     padding: 8,
@@ -1165,10 +1177,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#f25842',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    backgroundColor: pastelColors.primary[500],
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.sm,
+    ...elevation.level1,
   },
   requestPayoutButtonDisabled: {
     backgroundColor: '#d1d5db',
@@ -1201,10 +1214,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   historyItem: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...elevation.level2,
   },
   historyItemHeader: {
     flexDirection: 'row',
@@ -1224,7 +1238,7 @@ const styles = StyleSheet.create({
   historyItemAmount: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#10b981',
+    color: pastelColors.success[500],
   },
   historyItemDetails: {
     gap: 6,
@@ -1322,25 +1336,26 @@ const styles = StyleSheet.create({
   },
   payoutMethodOption: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.sm,
+    backgroundColor: surfaces.surfaceVariant,
     borderWidth: 2,
     borderColor: 'transparent',
     alignItems: 'center',
+    ...elevation.level1,
   },
   payoutMethodOptionActive: {
-    backgroundColor: '#fee2e2',
-    borderColor: '#f25842',
+    backgroundColor: pastelColors.primary[100],
+    borderColor: pastelColors.primary[500],
   },
   payoutMethodOptionText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   payoutMethodOptionTextActive: {
-    color: '#f25842',
+    color: pastelColors.primary[600],
     fontWeight: '600',
   },
   modalInputGroup: {
@@ -1356,11 +1371,12 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
   },
   modalSaveButton: {
-    backgroundColor: '#f25842',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: pastelColors.primary[500],
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: spacing.sm,
+    ...elevation.level1,
   },
   modalSaveButtonText: {
     color: '#ffffff',

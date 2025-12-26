@@ -13,10 +13,12 @@ import {
   ActivityIndicator,
   StyleSheet,
   Modal,
+  Alert,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { BookingFormProps, RecurringPattern } from './types'
 import { RecurringBookingForm } from '../booking/RecurringBookingManager'
+import { colors, spacing, borderRadius, elevation } from '@/lib/design-system'
 
 export const BookingForm: React.FC<BookingFormProps> = ({
   bookingSelection,
@@ -26,11 +28,17 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   allowRecurring = false,
   allowNotes = true,
   loading = false,
+  listingType,
+  maxParticipants,
 }) => {
   const [customerNotes, setCustomerNotes] = useState('')
   const [showRecurringForm, setShowRecurringForm] = useState(false)
   const [recurringPattern, setRecurringPattern] =
     useState<RecurringPattern | null>(null)
+  // Conditional fields
+  const [participantCount, setParticipantCount] = useState<string>('1')
+  const [deliveryAddress, setDeliveryAddress] = useState('')
+  const [pickupAddress, setPickupAddress] = useState('')
 
   const formatPrice = (price: number, currency: string) => {
     return new Intl.NumberFormat('en-GB', {
@@ -40,9 +48,29 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   }
 
   const handleSubmit = async () => {
+    // Validate Experience participant count
+    if (listingType === 'experience' && maxParticipants) {
+      const count = parseInt(participantCount) || 1
+      if (count > maxParticipants) {
+        Alert.alert(
+          'Invalid Participant Count',
+          `Maximum ${maxParticipants} participants allowed.`
+        )
+        return
+      }
+      if (count < 1) {
+        Alert.alert('Invalid Participant Count', 'At least 1 participant is required.')
+        return
+      }
+    }
+
     await onComplete({
       notes: allowNotes ? customerNotes.trim() || undefined : undefined,
       recurringPattern: recurringPattern || undefined,
+      participantCount: listingType === 'experience' ? parseInt(participantCount) || 1 : undefined,
+      deliveryAddress: (listingType === 'delivery' || listingType === 'taxi') ? deliveryAddress.trim() || undefined : undefined,
+      pickupAddress: listingType === 'taxi' ? pickupAddress.trim() || undefined : undefined,
+      estimatedArrival: listingType === 'delivery' ? undefined : undefined, // Can be calculated later
     })
   }
 
@@ -113,6 +141,81 @@ export const BookingForm: React.FC<BookingFormProps> = ({
             </View>
           </View>
 
+          {/* Experience: Participant Count */}
+          {listingType === 'experience' && maxParticipants && (
+            <View style={styles.conditionalSection}>
+              <Text style={styles.conditionalLabel}>
+                Number of Participants *
+              </Text>
+              <TextInput
+                style={styles.conditionalInput}
+                value={participantCount}
+                onChangeText={setParticipantCount}
+                placeholder={`1-${maxParticipants}`}
+                keyboardType="numeric"
+                placeholderTextColor="#9ca3af"
+              />
+              <Text style={styles.conditionalHelp}>
+                Maximum {maxParticipants} participants allowed
+              </Text>
+            </View>
+          )}
+
+          {/* Delivery: Delivery Address */}
+          {listingType === 'delivery' && (
+            <View style={styles.conditionalSection}>
+              <Text style={styles.conditionalLabel}>
+                Delivery Address *
+              </Text>
+              <TextInput
+                style={styles.conditionalInput}
+                value={deliveryAddress}
+                onChangeText={setDeliveryAddress}
+                placeholder="Enter delivery address..."
+                multiline
+                numberOfLines={2}
+                textAlignVertical="top"
+                placeholderTextColor="#9ca3af"
+              />
+            </View>
+          )}
+
+          {/* Taxi: Pickup and Drop-off Addresses */}
+          {listingType === 'taxi' && (
+            <>
+              <View style={styles.conditionalSection}>
+                <Text style={styles.conditionalLabel}>
+                  Pickup Address *
+                </Text>
+                <TextInput
+                  style={styles.conditionalInput}
+                  value={pickupAddress}
+                  onChangeText={setPickupAddress}
+                  placeholder="Enter pickup address..."
+                  multiline
+                  numberOfLines={2}
+                  textAlignVertical="top"
+                  placeholderTextColor={colors.gray[400]}
+                />
+              </View>
+              <View style={styles.conditionalSection}>
+                <Text style={styles.conditionalLabel}>
+                  Drop-off Address *
+                </Text>
+                <TextInput
+                  style={styles.conditionalInput}
+                  value={deliveryAddress}
+                  onChangeText={setDeliveryAddress}
+                  placeholder="Enter drop-off address..."
+                  multiline
+                  numberOfLines={2}
+                  textAlignVertical="top"
+                  placeholderTextColor={colors.gray[400]}
+                />
+              </View>
+            </>
+          )}
+
           {/* Customer Notes */}
           {allowNotes && (
             <View style={styles.notesSection}>
@@ -139,7 +242,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                 style={styles.recurringButton}
                 onPress={() => setShowRecurringForm(true)}
               >
-                <Ionicons name="repeat" size={20} color="#007AFF" />
+                <Ionicons name="repeat" size={20} color={colors.secondary} />
                 <Text style={styles.recurringButtonText}>Make Recurring</Text>
               </Pressable>
 
@@ -152,7 +255,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                     ).toLocaleDateString()}
                   </Text>
                   <Pressable onPress={() => setRecurringPattern(null)}>
-                    <Ionicons name="close-circle" size={18} color="#ef4444" />
+                    <Ionicons name="close-circle" size={18} color={colors.error} />
                   </Pressable>
                 </View>
               )}
@@ -161,7 +264,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 
           {/* Booking Notice */}
           <View style={styles.notice}>
-            <Ionicons name="information-circle" size={20} color="#007AFF" />
+            <Ionicons name="information-circle" size={20} color={colors.info} />
             <Text style={styles.noticeText}>
               Your booking request will be sent to {providerName}. You'll receive
               a confirmation once they approve your request.
@@ -191,37 +294,39 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.lg,
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.gray[200],
+    ...elevation.level1,
   },
   cancelButton: {
-    padding: 8,
+    padding: spacing.xs,
   },
   cancelButtonText: {
     fontSize: 16,
-    color: '#007AFF',
+    color: colors.secondary,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: colors.gray[900],
   },
   submitButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs,
     minWidth: 60,
     alignItems: 'center',
+    ...elevation.level2,
   },
   submitButtonDisabled: {
     opacity: 0.6,
@@ -229,111 +334,135 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: 'white',
+    color: colors.onPrimary,
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: spacing.lg,
   },
   summary: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
+    backgroundColor: colors.surfaceVariant,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
   },
   summaryTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 15,
+    color: colors.gray[900],
+    marginBottom: spacing.md,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: spacing.xs,
   },
   summaryLabel: {
     fontSize: 14,
-    color: '#666',
+    color: colors.gray[600],
   },
   summaryValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#333',
+    color: colors.gray[900],
     flex: 1,
     textAlign: 'right',
   },
   summaryValuePrice: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#007AFF',
+    color: colors.primary,
   },
   notesSection: {
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   notesLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 10,
+    color: colors.gray[900],
+    marginBottom: spacing.xs,
   },
   notesInput: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: colors.surfaceVariant,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
     fontSize: 14,
-    color: '#333',
+    color: colors.gray[900],
     minHeight: 80,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.gray[300],
   },
   recurringButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    padding: 12,
-    backgroundColor: '#eff6ff',
-    borderRadius: 8,
+    gap: spacing.xs,
+    padding: spacing.md,
+    backgroundColor: colors.secondaryContainer,
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
-    marginBottom: 12,
+    borderColor: colors.secondary200,
+    marginBottom: spacing.md,
   },
   recurringButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#007AFF',
+    color: colors.secondary,
   },
   recurringInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 12,
-    backgroundColor: '#f0fdf4',
-    borderRadius: 8,
+    padding: spacing.md,
+    backgroundColor: colors.successContainer,
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#bbf7d0',
-    marginBottom: 12,
+    borderColor: colors.successLight,
+    marginBottom: spacing.md,
   },
   recurringInfoText: {
     fontSize: 13,
-    color: '#16a34a',
+    color: colors.success,
     fontWeight: '500',
     flex: 1,
   },
   notice: {
     flexDirection: 'row',
-    backgroundColor: '#e3f2fd',
-    borderRadius: 8,
-    padding: 15,
+    backgroundColor: colors.infoContainer,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
     alignItems: 'flex-start',
   },
   noticeText: {
     fontSize: 14,
-    color: '#1976d2',
-    marginLeft: 10,
+    color: colors.info,
+    marginLeft: spacing.xs,
     flex: 1,
     lineHeight: 20,
+  },
+  conditionalSection: {
+    marginBottom: spacing.lg,
+  },
+  conditionalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.gray[900],
+    marginBottom: spacing.xs,
+  },
+  conditionalInput: {
+    backgroundColor: colors.surfaceVariant,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    fontSize: 14,
+    color: colors.gray[900],
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+    minHeight: 44,
+  },
+  conditionalHelp: {
+    fontSize: 12,
+    color: colors.gray[600],
+    marginTop: spacing.xs,
   },
 })
 

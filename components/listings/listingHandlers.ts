@@ -379,10 +379,29 @@ export function createListingHandlers(
   const handleNext = (currentStep: Step, formState: ListingFormState): Step | null => {
     // Step 1: Basic Information
     if (currentStep === 1) {
+      console.log('🔍 Step 1 validation check:', {
+        title: formState.title,
+        titleTrimmed: formState.title.trim(),
+        description: formState.description,
+        descriptionTrimmed: formState.description.trim(),
+        category: formState.category,
+        hasTitle: !!formState.title.trim(),
+        hasDescription: !!formState.description.trim(),
+        hasCategory: !!formState.category,
+      })
+      
       if (!formState.title.trim() || !formState.description.trim() || !formState.category) {
-        Alert.alert('Required Fields', 'Please fill in title, description, and category')
+        const missingFields = []
+        if (!formState.title.trim()) missingFields.push('title')
+        if (!formState.description.trim()) missingFields.push('description')
+        if (!formState.category) missingFields.push('category')
+        
+        console.log('❌ Step 1 validation failed. Missing fields:', missingFields)
+        Alert.alert('Required Fields', `Please fill in: ${missingFields.join(', ')}`)
         return null
       }
+      
+      console.log('✅ Step 1 validation passed, moving to step 2')
       return 2
     } 
     // Step 2: Services & Pricing
@@ -438,35 +457,148 @@ export function createListingHandlers(
         return 3
       }
 
-      // Auction listings - validate start price and end time
-      if (formState.listing_type === 'auction') {
-        // Validation will be added when auction fields are implemented
-        console.log('✅ Step 2 validation passed for auction, moving to step 3');
+      // Experience listings - validate duration, max participants, and price
+      if (formState.listing_type === 'experience') {
+        if (!formState.experience_duration_hours || formState.experience_duration_hours <= 0) {
+          Alert.alert('Required Fields', 'Please enter a valid positive duration for the experience (in hours)')
+          return null
+        }
+        if (!formState.experience_max_participants || formState.experience_max_participants <= 0) {
+          Alert.alert('Required Fields', 'Please enter a valid positive number for maximum participants')
+          return null
+        }
+        if (!formState.budgetMin || formState.budgetMin.trim() === '' || parseFloat(formState.budgetMin) <= 0) {
+          Alert.alert('Required Fields', 'Please enter a valid price per person')
+          return null
+        }
+        console.log('✅ Step 2 validation passed for experience, moving to step 3');
         return 3
       }
 
       // Subscription listings - validate billing cycle and price
       if (formState.listing_type === 'subscription') {
-        // Validation will be added when subscription fields are implemented
+        if (!formState.subscription_billing_cycle) {
+          Alert.alert('Required Fields', 'Please select a billing cycle for the subscription')
+          return null
+        }
+        if (!formState.budgetMin || formState.budgetMin.trim() === '' || parseFloat(formState.budgetMin) <= 0) {
+          Alert.alert('Required Fields', 'Please enter a valid positive price for the subscription')
+          return null
+        }
         console.log('✅ Step 2 validation passed for subscription, moving to step 3');
         return 3
       }
 
-      // Link listings - only need URL
-      if (formState.listing_type === 'link') {
-        // Validation will be added when link fields are implemented
-        console.log('✅ Step 2 validation passed for link, moving to step 3');
+      // Freelance listings - validate category, pricing model, and price
+      if (formState.listing_type === 'freelance') {
+        if (!formState.freelance_category) {
+          Alert.alert('Required Fields', 'Please select a category for the freelance service')
+          return null
+        }
+        if (!formState.budgetType || (formState.budgetType !== 'fixed' && formState.budgetType !== 'per_project' && formState.budgetType !== 'per_hour')) {
+          Alert.alert('Required Fields', 'Please select a valid pricing type for the freelance service')
+          return null
+        }
+        if ((formState.budgetType === 'fixed' || formState.budgetType === 'per_project' || formState.budgetType === 'per_hour') && 
+            (!formState.budgetMin || formState.budgetMin.trim() === '' || parseFloat(formState.budgetMin) <= 0)) {
+          Alert.alert('Required Fields', `Please enter a valid ${formState.budgetType === 'per_hour' ? 'hourly rate' : formState.budgetType === 'per_project' ? 'per-project price' : 'fixed price'}`)
+          return null
+        }
+        console.log('✅ Step 2 validation passed for freelance, moving to step 3');
         return 3
       }
 
-      // Fundraising listings - validate goal amount
+      // Note: Auction is now a selling method option within Service/Goods, not a separate listing type
+      // Space Sharing is now part of Rental (rental_category: 'space')
+
+      // Fundraising listings - validate goal amount and end date
       if (formState.listing_type === 'fundraising') {
-        // Validation will be added when fundraising fields are implemented
+        if (!formState.fundraising_goal || formState.fundraising_goal.trim() === '' || parseFloat(formState.fundraising_goal) <= 0) {
+          Alert.alert('Required Fields', 'Please enter a valid positive fundraising goal')
+          return null
+        }
+        if (!formState.fundraising_end_date || formState.fundraising_end_date.trim() === '') {
+          Alert.alert('Required Fields', 'Please set an end date for the fundraising campaign')
+          return null
+        }
+        // Validate end date is in the future
+        try {
+          const endDate = new Date(formState.fundraising_end_date)
+          if (isNaN(endDate.getTime()) || endDate <= new Date()) {
+            Alert.alert('Invalid End Date', 'Fundraising end date must be in the future')
+            return null
+          }
+        } catch (error) {
+          Alert.alert('Invalid End Date', 'Please enter a valid date for the fundraising end')
+          return null
+        }
         console.log('✅ Step 2 validation passed for fundraising, moving to step 3');
         return 3
       }
 
-      // Experience, Freelance, Space Sharing, Delivery, Taxi use standard budget/pricing
+      // Transportation listings (unified Delivery + Taxi) - validate based on type
+      if (formState.listing_type === 'transportation') {
+        // Check if it's delivery or taxi based on which fields are set
+        const isDelivery = formState.delivery_type !== undefined
+        const isTaxi = formState.taxi_vehicle_type !== undefined
+
+        if (!isDelivery && !isTaxi) {
+          Alert.alert('Required Fields', 'Please select either Delivery or Taxi/Rideshare type')
+          return null
+        }
+
+        if (isDelivery) {
+          // Delivery validation
+          if (!formState.delivery_type) {
+            Alert.alert('Required Fields', 'Please select a delivery type')
+            return null
+          }
+          if (!formState.delivery_fee_structure) {
+            Alert.alert('Required Fields', 'Please select a delivery fee structure')
+            return null
+          }
+          if (formState.delivery_fee_structure === 'fixed' && (!formState.budgetMin || formState.budgetMin.trim() === '' || parseFloat(formState.budgetMin) <= 0)) {
+            Alert.alert('Required Fields', 'Please enter a valid fixed delivery fee')
+            return null
+          }
+        } else if (isTaxi) {
+          // Taxi validation
+          if (!formState.taxi_vehicle_type) {
+            Alert.alert('Required Fields', 'Please select a vehicle type for taxi service')
+            return null
+          }
+          if (!formState.taxi_max_passengers || formState.taxi_max_passengers <= 0) {
+            Alert.alert('Required Fields', 'Please enter a valid positive number for maximum passengers')
+            return null
+          }
+          if (!formState.budgetMin || formState.budgetMin.trim() === '' || parseFloat(formState.budgetMin) <= 0) {
+            Alert.alert('Required Fields', 'Please enter a valid base fare')
+            return null
+          }
+        }
+
+        console.log('✅ Step 2 validation passed for transportation, moving to step 3');
+        return 3
+      }
+
+      // Link listings - validate URL
+      if (formState.listing_type === 'link') {
+        if (!formState.link_url || formState.link_url.trim() === '') {
+          Alert.alert('Required Fields', 'Please enter a URL for the link listing')
+          return null
+        }
+        // Basic URL validation
+        try {
+          new URL(formState.link_url);
+        } catch (error) {
+          Alert.alert('Invalid URL', 'Please enter a valid URL (e.g., https://example.com)')
+          return null
+        }
+        console.log('✅ Step 2 validation passed for link, moving to step 3');
+        return 3
+      }
+
+      // Service and Goods listings use standard budget/pricing
       // Service and Goods listings use budget/pricing
       if (formState.budgetType === 'fixed') {
         if (!formState.budgetMin || formState.budgetMin.trim() === '') {
@@ -507,13 +639,17 @@ export function createListingHandlers(
       console.log('✅ Step 2 validation passed, moving to step 3');
       return 3
     }
-    // Step 3: Booking Slots (optional)
+    // Step 3: Booking & Schedule (optional)
     else if (currentStep === 3) {
       // Booking is optional, no validation needed
       return 4
     }
-    // Step 4: Location
+    // Step 4: Settings (optional, no validation needed)
     else if (currentStep === 4) {
+      return 5
+    }
+    // Step 5: Location
+    else if (currentStep === 5) {
       if (!formState.locationAddress.trim()) {
         Alert.alert('Required Fields', 'Please enter or detect a location')
         return null
@@ -525,11 +661,11 @@ export function createListingHandlers(
           return null
         }
       }
-      return 5
-    }
-    // Step 5: Settings (optional, no validation needed)
-    else if (currentStep === 5) {
       return 6
+    }
+    // Step 6: Review (final step, no validation needed)
+    else if (currentStep === 6) {
+      return null // Already at final step
     }
     return null
   }
@@ -641,25 +777,32 @@ export function createListingHandlers(
         booking_enabled: formState.booking_enabled || false,
         service_name: formState.service_name || null,
         time_slots: formState.time_slots && formState.time_slots.length > 0 ? formState.time_slots : [],
-        // Listing type
-        listing_type: formState.listing_type || 'service',
-        // Rental-specific fields
-        rental_duration_type: formState.rental_duration_type || null,
-        rental_min_duration: formState.rental_min_duration || null,
-        rental_max_duration: formState.rental_max_duration || null,
-        rental_rate_hourly: formState.rental_rate_hourly ? parseFloat(formState.rental_rate_hourly) : null,
-        rental_rate_daily: formState.rental_rate_daily ? parseFloat(formState.rental_rate_daily) : null,
-        rental_rate_weekly: formState.rental_rate_weekly ? parseFloat(formState.rental_rate_weekly) : null,
-        rental_rate_monthly: formState.rental_rate_monthly ? parseFloat(formState.rental_rate_monthly) : null,
-        // Note: security_deposit and cleaning_fee columns may not exist in all database schemas
-        // Only include if they exist - commented out to avoid schema errors
+        // Note: listing_type column does not exist in the database schema
+        // listing_type: formState.listing_type || 'service',
+        // Note: rental-specific columns (rental_duration_type, rental_min_duration, rental_max_duration, 
+        // rental_rate_hourly, rental_rate_daily, rental_rate_weekly, rental_rate_monthly) do not exist in the database schema
+        // These fields are not stored in the listings table
+        // rental_duration_type: formState.rental_duration_type || null,
+        // rental_min_duration: formState.rental_min_duration || null,
+        // rental_max_duration: formState.rental_max_duration || null,
+        // rental_rate_hourly: formState.rental_rate_hourly ? parseFloat(formState.rental_rate_hourly) : null,
+        // rental_rate_daily: formState.rental_rate_daily ? parseFloat(formState.rental_rate_daily) : null,
+        // rental_rate_weekly: formState.rental_rate_weekly ? parseFloat(formState.rental_rate_weekly) : null,
+        // rental_rate_monthly: formState.rental_rate_monthly ? parseFloat(formState.rental_rate_monthly) : null,
+        // Note: security_deposit and cleaning_fee columns do not exist in the database schema
         // security_deposit: formState.security_deposit ? parseFloat(formState.security_deposit) : null,
         // cleaning_fee: formState.cleaning_fee ? parseFloat(formState.cleaning_fee) : null,
-        insurance_required: formState.insurance_required || false,
-        pickup_available: formState.pickup_available || false,
-        delivery_available: formState.delivery_available || false,
-        delivery_cost: formState.delivery_cost ? parseFloat(formState.delivery_cost) : null,
-        condition_notes: formState.condition_notes || null,
+        // Note: insurance_required, pickup_available, delivery_available, and delivery_cost columns do not exist in the database schema
+        // insurance_required: formState.insurance_required || false,
+        // pickup_available: formState.pickup_available || false,
+        // delivery_available: formState.delivery_available || false,
+        // delivery_cost: formState.delivery_cost ? parseFloat(formState.delivery_cost) : null,
+        // Note: condition_notes column does not exist in the database schema
+        // condition_notes: formState.condition_notes || null,
+        // Rental availability periods (this column exists)
+        rental_availability_periods: formState.rental_availability_periods && formState.rental_availability_periods.length > 0 
+          ? formState.rental_availability_periods 
+          : [],
       }
 
       // Log the data being saved for debugging
