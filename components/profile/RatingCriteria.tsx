@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { pastelDesignSystem } from '@/lib/pastel-design-system'
+const { colors: pastelColors, spacing, borderRadius, elevation } = pastelDesignSystem
 
 interface RatingCriteriaProps {
   ratings: {
@@ -194,14 +196,10 @@ export function RatingCriteria({ ratings, totalReviews }: RatingCriteriaProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: pastelColors.primary[100], // Light teal/cyan #E0FBFB for better contrast
+    borderRadius: borderRadius.lg, // Consistent with profile sections
+    padding: spacing.xl, // Consistent padding
+    ...elevation.level2, // Consistent elevation
   },
   overallSection: {
     alignItems: 'center',

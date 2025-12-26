@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   verificationCard: {
-    backgroundColor: surfaces.surface,
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     borderRadius: borderRadius.lg,
     padding: spacing.xl,
     marginBottom: spacing.lg,
@@ -292,14 +292,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   verifyButton: {
-    backgroundColor: pastelColors.primary[500],
+    backgroundColor: pastelColors.primary[400], // Slightly darker teal for better contrast
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     alignItems: 'center',
     ...elevation.level1,
   },
   verifyButtonText: {
-    color: '#FFFFFF',
+    color: pastelColors.primary[900], // Very dark teal for better contrast
     fontSize: 16,
     fontWeight: '600',
   },
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   scoreCard: {
-    backgroundColor: surfaces.surface,
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     borderRadius: borderRadius.lg,
     padding: spacing.xl,
     marginTop: spacing.sm,

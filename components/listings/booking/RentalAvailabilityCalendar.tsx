@@ -546,23 +546,25 @@ const styles = StyleSheet.create({
   dayText: {
     fontSize: 14,
     fontWeight: '500',
-    color: colors.gray[900],
+    color: '#000000', // Black text
   },
   dayTextAvailable: {
-    color: colors.success,
+    color: '#000000', // Black text
   },
   dayTextBlocked: {
-    color: colors.error,
+    color: '#000000', // Black text
   },
   dayTextSelected: {
-    color: '#ffffff',
+    color: '#000000', // Black text
     fontWeight: 'bold',
   },
   dayTextToday: {
+    color: '#000000', // Black text
     fontWeight: 'bold',
   },
   dayTextPast: {
-    color: colors.gray[400],
+    color: '#000000', // Black text
+    opacity: 0.4,
   },
   statusIndicator: {
     position: 'absolute',

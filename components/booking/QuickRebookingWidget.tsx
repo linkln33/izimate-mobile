@@ -490,7 +490,7 @@ export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWid
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: surfaces.surface,
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     marginVertical: spacing.sm,
     borderRadius: borderRadius.lg,
     paddingBottom: spacing.sm,
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xl,
-    backgroundColor: surfaces.surface,
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
   },
   loadingText: {
     marginLeft: spacing.sm,
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     padding: spacing['3xl'],
-    backgroundColor: surfaces.surface,
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     borderRadius: borderRadius.lg,
     ...elevation.level2,
   },
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
   rebookingCard: {
     width: 280,
     marginRight: spacing.lg,
-    backgroundColor: surfaces.surface,
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     borderRadius: borderRadius.lg,
     ...elevation.level3,
   },
@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: pastelColors.primary[500],
+    backgroundColor: pastelColors.primary[400], // Slightly darker teal for better contrast
     borderRadius: borderRadius.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
@@ -643,13 +643,13 @@ const styles = StyleSheet.create({
   rebookButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#ffffff',
+    color: pastelColors.primary[900], // Very dark teal for better contrast
     marginLeft: 6,
   },
   bookingCard: {
     width: 240,
     marginRight: spacing.md,
-    backgroundColor: surfaces.surface,
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     borderRadius: borderRadius.lg,
     ...elevation.level3,
   },

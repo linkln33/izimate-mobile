@@ -936,7 +936,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: pastelColors.neutral[800], // TikTok dark for titles
     marginTop: 16,
   },
   emptyText: {
@@ -968,7 +968,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: pastelColors.primary[600], // Light blue for modal titles
   },
   filterSection: {
     marginBottom: 24,
@@ -976,7 +976,7 @@ const styles = StyleSheet.create({
   filterSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: pastelColors.neutral[800], // TikTok dark for section titles
     marginBottom: 12,
   },
   filterOptions: {
@@ -1115,14 +1115,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   applyButton: {
-    backgroundColor: pastelColors.primary[500],
+    backgroundColor: pastelColors.primary[400], // Slightly darker teal for better contrast
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
     alignItems: 'center',
     ...elevation.level1,
   },
   applyButtonText: {
-    color: '#ffffff',
+    color: pastelColors.primary[900], // Very dark teal for better contrast
     fontSize: 16,
     fontWeight: '600',
   },

@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { saveLanguage, getAvailableLanguages } from '@/lib/i18n/config';
+import { pastelDesignSystem } from '@/lib/pastel-design-system';
+const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem;
 
 export const LanguageSelector: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -26,12 +28,9 @@ export const LanguageSelector: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('settings.language')}</Text>
-      <Text style={styles.subtitle}>{t('settings.selectLanguage')}</Text>
-
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#f25842" />
+          <ActivityIndicator size="small" color={pastelColors.primary[500]} />
         </View>
       )}
 
@@ -56,7 +55,7 @@ export const LanguageSelector: React.FC = () => {
                 </Text>
               </View>
               {isSelected && (
-                <Ionicons name="checkmark-circle" size={24} color="#f25842" />
+                <Ionicons name="checkmark-circle" size={24} color={pastelColors.primary[500]} />
               )}
             </Pressable>
           );
@@ -69,24 +68,10 @@ export const LanguageSelector: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 8,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 16,
-    paddingHorizontal: 16,
+    backgroundColor: 'transparent', // Remove white background
   },
   loadingContainer: {
-    paddingVertical: 8,
+    paddingVertical: spacing.md,
     alignItems: 'center',
   },
   languagesList: {
@@ -96,18 +81,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 8,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    padding: spacing.lg, // 16px
+    marginHorizontal: spacing.md, // 12px
+    marginBottom: spacing.sm, // 8px
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
+    borderRadius: borderRadius.lg, // 16px
+    ...elevation.level2, // Subtle shadow
   },
   languageItemSelected: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#f25842',
-    borderWidth: 2,
+    backgroundColor: pastelColors.primary[200], // Slightly darker teal when selected
+    ...elevation.level3, // More prominent shadow when selected
   },
   languageInfo: {
     flex: 1,
@@ -115,18 +98,18 @@ const styles = StyleSheet.create({
   languageName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
-    marginBottom: 4,
+    color: surfaces.onSurface,
+    marginBottom: spacing.xs, // 4px
   },
   languageNameSelected: {
-    color: '#f25842',
+    color: pastelColors.primary[700], // Darker teal for selected
   },
   languageNative: {
     fontSize: 14,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
   languageNativeSelected: {
-    color: '#991b1b',
+    color: pastelColors.primary[600], // Medium teal for selected
   },
 });
 

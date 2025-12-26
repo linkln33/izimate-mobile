@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, Switch, Alert, ScrollView } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useNotificationPreferences } from '@/lib/utils/notification-manager'
+import { pastelDesignSystem } from '@/lib/pastel-design-system'
+const { colors: pastelColors, surfaces, elevation, spacing, borderRadius, typography } = pastelDesignSystem
 
 interface NotificationPreferences {
   pushEnabled: boolean
@@ -135,13 +137,7 @@ export function NotificationSettings() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <Text style={styles.headerSubtitle}>
-          Manage how you receive notifications from iZimate Job
-        </Text>
-      </View>
-
-      <View style={styles.section}>
+      <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Push Notifications</Text>
         <SettingItem
           title="Enable Push Notifications"
@@ -152,7 +148,7 @@ export function NotificationSettings() {
         />
       </View>
 
-      <View style={styles.section}>
+      <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Booking Notifications</Text>
         <SettingItem
           title="Booking Confirmations"
@@ -180,7 +176,7 @@ export function NotificationSettings() {
         />
       </View>
 
-      <View style={styles.section}>
+      <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Communication</Text>
         <SettingItem
           title="Messages"
@@ -200,7 +196,7 @@ export function NotificationSettings() {
         />
       </View>
 
-      <View style={styles.section}>
+      <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Marketing</Text>
         <SettingItem
           title="Marketing Emails"
@@ -223,52 +219,41 @@ export function NotificationSettings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: 'transparent', // Remove background
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: 'transparent',
   },
   loadingText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: surfaces.onSurfaceVariant,
   },
-  header: {
-    backgroundColor: '#ffffff',
-    padding: 20,
-    paddingTop: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    lineHeight: 24,
-  },
-  section: {
-    backgroundColor: '#ffffff',
-    marginTop: 20,
-    paddingVertical: 8,
+  sectionContainer: {
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
+    borderRadius: borderRadius.lg, // 16px - rounded corners
+    padding: spacing.lg, // 16px
+    marginHorizontal: spacing.md, // 12px
+    marginBottom: spacing.lg, // 16px
+    ...elevation.level2, // Subtle shadow
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1a1a1a',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: '#f9fafb',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    color: surfaces.onSurface,
+    marginBottom: spacing.md, // 12px
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    paddingHorizontal: spacing.md, // 12px
+    paddingVertical: spacing.md, // 12px
+    backgroundColor: pastelColors.primary[200], // Darker teal #C4F7F5 for better contrast
+    borderRadius: borderRadius.md, // 12px
+    marginBottom: spacing.sm, // 8px
+    ...elevation.level1, // Subtle shadow
   },
   settingItemDisabled: {
     opacity: 0.5,
@@ -300,13 +285,13 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
   },
   footer: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: spacing.xl, // 20px
+    paddingBottom: spacing['4xl'], // 40px
   },
   footerText: {
-    fontSize: 14,
-    color: '#6b7280',
-    lineHeight: 20,
+    fontSize: typography.fontSize.bodySmall, // 12px
+    color: surfaces.onSurfaceVariant,
+    lineHeight: typography.lineHeight.normal,
     textAlign: 'center',
   },
 })

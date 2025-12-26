@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: pastelColors.neutral[800], // TikTok dark for titles
     marginTop: 16,
   },
   emptyText: {
@@ -572,14 +572,14 @@ const styles = StyleSheet.create({
   },
   createListingButton: {
     marginTop: spacing['2xl'],
-    backgroundColor: pastelColors.primary[500],
+    backgroundColor: pastelColors.primary[400], // Slightly darker teal for better contrast
     paddingHorizontal: spacing['2xl'],
     paddingVertical: spacing.md,
     borderRadius: borderRadius.md,
     ...elevation.level1,
   },
   createListingButtonText: {
-    color: '#FFFFFF',
+    color: pastelColors.primary[900], // Very dark teal for better contrast
     fontSize: 16,
     fontWeight: '600',
   },

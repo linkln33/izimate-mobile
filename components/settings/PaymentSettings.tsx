@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from 'expo-router';
 import { CURRENCIES, type CurrencyCode } from '@/lib/utils/currency';
 import { triggerLight, triggerSuccess } from '@/lib/utils/haptics';
+import { pastelDesignSystem } from '@/lib/pastel-design-system';
+const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem;
 
 interface PaymentMethod {
   id: string;
@@ -314,8 +316,6 @@ export const PaymentSettings: React.FC = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>{t('payment.title')}</Text>
-
       {/* Currency Selector */}
       <View style={styles.currencyCard}>
         <View style={styles.currencyHeader}>
@@ -608,29 +608,20 @@ export const PaymentSettings: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent', // Remove container background
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
   methodCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
+    borderRadius: borderRadius.lg, // 16px - consistent
+    padding: spacing.lg, // 16px - consistent
+    marginHorizontal: spacing.md, // 12px
+    marginBottom: spacing.md, // 12px
+    ...elevation.level2, // Subtle shadow like other cards
   },
   methodHeader: {
     flexDirection: 'row',
@@ -692,7 +683,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: pastelColors.primary[50], // Very light teal #F0FDFD
   },
   modalHeader: {
     flexDirection: 'row',
@@ -723,11 +714,11 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: 8,
+    borderRadius: 12, // More rounded corners
     padding: 12,
     fontSize: 16,
     color: '#000',
-    backgroundColor: '#fff',
+    backgroundColor: pastelColors.primary[100], // Slightly darker teal for contrast
   },
   saveButton: {
     backgroundColor: '#f25842',
@@ -745,13 +736,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   currencyCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
+    borderRadius: borderRadius.lg, // 16px - consistent
+    padding: spacing.lg, // 16px - consistent
+    marginHorizontal: spacing.md, // 12px
+    marginBottom: spacing.md, // 12px
+    ...elevation.level2, // Subtle shadow like other cards
   },
   currencyHeader: {
     flexDirection: 'row',
@@ -786,8 +776,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 12,
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
+    backgroundColor: pastelColors.primary[50], // Very light teal #F0FDFD
+    borderRadius: 12, // More rounded corners
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
@@ -818,9 +808,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12, // More rounded corners
     marginBottom: 8,
-    backgroundColor: '#f9fafb',
+    backgroundColor: pastelColors.primary[50], // Very light teal #F0FDFD
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },

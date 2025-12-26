@@ -469,14 +469,14 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontSize: 14,
-    color: surfaces.onSurface,
+    color: '#000000', // Black text
   },
   todayText: {
-    color: pastelColors.primary[500],
+    color: '#000000', // Black text
     fontWeight: '600',
   },
   selectedText: {
-    color: '#FFFFFF',
+    color: '#000000', // Black text
     fontWeight: '600',
   },
   pastText: {
@@ -556,13 +556,13 @@ const styles = StyleSheet.create({
   weekDayNumber: {
     fontSize: 16,
     fontWeight: '600',
-    color: surfaces.onSurface,
+    color: '#000000', // Black text
   },
   weekDayNumberToday: {
-    color: pastelColors.primary[500],
+    color: '#000000', // Black text
   },
   weekDayNumberSelected: {
-    color: '#FFFFFF',
+    color: '#000000', // Black text
   },
   weekDayNumberPast: {
     color: surfaces.onSurfaceVariant,

@@ -46,7 +46,7 @@ export function CollapsibleSection({
     transform: [{ rotate: `${rotation.value * 180}deg` }],
   }))
 
-  const iconBgColor = iconColor || pastelColors.primary[500]
+  const iconBgColor = iconColor || '#FF6B8A'
 
   return (
     <View style={styles.container}>
@@ -62,7 +62,7 @@ export function CollapsibleSection({
           <Ionicons
             name={icon as any}
             size={22}
-              color={iconColor || (isExpanded ? pastelColors.primary[500] : surfaces.onSurfaceVariant)}
+              color={iconColor || (isExpanded ? '#FF6B8A' : surfaces.onSurfaceVariant)}
           />
           </View>
           <Text style={[styles.title, isExpanded && styles.activeTitle]}>
@@ -123,20 +123,20 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: pastelColors.secondary[100],
+    backgroundColor: '#FF6B8A15', // Pink with 15% opacity
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: surfaces.onSurface,
+    color: pastelColors.neutral[800], // TikTok dark for titles
     flex: 1,
   },
   activeTitle: {
-    color: pastelColors.primary[500],
+    color: pastelColors.primary[600], // Light blue for active titles
     fontWeight: '700',
   },
   badge: {
-    backgroundColor: pastelColors.primary[500],
+    backgroundColor: '#FF6B8A',
     borderRadius: borderRadius.full,
     minWidth: 24,
     height: 24,

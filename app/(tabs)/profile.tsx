@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: surfaces.onSurface,
+    color: pastelColors.primary[600], // Light blue for titles
   },
   centerContainer: {
     flex: 1,
@@ -618,15 +618,16 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 50 : 12,
   },
   section: {
-    backgroundColor: surfaces.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.xl,
-    ...elevation.level2,
+    backgroundColor: pastelColors.sand[200], // Dark sand yellow #FFF4E0 - consistent color
+    borderRadius: borderRadius.lg, // 16px - consistent
+    padding: spacing.xl, // 20px - consistent
+    marginBottom: spacing.lg, // Consistent spacing between sections
+    ...elevation.level2, // Consistent elevation
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: surfaces.onSurface,
+    color: pastelColors.neutral[800], // TikTok dark for section titles
     marginBottom: spacing.lg,
     marginTop: spacing.sm,
     textAlign: 'center',
@@ -663,7 +664,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: pastelColors.secondary[50], // Light pastel pink #FFF0F5
   },
   nameRow: {
     flexDirection: 'row',
@@ -705,11 +706,11 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e5e7eb',
   },
   statCard: {
-    backgroundColor: surfaces.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    ...elevation.level2,
+    backgroundColor: pastelColors.sand[200], // Dark sand yellow #FFF4E0 - consistent
+    borderRadius: borderRadius.lg, // 16px - consistent
+    padding: spacing.lg, // 16px - consistent
+    marginBottom: spacing.md, // Consistent spacing
+    ...elevation.level2, // Consistent elevation
   },
   statRow: {
     flexDirection: 'row',
@@ -751,7 +752,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   input: {
-    backgroundColor: surfaces.surface,
+    backgroundColor: pastelColors.primary[50], // Very light teal #F0FDFD
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     fontSize: 16,
@@ -778,7 +779,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.lg,
-    backgroundColor: surfaces.surface,
+    backgroundColor: pastelColors.primary[50], // Very light teal #F0FDFD
     alignItems: 'center',
     ...elevation.level1,
   },
@@ -795,7 +796,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: pastelColors.primary[500],
+    backgroundColor: pastelColors.primary[400], // Slightly darker teal for better contrast
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     alignItems: 'center',
@@ -806,16 +807,16 @@ const styles = StyleSheet.create({
     backgroundColor: pastelColors.neutral[300],
   },
   saveButtonText: {
-    color: '#ffffff',
+    color: pastelColors.primary[900], // Very dark teal for better contrast
     fontSize: 16,
     fontWeight: '600',
   },
   settingsCard: {
-    backgroundColor: surfaces.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    ...elevation.level2,
+    backgroundColor: pastelColors.sand[200], // Dark sand yellow #FFF4E0 - consistent
+    borderRadius: borderRadius.lg, // 16px - consistent
+    padding: spacing.lg, // 16px - consistent
+    marginBottom: spacing.md, // Consistent spacing
+    ...elevation.level2, // Consistent elevation
   },
   settingsCardContent: {
     flexDirection: 'row',
@@ -836,21 +837,21 @@ const styles = StyleSheet.create({
     color: surfaces.onSurfaceVariant,
   },
   settingsContent: {
-    backgroundColor: surfaces.surface,
+    backgroundColor: pastelColors.sand[200], // Dark sand yellow #FFF4E0 - consistent
     borderLeftWidth: 2,
     borderLeftColor: pastelColors.primary[500],
-    padding: spacing.lg,
-    marginBottom: spacing.md,
+    padding: spacing.lg, // 16px - consistent
+    marginBottom: spacing.md, // Consistent spacing
     marginTop: -spacing.md,
-    borderBottomLeftRadius: borderRadius.lg,
-    borderBottomRightRadius: borderRadius.lg,
+    borderBottomLeftRadius: borderRadius.lg, // 16px - consistent
+    borderBottomRightRadius: borderRadius.lg, // 16px - consistent
   },
   affiliateCard: {
-    backgroundColor: surfaces.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.xl,
-    ...elevation.level2,
+    backgroundColor: pastelColors.sand[200], // Dark sand yellow #FFF4E0 - consistent
+    borderRadius: borderRadius.lg, // 16px - consistent
+    padding: spacing.lg, // 16px - consistent
+    marginBottom: spacing.xl, // Consistent spacing
+    ...elevation.level2, // Consistent elevation
   },
   affiliateCardContent: {
     flexDirection: 'row',
@@ -877,8 +878,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing['2xl'],
     paddingVertical: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: surfaces.outline,
+    borderTopWidth: 0, // Removed border
   },
   logoutButtonText: {
     fontSize: 16,

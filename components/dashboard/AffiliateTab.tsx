@@ -548,98 +548,104 @@ export function AffiliateTab({ user }: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Stats */}
-      <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{affiliate.total_referrals}</Text>
-          <Text style={styles.statLabel}>Total Referrals</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{affiliate.active_referrals}</Text>
-          <Text style={styles.statLabel}>Active</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{conversionRate}%</Text>
-          <Text style={styles.statLabel}>Conversion</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{formatCurrency(affiliate.total_earnings, userCurrency)}</Text>
-          <Text style={styles.statLabel}>Total Earnings</Text>
-        </View>
-      </View>
-
-      {/* Earnings Breakdown */}
-      <View style={styles.earningsBreakdownCard}>
-        <Text style={styles.sectionTitle}>Earnings Breakdown</Text>
-        <View style={styles.breakdownRow}>
-          <Text style={styles.breakdownLabel}>One-time Commissions:</Text>
-          <Text style={styles.breakdownValue}>{formatCurrency(oneTimeEarnings, userCurrency)}</Text>
-        </View>
-        <View style={styles.breakdownRow}>
-          <Text style={styles.breakdownLabel}>Recurring Commissions:</Text>
-          <Text style={styles.breakdownValue}>{formatCurrency(recurringEarnings, userCurrency)}</Text>
-        </View>
-      </View>
-
-      {/* Referral Code */}
-      <View style={styles.referralCard}>
-        <Text style={styles.referralTitle}>Your Referral Code</Text>
-        
-        {/* Code Display with Copy Button */}
-        <View style={styles.codeDisplayContainer}>
-          <View style={styles.codeBox}>
-            <Text style={styles.referralCode}>{affiliate.referral_code}</Text>
+      {/* Main Container */}
+      <View style={styles.mainContainer}>
+        {/* Stats */}
+        <View style={styles.statsGrid}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{affiliate.total_referrals}</Text>
+            <Text style={styles.statLabel}>Total Referrals</Text>
           </View>
-          <Pressable style={styles.copyCodeButton} onPress={handleCopyCode}>
-            <Ionicons name="copy-outline" size={18} color="#ffffff" />
-          </Pressable>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{affiliate.active_referrals}</Text>
+            <Text style={styles.statLabel}>Active</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{conversionRate}%</Text>
+            <Text style={styles.statLabel}>Conversion</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{formatCurrency(affiliate.total_earnings, userCurrency)}</Text>
+            <Text style={styles.statLabel}>Total Earnings</Text>
+          </View>
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.referralActions}>
-          <Pressable style={styles.copyUrlButton} onPress={handleCopyUrl}>
-            <Ionicons name="copy-outline" size={16} color="#6b7280" />
-            <Text style={styles.copyUrlText}>Copy URL</Text>
-          </Pressable>
-          <Pressable style={styles.shareButton} onPress={handleShare}>
-            <Ionicons name="share-social" size={18} color="#ffffff" />
-            <Text style={styles.shareButtonText}>Share</Text>
-          </Pressable>
+        {/* Earnings Breakdown */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Earnings Breakdown</Text>
+          <View style={styles.formInput}>
+            <Text style={styles.formLabel}>One-time Commissions:</Text>
+            <Text style={styles.formValue}>{formatCurrency(oneTimeEarnings, userCurrency)}</Text>
+          </View>
+          <View style={styles.formInput}>
+            <Text style={styles.formLabel}>Recurring Commissions:</Text>
+            <Text style={styles.formValue}>{formatCurrency(recurringEarnings, userCurrency)}</Text>
+          </View>
         </View>
-        
-        <Text style={styles.referralUrl}>
-          https://izimate.com/auth/signup?ref={affiliate.referral_code}
-        </Text>
-      </View>
 
-      {/* Tier */}
-      <View style={styles.tierCard}>
-        <Text style={styles.tierTitle}>Affiliate Program</Text>
-        <Text style={styles.tierDescription}>
-          Earn {formatCurrency(3, userCurrency)} per signup + 10% recurring commissions from all your referrals
-        </Text>
-        <Text style={styles.proUserNote}>*Available to Pro Users</Text>
-      </View>
+        {/* Referral Code */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Your Referral Code</Text>
+          
+          {/* Code Display with Copy Button */}
+          <View style={styles.codeDisplayContainer}>
+            <View style={styles.formInput}>
+              <Text style={styles.referralCode}>{affiliate.referral_code}</Text>
+            </View>
+            <Pressable style={styles.copyCodeButton} onPress={handleCopyCode}>
+              <Ionicons name="copy-outline" size={18} color="#ffffff" />
+            </Pressable>
+          </View>
 
-      {/* Payout Management */}
-      <View style={styles.payoutCard}>
-        <View style={styles.payoutHeader}>
-          <Text style={styles.sectionTitle}>Payout Settings</Text>
-          <Pressable onPress={() => setShowPayoutModal(true)}>
-            <Ionicons name="settings-outline" size={20} color="#f25842" />
-          </Pressable>
+          {/* Action Buttons */}
+          <View style={styles.referralActions}>
+            <Pressable style={styles.formButton} onPress={handleCopyUrl}>
+              <Ionicons name="copy-outline" size={16} color="#6b7280" />
+              <Text style={styles.formButtonText}>Copy URL</Text>
+            </Pressable>
+            <Pressable style={styles.formButtonPrimary} onPress={handleShare}>
+              <Ionicons name="share-social" size={18} color="#ffffff" />
+              <Text style={styles.formButtonPrimaryText}>Share</Text>
+            </Pressable>
+          </View>
+          
+          <View style={styles.formInput}>
+            <Text style={styles.referralUrl}>
+              https://izimate.com/auth/signup?ref={affiliate.referral_code}
+            </Text>
+          </View>
         </View>
-        <View style={styles.payoutInfo}>
-        <Text style={styles.payoutMethod}>
-          Method: {affiliate.payout_method ? 
-            (affiliate.payout_method === 'bank_transfer' ? 'Bank' : 
-             affiliate.payout_method === 'revolut' ? 'Revolut' : 
-             affiliate.payout_method === 'paypal' ? 'PayPal' : 
-             affiliate.payout_method.replace('_', ' ')) : 'Not set'}
-        </Text>
+
+        {/* Tier */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Affiliate Program</Text>
+          <Text style={styles.tierDescription}>
+            Earn {formatCurrency(3, userCurrency)} per signup + 10% recurring commissions from all your referrals
+          </Text>
+          <Text style={styles.proUserNote}>*Available to Pro Users</Text>
+        </View>
+
+        {/* Payout Management */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Payout Settings</Text>
+            <Pressable onPress={() => setShowPayoutModal(true)}>
+              <Ionicons name="settings-outline" size={20} color="#f25842" />
+            </Pressable>
+          </View>
+          <View style={styles.formInput}>
+            <Text style={styles.formLabel}>Method:</Text>
+            <Text style={styles.formValue}>
+              {affiliate.payout_method ? 
+                (affiliate.payout_method === 'bank_transfer' ? 'Bank' : 
+                 affiliate.payout_method === 'revolut' ? 'Revolut' : 
+                 affiliate.payout_method === 'paypal' ? 'PayPal' : 
+                 affiliate.payout_method.replace('_', ' ')) : 'Not set'}
+            </Text>
+          </View>
           {affiliate.pending_earnings > 0 && (
             <Pressable
-              style={[styles.requestPayoutButton, requestingPayout && styles.requestPayoutButtonDisabled]}
+              style={[styles.formButtonPrimary, requestingPayout && styles.formButtonDisabled]}
               onPress={handleRequestPayout}
               disabled={requestingPayout}
             >
@@ -647,30 +653,29 @@ export function AffiliateTab({ user }: Props) {
                 <ActivityIndicator size="small" color="#ffffff" />
               ) : (
                 <>
-                  <Text style={styles.requestPayoutText}>Request Payout</Text>
-                  <Text style={styles.requestPayoutAmount}>{formatCurrency(affiliate.pending_earnings, userCurrency)}</Text>
+                  <Text style={styles.formButtonPrimaryText}>Request Payout</Text>
+                  <Text style={styles.formButtonPrimaryText}>{formatCurrency(affiliate.pending_earnings, userCurrency)}</Text>
                 </>
               )}
             </Pressable>
           )}
         </View>
-      </View>
 
-      {/* Earnings History Toggle */}
-      <Pressable style={styles.historyToggle} onPress={() => setShowEarningsHistory(!showEarningsHistory)}>
-        <Text style={styles.historyToggleText}>
-          {showEarningsHistory ? 'Hide' : 'Show'} Earnings History
-        </Text>
-        <Ionicons 
-          name={showEarningsHistory ? "chevron-up" : "chevron-down"} 
-          size={20} 
-          color="#6b7280" 
-        />
-      </Pressable>
+        {/* Earnings History Toggle */}
+        <Pressable style={styles.formInput} onPress={() => setShowEarningsHistory(!showEarningsHistory)}>
+          <Text style={styles.formLabel}>
+            {showEarningsHistory ? 'Hide' : 'Show'} Earnings History
+          </Text>
+          <Ionicons 
+            name={showEarningsHistory ? "chevron-up" : "chevron-down"} 
+            size={20} 
+            color="#6b7280" 
+          />
+        </Pressable>
 
-      {/* Earnings History */}
-      {showEarningsHistory && (
-        <View style={styles.historySection}>
+        {/* Earnings History */}
+        {showEarningsHistory && (
+          <View style={styles.section}>
           <Text style={styles.sectionTitle}>Earnings History</Text>
           {referrals.length === 0 ? (
             <Text style={styles.emptyText}>No earnings yet</Text>
@@ -715,53 +720,52 @@ export function AffiliateTab({ user }: Props) {
         </View>
       )}
 
-      {/* Recent Referrals */}
-      {referrals.length > 0 && (
-        <View style={styles.referralsSection}>
-          <Text style={styles.sectionTitle}>All Referrals ({referrals.length})</Text>
-          {referrals.map((referral) => (
-            <View key={referral.id} style={styles.referralItem}>
-              <View style={styles.referralItemHeader}>
-                <View>
-                  <Text style={styles.referralItemCode}>{referral.referral_code}</Text>
-                  <Text style={styles.referralItemDate}>
-                    {new Date(referral.created_at).toLocaleDateString()}
-                  </Text>
+        {/* Recent Referrals */}
+        {referrals.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>All Referrals ({referrals.length})</Text>
+            {referrals.map((referral) => (
+              <View key={referral.id} style={styles.formInput}>
+                <View style={styles.formRow}>
+                  <View>
+                    <Text style={styles.formLabel}>{referral.referral_code}</Text>
+                    <Text style={styles.formSubtext}>
+                      {new Date(referral.created_at).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <View style={[
+                    styles.statusBadge,
+                    referral.status === 'converted' && styles.statusBadgeSuccess,
+                    referral.status === 'active' && styles.statusBadgeActive,
+                  ]}>
+                    <Text style={styles.statusBadgeText}>
+                      {referral.status.charAt(0).toUpperCase() + referral.status.slice(1)}
+                    </Text>
+                  </View>
                 </View>
-                <View style={[
-                  styles.statusBadge,
-                  referral.status === 'converted' && styles.statusBadgeSuccess,
-                  referral.status === 'active' && styles.statusBadgeActive,
-                ]}>
-                  <Text style={styles.statusBadgeText}>
-                    {referral.status.charAt(0).toUpperCase() + referral.status.slice(1)}
+                {referral.plan_type && (
+                  <Text style={styles.formSubtext}>
+                    {referral.plan_type.charAt(0).toUpperCase() + referral.plan_type.slice(1)} Plan
                   </Text>
-                </View>
-              </View>
-              {referral.plan_type && (
-                <Text style={styles.referralItemPlan}>
-                  {referral.plan_type.charAt(0).toUpperCase() + referral.plan_type.slice(1)} Plan
-                </Text>
-              )}
-              <View style={styles.referralEarningsBreakdown}>
-                <Text style={styles.referralItemEarnings}>
+                )}
+                <Text style={styles.formValue}>
                   Total: {formatCurrency(referral.total_earned, userCurrency)}
                 </Text>
                 {referral.one_time_commission_amount > 0 && (
-                  <Text style={styles.referralItemDetail}>
+                  <Text style={styles.formSubtext}>
                     One-time: {formatCurrency(referral.one_time_commission_amount, userCurrency)}
                   </Text>
                 )}
                 {referral.recurring_commission_total > 0 && (
-                  <Text style={styles.referralItemDetail}>
+                  <Text style={styles.formSubtext}>
                     Recurring: {formatCurrency(referral.recurring_commission_total, userCurrency)} ({referral.recurring_commission_months} months)
                   </Text>
                 )}
               </View>
-            </View>
-          ))}
-        </View>
-      )}
+            ))}
+          </View>
+        )}
+      </View>
 
       {/* Payout Settings Modal */}
       <Modal
@@ -878,7 +882,7 @@ export function AffiliateTab({ user }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: surfaces.background,
+    backgroundColor: 'transparent', // Remove white background
   },
   centerContainer: {
     flex: 1,
@@ -886,10 +890,92 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   contentContainer: {
-    padding: spacing.xl,
+    padding: spacing.md, // Small padding
+  },
+  mainContainer: {
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
+    borderRadius: borderRadius.lg, // 16px
+    padding: spacing.md, // Small padding (12px)
+    ...elevation.level2,
+  },
+  section: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  formInput: {
+    backgroundColor: pastelColors.primary[50], // Very light teal for form inputs
+    borderRadius: borderRadius.md, // 12px - form-sized
+    padding: spacing.md, // 12px
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: surfaces.outline,
+  },
+  formRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: surfaces.onSurface,
+    marginBottom: spacing.xs,
+  },
+  formValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: surfaces.onSurface,
+  },
+  formSubtext: {
+    fontSize: 12,
+    color: surfaces.onSurfaceVariant,
+    marginTop: spacing.xs,
+  },
+  formButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: pastelColors.primary[50], // Very light teal
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md, // Form-sized
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: surfaces.outline,
+  },
+  formButtonText: {
+    color: surfaces.onSurface,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  formButtonPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: pastelColors.primary[400],
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md, // Form-sized
+    gap: spacing.sm,
+    ...elevation.level1,
+  },
+  formButtonPrimaryText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  formButtonDisabled: {
+    backgroundColor: pastelColors.neutral[300],
   },
   welcomeCard: {
-    backgroundColor: surfaces.surface,
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     borderRadius: borderRadius.lg,
     padding: spacing['2xl'],
     alignItems: 'center',
@@ -910,7 +996,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing['2xl'],
   },
   registerButton: {
-    backgroundColor: pastelColors.primary[500],
+    backgroundColor: pastelColors.primary[400], // Slightly darker teal for better contrast
     borderRadius: borderRadius.md,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing['2xl'],
@@ -924,24 +1010,25 @@ const styles = StyleSheet.create({
     backgroundColor: pastelColors.neutral[300],
   },
   registerButtonText: {
-    color: '#ffffff',
+    color: pastelColors.primary[900], // Very dark teal for better contrast
     fontSize: 16,
     fontWeight: '600',
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 20,
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
   },
-  statCard: {
+  statItem: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: surfaces.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
+    backgroundColor: pastelColors.primary[50], // Very light teal - form-sized
+    borderRadius: borderRadius.md, // Form-sized (12px)
+    padding: spacing.md, // Small padding
     alignItems: 'center',
-    ...elevation.level2,
+    borderWidth: 1,
+    borderColor: surfaces.outline,
   },
   statValue: {
     fontSize: 24,
@@ -952,14 +1039,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: surfaces.onSurfaceVariant,
     marginTop: spacing.xs,
-  },
-  referralCard: {
-    backgroundColor: surfaces.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.xl,
-    marginBottom: spacing.xl,
-    alignItems: 'center',
-    ...elevation.level2,
   },
   referralTitle: {
     fontSize: 18,
@@ -985,7 +1064,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: pastelColors.primary[500],
+    backgroundColor: pastelColors.primary[400], // Slightly darker teal for better contrast
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.sm,
@@ -993,7 +1072,7 @@ const styles = StyleSheet.create({
     ...elevation.level1,
   },
   shareButtonText: {
-    color: '#ffffff',
+    color: pastelColors.primary[900], // Very dark teal for better contrast
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1001,13 +1080,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
     textAlign: 'center',
-  },
-  tierCard: {
-    backgroundColor: surfaces.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.xl,
-    marginBottom: spacing.xl,
-    ...elevation.level2,
   },
   tierTitle: {
     fontSize: 18,
@@ -1030,17 +1102,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: surfaces.onSurface,
-    marginBottom: spacing.lg,
-  },
-  referralItem: {
-    backgroundColor: surfaces.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
     marginBottom: spacing.md,
-    ...elevation.level2,
   },
   referralItemHeader: {
     flexDirection: 'row',
@@ -1087,14 +1152,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 8,
   },
-  codeBox: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
   copyCodeButton: {
     backgroundColor: pastelColors.primary[500],
     borderRadius: borderRadius.sm,
@@ -1116,28 +1173,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     marginTop: 8,
   },
-  copyUrlButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f3f4f6',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    gap: 6,
-  },
-  copyUrlText: {
-    color: '#6b7280',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  earningsBreakdownCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-  },
   breakdownRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1152,12 +1187,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1a1a1a',
-  },
-  payoutCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
   },
   payoutHeader: {
     flexDirection: 'row',
@@ -1177,7 +1206,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: pastelColors.primary[500],
+    backgroundColor: pastelColors.primary[400], // Slightly darker teal for better contrast
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
     borderRadius: borderRadius.sm,
@@ -1187,23 +1216,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#d1d5db',
   },
   requestPayoutText: {
-    color: '#ffffff',
+    color: pastelColors.primary[900], // Very dark teal for better contrast
     fontSize: 16,
     fontWeight: '600',
   },
   requestPayoutAmount: {
-    color: '#ffffff',
+    color: pastelColors.primary[900], // Very dark teal for better contrast
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  historyToggle: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
   },
   historyToggleText: {
     fontSize: 16,
@@ -1362,8 +1382,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalInput: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
+    backgroundColor: pastelColors.primary[50], // Very light teal #F0FDFD
+    borderRadius: 12, // More rounded corners
     padding: 12,
     fontSize: 16,
     color: '#1a1a1a',

@@ -230,7 +230,7 @@ export default function DashboardScreen() {
               onPress={() => router.push('/(tabs)/profile')}
               style={styles.settingsButton}
             >
-              <Ionicons name="settings-outline" size={24} color={surfaces.onSurface} />
+              <Ionicons name="settings-outline" size={24} color="#FF6B8A" />
           </Pressable>
         </View>
       </View>
@@ -400,7 +400,7 @@ function OverviewTab({ user, listings, matches, stats, router }: any) {
       <View style={styles.statsGrid}>
         <Pressable onPress={handleNavigateToListings} style={styles.statCardWrapper}>
           <View style={[styles.statCard, styles.statCardCyan]}>
-            <Ionicons name="briefcase-outline" size={28} color={pastelColors.secondary[500]} style={styles.statIcon} />
+            <Ionicons name="briefcase" size={28} color="#9333EA" style={styles.statIcon} />
           <Text style={styles.statValue}>{activeListings}/{maxListings}</Text>
             <Text style={styles.statLabelLink}>{t('dashboard.activeListings')}</Text>
           </View>
@@ -408,7 +408,7 @@ function OverviewTab({ user, listings, matches, stats, router }: any) {
         
         <Pressable onPress={handleNavigateToRating} style={styles.statCardWrapper}>
           <View style={[styles.statCard, styles.statCardYellow]}>
-            <Ionicons name="star" size={28} color={pastelColors.warning[500]} style={styles.statIcon} />
+            <Ionicons name="star" size={28} color="#FBBF24" style={styles.statIcon} />
           <View style={styles.ratingContainer}>
             <Text style={styles.statValue}>{positivePercentage}%</Text>
           </View>
@@ -418,7 +418,7 @@ function OverviewTab({ user, listings, matches, stats, router }: any) {
         
         <Pressable onPress={handleNavigateToMessages} style={styles.statCardWrapper}>
           <View style={[styles.statCard, styles.statCardPink]}>
-            <Ionicons name="chatbubbles-outline" size={28} color={pastelColors.primary[500]} style={styles.statIcon} />
+            <Ionicons name="chatbubbles" size={28} color="#1E40AF" style={styles.statIcon} />
           <Text style={styles.statValue}>{stats.unreadMessages}</Text>
             <Text style={styles.statLabelLink}>{t('dashboard.messages')}</Text>
           </View>
@@ -426,7 +426,7 @@ function OverviewTab({ user, listings, matches, stats, router }: any) {
         
         <Pressable onPress={handleNavigateToLiked} style={styles.statCardWrapper}>
           <View style={[styles.statCard, styles.statCardGreen]}>
-            <Ionicons name="heart-outline" size={28} color={pastelColors.accent[500]} style={styles.statIcon} />
+            <Ionicons name="heart" size={28} color="#fe2858" style={styles.statIcon} />
           <Text style={styles.statValue}>{stats.pendingLikes}</Text>
             <Text style={styles.statLabelLink}>{t('dashboard.liked')}</Text>
           </View>
@@ -483,7 +483,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: surfaces.onSurface,
+    color: pastelColors.primary[600], // Light blue for titles
     marginTop: spacing.xs,
   },
   settingsButton: {
@@ -648,8 +648,7 @@ const styles = StyleSheet.create({
     backgroundColor: surfaces.surface,
     borderRadius: borderRadius.md,
     padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: pastelColors.error[500],
+    borderWidth: 0, // Removed border
     gap: spacing.sm,
     alignSelf: 'center',
     width: '50%',

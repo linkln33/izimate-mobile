@@ -11,8 +11,8 @@ export const pastelPaperTheme = {
   colors: {
     ...MD3LightTheme.colors,
     
-    // Primary colors
-    primary: pastelColors.primary[500],
+    // Primary colors - Light Blue (TikTok Cyan) for buttons
+    primary: pastelColors.primary[500], // #6BE8E3 - Light blue pastel
     onPrimary: '#FFFFFF',
     primaryContainer: pastelColors.primary[100],
     onPrimaryContainer: pastelColors.primary[900],

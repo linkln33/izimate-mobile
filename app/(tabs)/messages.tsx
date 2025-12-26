@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: surfaces.onSurface,
+    color: pastelColors.neutral[800], // TikTok dark for titles
     marginTop: spacing.lg,
   },
   emptyText: {
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: surfaces.onSurface,
+    color: pastelColors.primary[600], // Light blue for titles
   },
   listContent: {
     padding: spacing.lg,

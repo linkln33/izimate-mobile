@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.sm,
-    backgroundColor: surfaces.surface,
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     gap: spacing.xs,
     ...elevation.level1,
   },

@@ -76,7 +76,7 @@ export function BottomTabBar({ tabs, activeTab, onTabChange }: BottomTabBarProps
                   <Ionicons
                     name={isActive ? (tab.icon.replace('-outline', '') as any) : (tab.icon as any)}
                     size={24}
-                    color={isActive ? '#f25842' : '#6b7280'}
+                    color={isActive ? '#FF6B8A' : '#6b7280'}
                   />
                   {tab.badge !== undefined && tab.badge > 0 && (
                     <View style={[styles.badge, isActive && styles.activeBadge]}>

@@ -263,10 +263,10 @@ export function BillingTab({ user }: Props) {
           </View>
           {currentPlan !== 'business' && (
             <Pressable
-              style={styles.upgradeButton}
+              style={styles.businessUpgradeButton}
               onPress={() => handleUpgrade('business')}
             >
-              <Text style={styles.upgradeButtonText}>Upgrade to Business</Text>
+              <Text style={styles.businessUpgradeButtonText}>Upgrade to Business</Text>
             </Pressable>
           )}
           {currentPlan === 'business' && (
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   currentPlan: {
-    backgroundColor: surfaces.surface,
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     padding: spacing.xl,
     borderRadius: borderRadius.lg,
     marginBottom: spacing.md,
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   planCard: {
-    backgroundColor: surfaces.surface,
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     borderRadius: borderRadius.lg,
     padding: spacing.xl,
     ...elevation.level2,
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     ...elevation.level3,
   },
   proPlanCard: {
-    // No special styling needed
+    backgroundColor: pastelColors.primary[100], // Light cyan background for Pro
   },
   proPlanCardActive: {
     // No special styling needed
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     color: surfaces.onSurface,
   },
   businessPlanCard: {
-    // No special styling needed
+    backgroundColor: pastelColors.secondary[100], // Light pink background for Business
   },
   businessPlanCardActive: {
     ...elevation.level3,
@@ -378,14 +378,26 @@ const styles = StyleSheet.create({
     color: surfaces.onSurface,
   },
   upgradeButton: {
-    backgroundColor: pastelColors.primary[500],
+    backgroundColor: pastelColors.primary[400], // Slightly darker teal #8FEFEB for better contrast
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     alignItems: 'center',
     ...elevation.level1,
   },
   upgradeButtonText: {
-    color: '#FFFFFF',
+    color: pastelColors.primary[900], // Very dark teal #156660 for better contrast
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  businessUpgradeButton: {
+    backgroundColor: pastelColors.secondary[500], // Pink #FF6B8A
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    alignItems: 'center',
+    ...elevation.level1,
+  },
+  businessUpgradeButtonText: {
+    color: pastelColors.secondary[900], // Very dark pink #B31E2E for better contrast
     fontSize: 16,
     fontWeight: '600',
   },

@@ -88,7 +88,7 @@ export function TabBar({ tabs, activeTab, onTabChange }: TabBarProps) {
                   <Ionicons
                     name={tab.icon as any}
                     size={22}
-                    color={isActive ? '#f25842' : '#6b7280'}
+                    color={isActive ? '#FF6B8A' : '#6b7280'}
                   />
                   {tab.badge !== undefined && tab.badge > 0 && (
                     <View style={[styles.badge, isActive && styles.activeBadge]}>

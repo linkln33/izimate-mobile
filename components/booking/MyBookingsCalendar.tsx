@@ -1386,17 +1386,18 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontSize: 16,
-    color: surfaces.onSurface,
+    color: '#000000', // Black text
   },
   dayTextInactive: {
-    color: surfaces.onSurfaceVariant,
+    color: '#000000', // Black text
+    opacity: 0.4,
   },
   dayTextToday: {
-    color: pastelColors.warning[700],
+    color: '#000000', // Black text
     fontWeight: '600',
   },
   dayTextSelected: {
-    color: '#FFFFFF',
+    color: '#000000', // Black text
     fontWeight: '600',
   },
   bookingIndicator: {
@@ -1506,7 +1507,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.lg,
     paddingBottom: spacing.xl,
-    backgroundColor: surfaces.surface, // Sand color
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     borderRadius: borderRadius.lg,
     marginHorizontal: spacing.xl,
     marginBottom: spacing.lg,
@@ -1612,7 +1613,7 @@ const styles = StyleSheet.create({
   providerSquareBox: {
     flex: 1,
     aspectRatio: 1,
-    backgroundColor: surfaces.surface, // Sand color
+    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
     borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1696,11 +1697,11 @@ const styles = StyleSheet.create({
   weekDayNumber: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
+    color: '#000000', // Black text
     marginTop: 2,
   },
   weekDayNumberToday: {
-    color: '#92400e',
+    color: '#000000', // Black text
   },
   weekDayBookings: {
     flex: 1,

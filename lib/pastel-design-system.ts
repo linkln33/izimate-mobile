@@ -4,52 +4,66 @@
  * Light, airy, and accessible pastel color palette
  */
 
-// Pastel Color Palette - Optimized for contrast and accessibility
+// Pastel Color Palette - TikTok-inspired but lighter and softer
 // All colors meet WCAG AA standards (4.5:1 contrast ratio for text)
 export const pastelColors = {
-  // Primary - Soft Coral (warm, inviting)
+  // Primary - TikTok Cyan (inspired by #2af0ea, lighter pastel) - Light Blue
   primary: {
-    50: '#FFF5F3',   // Lightest - backgrounds
-    100: '#FFE8E4',  // Very light - subtle backgrounds
-    200: '#FFD4CC',  // Light - inactive states
-    300: '#FFB4A8',  // Lighter - hover states
-    400: '#FF8A7A',  // Light - secondary actions
-    500: '#F25842',  // Base - primary actions
-    600: '#E04A35',  // Darker - pressed states
-    700: '#C93D28',  // Dark - emphasis
-    800: '#A83220',  // Darker - strong emphasis
-    900: '#8A2A1A',  // Darkest - maximum contrast
+    50: '#F0FDFD',   // Lightest - backgrounds
+    100: '#E0FBFB',  // Very light - subtle backgrounds
+    200: '#C4F7F5',  // Light - inactive states
+    300: '#B3F5F3',  // Lighter - hover states
+    400: '#8FEFEB',  // Light - secondary actions
+    500: '#6BE8E3',  // Base - primary actions (pastel version of #2af0ea)
+    600: '#4DD4CE',  // Darker - pressed states
+    700: '#2AB8B0',  // Dark - emphasis
+    800: '#1F8F88',  // Darker - strong emphasis
+    900: '#156660',  // Darkest - maximum contrast
   },
   
-  // Secondary - Soft Sky Blue (trust, calm)
+  // Secondary - TikTok Pink (inspired by #fe2858, lighter pastel)
   secondary: {
-    50: '#F0F9FF',   // Lightest
-    100: '#E0F2FE',  // Very light
-    200: '#BAE6FD',  // Light
-    300: '#7DD3FC',  // Lighter
-    400: '#38BDF8',  // Light
-    500: '#0EA5E9',  // Base
-    600: '#0284C7',  // Darker
-    700: '#0369A1',  // Dark
-    800: '#075985',  // Darker
-    900: '#0C4A6E',  // Darkest
+    50: '#FFF0F5',   // Lightest
+    100: '#FFE0EA',  // Very light
+    200: '#FFC4D4',  // Light
+    300: '#FFB3C6',  // Lighter
+    400: '#FF8FA8',  // Light
+    500: '#FF6B8A',  // Base (pastel version of #fe2858)
+    600: '#FF4D6D',  // Darker
+    700: '#E63950',  // Dark
+    800: '#CC2A3F',  // Darker
+    900: '#B31E2E',  // Darkest
   },
   
-  // Accent - Soft Mint (fresh, positive)
+  // Accent - TikTok Teal (inspired by #397684, lighter pastel)
   accent: {
-    50: '#F0FDF4',   // Lightest
-    100: '#DCFCE7',  // Very light
-    200: '#BBF7D0',  // Light
-    300: '#86EFAC',  // Lighter
-    400: '#4ADE80',  // Light
-    500: '#22C55E',  // Base
-    600: '#16A34A',  // Darker
-    700: '#15803D',  // Dark
-    800: '#166534',  // Darker
-    900: '#14532D',  // Darkest
+    50: '#F0F7F9',   // Lightest
+    100: '#E0EFF3',  // Very light
+    200: '#B8DCE8',  // Light
+    300: '#A8D4E0',  // Lighter
+    400: '#7FC4D6',  // Light
+    500: '#5BA8C0',  // Base (pastel version of #397684)
+    600: '#4A8FA5',  // Darker
+    700: '#397684',  // Dark (original TikTok color)
+    800: '#2D5C68',  // Darker
+    900: '#1F3F4A',  // Darkest
   },
   
-  // Neutral Grays - Soft and warm
+  // Tertiary - TikTok Mauve (inspired by #de8c9d, lighter pastel)
+  tertiary: {
+    50: '#FDF5F7',   // Lightest
+    100: '#FBEAF0',  // Very light
+    200: '#F8D8E0',  // Light
+    300: '#F5D0D8',  // Lighter
+    400: '#F0B8C6',  // Light
+    500: '#E89FB0',  // Base (pastel version of #de8c9d)
+    600: '#DE8C9D',  // Darker (original TikTok color)
+    700: '#C77588',  // Dark
+    800: '#A85E6F',  // Darker
+    900: '#8A4A58',  // Darkest
+  },
+  
+  // Neutral Grays - TikTok-inspired dark (inspired by #040404, slightly lighter)
   neutral: {
     50: '#FAFAFA',   // Lightest - pure backgrounds
     100: '#F5F5F5',  // Very light - subtle backgrounds
@@ -59,8 +73,8 @@ export const pastelColors = {
     500: '#737373',  // Base - secondary text
     600: '#525252',  // Darker - body text
     700: '#404040',  // Dark - headings
-    800: '#262626',  // Darker - strong text
-    900: '#171717',  // Darkest - maximum contrast
+    800: '#2A2A2A',  // Darker - strong text (lighter than #040404)
+    900: '#1A1A1A',  // Darkest - maximum contrast (lighter than #040404)
   },
   
   // Sand/Beige - Warm, light backgrounds for cards
@@ -73,37 +87,37 @@ export const pastelColors = {
     500: '#F5D5A0',  // Base sand
   },
   
-  // Semantic Colors
+  // Semantic Colors - TikTok-inspired
   success: {
-    50: '#F0FDF4',
-    100: '#DCFCE7',
-    500: '#22C55E',
-    600: '#16A34A',
-    700: '#15803D',
+    50: '#F0FDFD',
+    100: '#E0FBFB',
+    500: '#6BE8E3', // Light blue for success (primary)
+    600: '#4DD4CE',
+    700: '#2AB8B0',
   },
   
   warning: {
-    50: '#FFFBEB',
-    100: '#FEF3C7',
-    500: '#F59E0B',
-    600: '#D97706',
-    700: '#B45309',
+    50: '#FDF5F7',
+    100: '#FBEAF0',
+    500: '#E89FB0', // TikTok mauve for warnings
+    600: '#DE8C9D',
+    700: '#C77588',
   },
   
   error: {
-    50: '#FEF2F2',
-    100: '#FEE2E2',
-    500: '#EF4444',
-    600: '#DC2626',
-    700: '#B91C1C',
+    50: '#FFF0F5',
+    100: '#FFE0EA',
+    500: '#FF4D6D', // TikTok pink for errors (secondary)
+    600: '#E63950',
+    700: '#CC2A3F',
   },
   
   info: {
-    50: '#EFF6FF',
-    100: '#DBEAFE',
-    500: '#3B82F6',
-    600: '#2563EB',
-    700: '#1D4ED8',
+    50: '#F0F7F9',
+    100: '#E0EFF3',
+    500: '#5BA8C0', // TikTok teal for info
+    600: '#4A8FA5',
+    700: '#397684',
   },
 } as const
 
@@ -112,12 +126,12 @@ export const surfaces = {
   // Main background - very light pastel
   background: pastelColors.neutral[50],
   
-  // Surface containers - sand-colored cards
-  surface: pastelColors.sand[50], // Light sand for cards
-  surfaceVariant: pastelColors.sand[100], // Slightly darker sand
-  surfaceContainer: pastelColors.neutral[50],
-  surfaceContainerLow: pastelColors.neutral[50],
-  surfaceContainerHigh: pastelColors.sand[50],
+  // Surface containers - colorful pastel cards (more saturated for visibility)
+  surface: pastelColors.primary[100], // Light cyan for cards - more colorful
+  surfaceVariant: pastelColors.secondary[100], // Light pink variant - more colorful
+  surfaceContainer: pastelColors.accent[100], // Light teal - more colorful
+  surfaceContainerLow: pastelColors.primary[100], // Light cyan
+  surfaceContainerHigh: pastelColors.secondary[100], // Light pink
   surfaceContainerHighest: '#FFFFFF',
   
   // Text colors with proper contrast
@@ -267,7 +281,7 @@ export const typography = {
 export const componentStyles = {
   // Card styles
   card: {
-    backgroundColor: pastelColors.sand[50], // Light sand background
+    backgroundColor: pastelColors.primary[100], // Light cyan background - more colorful
     borderRadius: borderRadius.lg,
     ...elevation.level2,
     padding: spacing.lg,
@@ -275,9 +289,24 @@ export const componentStyles = {
   
   // Card with elevation
   cardElevated: {
-    backgroundColor: pastelColors.sand[50], // Light sand background
+    backgroundColor: pastelColors.primary[100], // Light cyan background - more colorful
     borderRadius: borderRadius.lg,
     ...elevation.level3,
+    padding: spacing.lg,
+  },
+  
+  // Alternative card colors for variety
+  cardSecondary: {
+    backgroundColor: pastelColors.secondary[100], // Light pink - more colorful
+    borderRadius: borderRadius.lg,
+    ...elevation.level2,
+    padding: spacing.lg,
+  },
+  
+  cardAccent: {
+    backgroundColor: pastelColors.accent[100], // Light teal - more colorful
+    borderRadius: borderRadius.lg,
+    ...elevation.level2,
     padding: spacing.lg,
   },
   

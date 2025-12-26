@@ -449,20 +449,22 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontSize: 16,
-    color: '#1f2937',
+    color: '#000000', // Black text
   },
   dayTextInactive: {
-    color: '#9ca3af',
+    color: '#000000', // Black text
+    opacity: 0.3,
   },
   dayTextPast: {
-    color: '#d1d5db',
+    color: '#000000', // Black text
+    opacity: 0.4,
   },
   dayTextToday: {
-    color: '#92400e',
+    color: '#000000', // Black text
     fontWeight: '600',
   },
   dayTextSelected: {
-    color: '#ffffff',
+    color: '#000000', // Black text
     fontWeight: '600',
   },
   selectedIndicator: {
