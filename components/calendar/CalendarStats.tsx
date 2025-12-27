@@ -6,6 +6,7 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 import type { CalendarStatsProps, CalendarEvent, CalendarViewMode, ViewType } from './types'
 
 export const CalendarStats: React.FC<CalendarStatsProps> = ({
@@ -14,6 +15,7 @@ export const CalendarStats: React.FC<CalendarStatsProps> = ({
   selectedDate,
   viewType = 'both',
 }) => {
+  const { t } = useTranslation()
   const getStatusColor = (status: string): string => {
     switch (status) {
       case 'confirmed':
@@ -43,36 +45,36 @@ export const CalendarStats: React.FC<CalendarStatsProps> = ({
 
     return (
       <View style={styles.monthlySummary}>
-        <Text style={styles.summaryTitle}>This Month</Text>
+        <Text style={styles.summaryTitle}>{t('bookings.thisMonth')}</Text>
         <View style={styles.statsGrid}>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{totalBookings}</Text>
-            <Text style={styles.statLabel}>Total Bookings</Text>
+            <Text style={styles.statLabel}>{t('bookings.totalBookings')}</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={[styles.statNumber, { color: '#10b981' }]}>
               {confirmed}
             </Text>
-            <Text style={styles.statLabel}>Confirmed</Text>
+            <Text style={styles.statLabel}>{t('bookings.confirmed')}</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={[styles.statNumber, { color: '#f59e0b' }]}>
               {pending}
             </Text>
-            <Text style={styles.statLabel}>Pending</Text>
+            <Text style={styles.statLabel}>{t('bookings.pending')}</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={[styles.statNumber, { color: '#6366f1' }]}>
               {completed}
             </Text>
-            <Text style={styles.statLabel}>Completed</Text>
+            <Text style={styles.statLabel}>{t('bookings.completed')}</Text>
           </View>
         </View>
         {viewType === 'provider' && totalRevenue > 0 && (
           <View style={styles.revenueRow}>
             <Ionicons name="cash" size={20} color="#10b981" />
             <Text style={styles.revenueText}>
-              Total Revenue: £{totalRevenue.toFixed(2)}
+              {t('bookings.totalRevenue')}: £{totalRevenue.toFixed(2)}
             </Text>
           </View>
         )}

@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "start": "npx expo start",
-    "android": "npx expo start --android",
-    "ios": "npx expo start --ios",
+    "start": "RCT_METRO_PORT=8083 npx expo start --port 8083",
+    "start:tunnel": "RCT_METRO_PORT=8083 npx expo start --port 8083 --tunnel",
+    "start:lan": "RCT_METRO_PORT=8083 npx expo start --port 8083 --lan",
+    "android": "RCT_METRO_PORT=8083 npx expo start --android --port 8083",
+    "ios": "RCT_METRO_PORT=8083 npx expo start --ios --port 8083",
     "web": "RCT_METRO_PORT=8083 npx expo start --web --port 8083",
     "figma:export-tokens": "bun run scripts/export-figma-tokens.ts",
     "figma:generate-mappings": "bun run scripts/generate-figma-from-components.ts"

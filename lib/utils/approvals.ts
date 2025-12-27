@@ -168,13 +168,9 @@ export async function approveLike(
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Update swipe to approved
-    await supabase
-      .from('swipes')
-      .update({ approved: true, approved_at: new Date().toISOString() })
-      .eq('id', swipeId)
-
-    // Create match
+    // Note: The swipes table doesn't have an 'approved' column
+    // Approval status is determined by the existence of a match
+    // Create match (this is the source of truth for approval)
     const { data: match, error: matchError } = await supabase
       .from('matches')
       .insert({
@@ -231,11 +227,10 @@ export async function rejectLike(
       return { success: false, error: 'Unauthorized' }
     }
 
-    await supabase
-      .from('swipes')
-      .update({ approved: false, approved_at: new Date().toISOString() })
-      .eq('id', swipeId)
-
+    // Note: The swipes table doesn't have an 'approved' column
+    // Rejection is handled by not creating a match
+    // The swipe record remains but no match is created
+    
     return { success: true }
   } catch (error) {
     return {

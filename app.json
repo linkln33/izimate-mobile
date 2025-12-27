@@ -91,9 +91,6 @@
       ]
     ],
     "extra": {
-      "eas": {
-        "projectId": ""
-      },
       "supabaseUrl": "https://cbprxgoelrduljhyfnhi.supabase.co",
       "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNicHJ4Z29lbHJkdWxqaHlmbmhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NTY1NjcsImV4cCI6MjA4MTQzMjU2N30.L21zJv_VbUEx8xHLOUADJuw_3nk__SjoHDLwPOYF9vA"
     }

@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { UnifiedCalendar } from '../calendar';
 import { QuickCustomerRegistration } from './QuickCustomerRegistration';
 import { BusinessAnalytics } from './BusinessAnalytics';
@@ -22,6 +23,7 @@ type BusinessView = 'calendar' | 'register' | 'analytics' | 'customers';
 export const BusinessBookingsTab: React.FC<BusinessBookingsTabProps> = ({
   userId,
 }) => {
+  const { t } = useTranslation();
   const [activeView, setActiveView] = useState<BusinessView>('calendar');
 
   const renderContent = () => {
@@ -83,7 +85,7 @@ export const BusinessBookingsTab: React.FC<BusinessBookingsTabProps> = ({
               activeView === 'calendar' && styles.activeBusinessTabText,
             ]}
           >
-            Calendar
+            {t('business.calendar')}
           </Text>
         </Pressable>
 
@@ -102,7 +104,7 @@ export const BusinessBookingsTab: React.FC<BusinessBookingsTabProps> = ({
               activeView === 'register' && styles.activeBusinessTabText,
             ]}
           >
-            Quick Register
+            {t('business.quickRegister')}
           </Text>
         </Pressable>
 
@@ -121,7 +123,7 @@ export const BusinessBookingsTab: React.FC<BusinessBookingsTabProps> = ({
               activeView === 'analytics' && styles.activeBusinessTabText,
             ]}
           >
-            Analytics
+            {t('business.analytics')}
           </Text>
         </Pressable>
 
@@ -140,7 +142,7 @@ export const BusinessBookingsTab: React.FC<BusinessBookingsTabProps> = ({
               activeView === 'customers' && styles.activeBusinessTabText,
             ]}
           >
-            Customers
+            {t('business.customers')}
           </Text>
         </Pressable>
       </ScrollView>

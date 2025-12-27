@@ -44,19 +44,13 @@ export default function SignupScreen() {
       return
     }
 
-    // If signup successful and we have a referral code, save it to user profile
+    // If signup successful and we have a referral code, track it
     if (data.user && referralCode) {
       try {
-        // Update user profile with referral code
-        const { error: updateError } = await supabase
-          .from('users')
-          .update({ referred_by_code: referralCode })
-          .eq('id', data.user.id)
-
-        if (updateError) {
-          console.error('Error saving referral code:', updateError)
-          // Don't fail signup if referral code save fails
-        }
+        // Track referral using industry-standard approach
+        const { trackReferralOnSignup } = await import('@/lib/utils/affiliate-tracking')
+        await trackReferralOnSignup(data.user.id, referralCode, supabase)
+        // Note: Errors are handled inside trackReferralOnSignup, won't block signup
       } catch (err) {
         console.error('Error processing referral code:', err)
         // Don't fail signup if referral code processing fails

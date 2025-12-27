@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, Platform } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, Platform, Alert, useWindowDimensions } from 'react-native'
 import { SkeletonLoader } from '@/components/common/SkeletonLoader'
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { BlurView } from 'expo-blur'
 import { supabase } from '@/lib/supabase'
 import { getUnreadNotificationCount } from '@/lib/utils/notifications'
 import { BillingTab } from '@/components/dashboard/BillingTab'
@@ -47,9 +48,46 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
+  // Track if we've already processed the Stripe success
+  const stripeProcessedRef = useRef(false)
+  
   useEffect(() => {
     loadDashboardData()
-  }, [])
+  }, []) // Only run once on mount
+
+  // Handle Stripe checkout success separately to avoid re-render loops
+  useEffect(() => {
+    const success = params.success === 'true'
+    const plan = params.plan as string | undefined
+    
+    if (success && plan && !stripeProcessedRef.current) {
+      stripeProcessedRef.current = true
+      
+      Alert.alert(
+        'Payment Successful!',
+        `Your ${plan} plan subscription is being activated. This may take a few moments.`,
+        [{ text: 'OK' }]
+      )
+      
+      // Process affiliate conversion if user was referred
+      if (user?.id && (plan === 'pro' || plan === 'business')) {
+        (async () => {
+          try {
+            const { processAffiliateConversion } = await import('@/lib/utils/affiliate-tracking')
+            await processAffiliateConversion(user.id, plan as 'pro' | 'business')
+          } catch (error) {
+            console.error('Error processing affiliate conversion:', error)
+          }
+        })()
+      }
+      
+      // Reload subscription data after a delay
+      setTimeout(() => {
+        loadDashboardData()
+        stripeProcessedRef.current = false // Reset after processing
+      }, 3000)
+    }
+  }, [params.success, params.plan, user?.id])
 
   // Reload user data when screen comes into focus (e.g., after currency change)
   // Use ref to track last fetch time and prevent excessive reloads
@@ -158,17 +196,40 @@ export default function DashboardScreen() {
       }
 
       // Count pending likes
+      // A swipe is "pending" if there's no match yet (same logic as ListingsTab.tsx)
       let pendingLikesCount = 0
       if (listingsData && listingsData.length > 0) {
-        const listingIds = listingsData.map(l => l.id)
-        const { count } = await supabase
-          .from('swipes')
-          .select('*', { count: 'exact', head: true })
-          .eq('swipe_type', 'customer_on_listing')
-          .eq('direction', 'right')
-          .in('listing_id', listingIds)
-          .is('approved', null)
-        pendingLikesCount = count || 0
+        const listingIds = listingsData.map(l => l.id).filter(Boolean)
+        if (listingIds.length > 0) {
+          // Get all right swipes on user's listings
+          const { data: swipes, error: swipesError } = await supabase
+            .from('swipes')
+            .select('id, listing_id, swiper_id')
+            .eq('swipe_type', 'customer_on_listing')
+            .eq('direction', 'right')
+            .in('listing_id', listingIds)
+          
+          if (swipesError) {
+            console.error('Error counting pending likes:', swipesError)
+            pendingLikesCount = 0
+          } else if (swipes && swipes.length > 0) {
+            // Get all existing matches for these listings
+            const customerIds = swipes.map(s => s.swiper_id).filter(Boolean) as string[]
+            const { data: existingMatches } = await supabase
+              .from('matches')
+              .select('listing_id, customer_id')
+              .in('listing_id', listingIds)
+              .in('customer_id', customerIds)
+            
+            // Count swipes that don't have matches yet
+            const approvedIds = new Set(
+              existingMatches?.map(m => `${m.listing_id}-${m.customer_id}`) || []
+            )
+            pendingLikesCount = swipes.filter(
+              s => !approvedIds.has(`${s.listing_id}-${s.swiper_id}`)
+            ).length
+          }
+        }
       }
 
       // Count pending approvals
@@ -219,21 +280,28 @@ export default function DashboardScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.headerGradient}>
-      <View style={styles.header}>
+        {Platform.OS !== 'web' && (
+          <BlurView
+            intensity={80}
+            tint="light"
+            style={StyleSheet.absoluteFillObject}
+          />
+        )}
+        <View style={styles.header}>
           <View style={styles.headerContent}>
-          <Text style={styles.greeting}>{t('dashboard.welcomeBack')}</Text>
-          <Text style={styles.userName}>{user?.name || 'User'}</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <NotificationBell />
+            <Text style={styles.greeting}>{t('dashboard.welcomeBack')}</Text>
+            <Text style={styles.userName}>{user?.name || 'User'}</Text>
+          </View>
+          <View style={styles.headerActions}>
+            <NotificationBell />
             <Pressable 
               onPress={() => router.push('/(tabs)/profile')}
               style={styles.settingsButton}
             >
               <Ionicons name="settings-outline" size={24} color="#FF6B8A" />
-          </Pressable>
+            </Pressable>
+          </View>
         </View>
-      </View>
       </View>
 
       {/* Scrollable Dashboard with Collapsible Sections */}
@@ -272,7 +340,7 @@ export default function DashboardScreen() {
 
         {/* Affiliate Section */}
         <CollapsibleSection
-          title={t('dashboard.affiliate')}
+          title={t('dashboard.affiliateProgram')}
           icon="people"
           iconColor="#8b5cf6"
           defaultExpanded={params.section === 'affiliate'}
@@ -282,7 +350,7 @@ export default function DashboardScreen() {
 
         {/* Verification Section */}
         <CollapsibleSection
-          title={t('dashboard.verification')}
+          title={t('dashboard.verificationCenter')}
           icon="shield-checkmark"
           iconColor="#f59e0b"
         >
@@ -292,7 +360,7 @@ export default function DashboardScreen() {
         {/* My Bookings Section - Customer bookings */}
         {user && (
         <CollapsibleSection
-            title="My Bookings"
+            title={t('dashboard.myBookings')}
           icon="calendar"
           iconColor="#14b8a6"
         >
@@ -305,7 +373,7 @@ export default function DashboardScreen() {
         {/* Business Section - Provider business management */}
         {user && listings.length > 0 && (
         <CollapsibleSection
-            title="Business"
+            title={t('dashboard.business')}
           icon="briefcase"
           iconColor="#6366f1"
         >
@@ -337,6 +405,8 @@ export default function DashboardScreen() {
 // Overview Tab Component
 function OverviewTab({ user, listings, matches, stats, router }: any) {
   const { t } = useTranslation()
+  const { height: screenHeight } = useWindowDimensions()
+  
   // Calculate active listings (assuming max 5 listings per user)
   const activeListings = listings?.filter((listing: any) => listing.status === 'active').length || 0
   const maxListings = 5
@@ -344,6 +414,10 @@ function OverviewTab({ user, listings, matches, stats, router }: any) {
   // Calculate positive rating percentage (convert 4.5/5 to percentage)
   const overallRating = user?.rating || 4.5
   const positivePercentage = Math.round((overallRating / 5) * 100)
+  
+  // Responsive spacing based on screen height (smaller screens need more spacing)
+  const isSmallScreen = screenHeight < 700
+  const widgetSpacing = isSmallScreen ? spacing.xl : spacing.lg
 
   // Mock events data - replace with actual events from database
   const mockEvents = [
@@ -433,9 +507,11 @@ function OverviewTab({ user, listings, matches, stats, router }: any) {
           </Pressable>
       </View>
 
-      {/* Quick Rebooking Widget */}
+      {/* Quick Rebooking Widget with responsive spacing */}
       {user && (
-        <QuickRebookingWidget userId={user.id} maxItems={3} />
+        <View style={{ marginTop: widgetSpacing }}>
+          <QuickRebookingWidget userId={user.id} maxItems={3} />
+        </View>
       )}
 
     </View>
@@ -462,8 +538,16 @@ const styles = StyleSheet.create({
   },
   headerGradient: {
     paddingTop: Platform.OS === 'ios' ? 50 : 12,
-    backgroundColor: surfaces.surface,
-    ...elevation.level2,
+    backgroundColor: Platform.OS === 'web' 
+      ? 'rgba(255, 255, 255, 0.85)' 
+      : 'transparent',
+    overflow: 'hidden',
+    ...(Platform.OS === 'web' ? {
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+      backdropFilter: 'blur(20px)',
+    } : {
+      ...elevation.level2,
+    }),
   },
   header: {
     flexDirection: 'row',

@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert, Linking } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { useFocusEffect } from 'expo-router'
+import { useFocusEffect, useRouter } from 'expo-router'
+import { useTranslation } from 'react-i18next'
+import * as WebBrowser from 'expo-web-browser'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@/lib/types'
 import { getUserCurrency, formatCurrency, type CurrencyCode } from '@/lib/utils/currency'
+import { getExchangeRates, convertPriceSync } from '@/lib/utils/exchange-rates'
 import { pastelDesignSystem } from '@/lib/pastel-design-system'
 import { Platform } from 'react-native'
 const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem
@@ -25,39 +28,12 @@ const FREE_PLAN_PRICE_GBP = 0.00
 const PRO_PLAN_PRICE_GBP = 9.95
 const BUSINESS_PLAN_PRICE_GBP = 29.95
 
-// Simple exchange rates (approximate, should be updated from API in production)
-const EXCHANGE_RATES: Record<CurrencyCode, number> = {
-  GBP: 1.0,
-  USD: 1.27,
-  EUR: 1.17,
-  CAD: 1.72,
-  AUD: 1.94,
-  JPY: 188.0,
-  CHF: 1.10,
-  CNY: 9.15,
-  INR: 105.0,
-  BRL: 6.30,
-  MXN: 21.50,
-  ZAR: 23.50,
-  NZD: 2.08,
-  SGD: 1.70,
-  HKD: 9.90,
-  NOK: 13.50,
-  SEK: 13.20,
-  DKK: 8.70,
-  PLN: 5.05,
-  CZK: 29.0,
-}
-
-function convertPrice(priceGBP: number, targetCurrency: CurrencyCode): number {
-  const rate = EXCHANGE_RATES[targetCurrency] || 1.0
-  return priceGBP * rate
-}
-
 export function BillingTab({ user }: Props) {
+  const { t } = useTranslation()
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [loading, setLoading] = useState(true)
   const [userCurrency, setUserCurrency] = useState<CurrencyCode>('GBP')
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number> | null>(null)
 
   // Get user's currency preference
   const getUserCurrencyPreference = async () => {
@@ -82,12 +58,26 @@ export function BillingTab({ user }: Props) {
   useEffect(() => {
     loadSubscription()
     getUserCurrencyPreference()
+    loadExchangeRates()
   }, [user?.id])
 
-  // Reload currency when screen comes into focus (e.g., after currency change)
+  const loadExchangeRates = async () => {
+    try {
+      const rates = await getExchangeRates()
+      setExchangeRates(rates)
+    } catch (error) {
+      console.error('Error loading exchange rates:', error)
+      // Will use default rates from utility if API fails
+      const rates = await getExchangeRates()
+      setExchangeRates(rates)
+    }
+  }
+
+  // Reload currency and subscription when screen comes into focus (e.g., after payment)
   useFocusEffect(
     React.useCallback(() => {
       getUserCurrencyPreference()
+      loadSubscription()
     }, [user?.id])
   )
 
@@ -154,12 +144,58 @@ export function BillingTab({ user }: Props) {
       const data = await response.json()
 
       if (response.ok && data.url) {
-        Linking.openURL(data.url)
+        // Use WebBrowser for better in-app experience
+        const result = await WebBrowser.openBrowserAsync(data.url, {
+          showTitle: true,
+          enableBarCollapsing: false,
+          showInRecents: true,
+        })
+
+        // Check if user completed payment (result.type === 'cancel' means they closed, 'dismiss' might mean completed)
+        // The backend webhook will handle subscription activation
+        // Reload subscription after a short delay to check if it was activated
+        if (result.type !== 'cancel') {
+          // Process affiliate conversion if user was referred (industry standard: process immediately after subscription)
+          if (user?.id) {
+            try {
+              const { processAffiliateConversion } = await import('@/lib/utils/affiliate-tracking')
+              // Process conversion - backend will check if user has referral code
+              await processAffiliateConversion(user.id, plan)
+              // Note: Errors are handled inside processAffiliateConversion, won't block subscription
+            } catch (error) {
+              console.error('Error processing affiliate conversion:', error)
+            }
+          }
+          
+          // Wait a moment for webhook to process subscription activation
+          setTimeout(() => {
+            loadSubscription()
+          }, 2000)
+        }
       } else {
-        Alert.alert('Error', data.error || 'Failed to start checkout')
+        // Handle identity verification requirement
+        if (data.requiresVerification) {
+          Alert.alert(
+            'Verification Required',
+            data.message || 'Identity verification is required for premium plans. Please complete verification in your profile before subscribing.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { 
+                text: 'Go to Verification', 
+                onPress: () => {
+                  // Navigate to verification screen if available
+                  // This would need to be implemented based on your navigation structure
+                }
+              }
+            ]
+          )
+        } else {
+          Alert.alert('Error', data.error || 'Failed to start checkout')
+        }
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to start checkout')
+      console.error('Checkout error:', error)
+      Alert.alert('Error', 'Failed to start checkout. Please check your connection and try again.')
     }
   }
 
@@ -173,42 +209,44 @@ export function BillingTab({ user }: Props) {
 
   const currentPlan = subscription?.plan || 'free'
 
-  // Convert prices to user's currency
-  const freePrice = convertPrice(FREE_PLAN_PRICE_GBP, userCurrency)
-  const proPrice = convertPrice(PRO_PLAN_PRICE_GBP, userCurrency)
-  const businessPrice = convertPrice(BUSINESS_PLAN_PRICE_GBP, userCurrency)
+  // Convert prices to user's currency using real-time exchange rates
+  // Use default rates if exchange rates haven't loaded yet
+  const rates = exchangeRates || { GBP: 1.0 }
+  const freePrice = convertPriceSync(FREE_PLAN_PRICE_GBP, userCurrency, rates)
+  const proPrice = convertPriceSync(PRO_PLAN_PRICE_GBP, userCurrency, rates)
+  const businessPrice = convertPriceSync(BUSINESS_PLAN_PRICE_GBP, userCurrency, rates)
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Membership & Billing</Text>
+      <Text style={styles.title}>{t('dashboard.membershipBilling')}</Text>
 
       <View style={styles.plansContainer}>
         {/* Free Plan */}
         <View style={[styles.planCard, styles.freePlanCard, currentPlan === 'free' && styles.freePlanCardActive]}>
           <View style={styles.planHeader}>
-            <Text style={styles.planName}>Free Plan</Text>
+            <Text style={styles.planName}>{t('dashboard.freePlan')}</Text>
             <Text style={[styles.planPrice, styles.freePlanPrice]}>
               {formatCurrency(freePrice, userCurrency)}
-              <Text style={styles.planPeriod}>/month</Text>
+              <Text style={styles.planPeriod}>{t('dashboard.month')}</Text>
             </Text>
           </View>
           <View style={styles.planFeatures}>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>Purchase, book, or hire</Text>
+              <Text style={styles.featureText}>{t('dashboard.freePlanFeatures.purchaseBookHire')}</Text>
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>Create up to 10 listings</Text>
+              <Text style={styles.featureText}>{t('dashboard.freePlanFeatures.createListings')}</Text>
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>Business Calendar</Text>
+              <Text style={styles.featureText}>{t('dashboard.freePlanFeatures.businessCalendar')}</Text>
             </View>
           </View>
           {currentPlan === 'free' && (
             <View style={styles.freeCurrentBadge}>
-              <Text style={styles.freeCurrentBadgeText}>Current Plan</Text>
+              <Text style={styles.freeCurrentBadgeText}>{t('dashboard.currentPlan')}</Text>
             </View>
           )}
         </View>
@@ -217,34 +255,34 @@ export function BillingTab({ user }: Props) {
         <View style={[styles.planCard, styles.proPlanCard, currentPlan === 'pro' && styles.proPlanCardActive]}>
           <View style={styles.planHeader}>
             <View style={styles.planHeaderTop}>
-              <Text style={styles.planName}>Pro Plan</Text>
+              <Text style={styles.planName}>{t('dashboard.proPlan')}</Text>
               {currentPlan !== 'pro' && (
                 <View style={styles.recommendedBadge}>
-                  <Text style={styles.recommendedBadgeText}>Recommended</Text>
+                  <Text style={styles.recommendedBadgeText}>{t('dashboard.recommended')}</Text>
                 </View>
               )}
             </View>
             <Text style={[styles.planPrice, styles.proPlanPrice]}>
               {formatCurrency(proPrice, userCurrency)}
-              <Text style={styles.planPeriod}>/month</Text>
+              <Text style={styles.planPeriod}>{t('dashboard.month')}</Text>
             </Text>
           </View>
           <View style={styles.planFeatures}>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>All Free plan features</Text>
+              <Text style={styles.featureText}>{t('dashboard.proPlanFeatures.allFreeFeatures')}</Text>
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>Create up to 50 listings</Text>
+              <Text style={styles.featureText}>{t('dashboard.proPlanFeatures.createListings')}</Text>
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>Earn 20% as an Affiliate</Text>
+              <Text style={styles.featureText}>{t('dashboard.proPlanFeatures.affiliateEarnings')}</Text>
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>Verify as business & provide business services</Text>
+              <Text style={styles.featureText}>{t('dashboard.proPlanFeatures.verifyBusiness')}</Text>
             </View>
           </View>
           {currentPlan !== 'pro' && (
@@ -252,12 +290,12 @@ export function BillingTab({ user }: Props) {
               style={styles.upgradeButton}
               onPress={() => handleUpgrade('pro')}
             >
-              <Text style={styles.upgradeButtonText}>Upgrade to Pro</Text>
+              <Text style={styles.upgradeButtonText}>{t('dashboard.upgradeToPro')}</Text>
             </Pressable>
           )}
           {currentPlan === 'pro' && (
             <View style={styles.currentBadge}>
-              <Text style={styles.currentBadgeText}>Current Plan</Text>
+              <Text style={styles.currentBadgeText}>{t('dashboard.currentPlan')}</Text>
             </View>
           )}
         </View>
@@ -266,37 +304,37 @@ export function BillingTab({ user }: Props) {
         <View style={[styles.planCard, styles.businessPlanCard, currentPlan === 'business' && styles.businessPlanCardActive]}>
           <View style={styles.planHeader}>
             <View style={styles.planHeaderTop}>
-              <Text style={styles.planName}>Business Plan</Text>
+              <Text style={styles.planName}>{t('dashboard.businessPlan')}</Text>
               <View style={styles.verifiedBusinessBadge}>
                 <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
-                <Text style={styles.verifiedBusinessBadgeText}>Verified Business</Text>
+                <Text style={styles.verifiedBusinessBadgeText}>{t('dashboard.verifiedBusiness')}</Text>
               </View>
             </View>
             <Text style={[styles.planPrice, styles.businessPlanPrice]}>
               {formatCurrency(businessPrice, userCurrency)}
-              <Text style={styles.planPeriod}>/month</Text>
+              <Text style={styles.planPeriod}>{t('dashboard.month')}</Text>
             </Text>
           </View>
           <View style={styles.planFeatures}>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>Unlimited listings</Text>
+              <Text style={styles.featureText}>{t('dashboard.businessPlanFeatures.unlimitedListings')}</Text>
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>24/7 support</Text>
+              <Text style={styles.featureText}>{t('dashboard.businessPlanFeatures.support')}</Text>
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>Custom domain name</Text>
+              <Text style={styles.featureText}>{t('dashboard.businessPlanFeatures.customDomain')}</Text>
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>Priority in search results</Text>
+              <Text style={styles.featureText}>{t('dashboard.businessPlanFeatures.prioritySearch')}</Text>
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>Business badge</Text>
+              <Text style={styles.featureText}>{t('dashboard.businessPlanFeatures.businessBadge')}</Text>
             </View>
           </View>
           {currentPlan !== 'business' && (
@@ -304,12 +342,12 @@ export function BillingTab({ user }: Props) {
               style={styles.businessUpgradeButton}
               onPress={() => handleUpgrade('business')}
             >
-              <Text style={styles.businessUpgradeButtonText}>Upgrade to Business</Text>
+              <Text style={styles.businessUpgradeButtonText}>{t('dashboard.upgradeToBusiness')}</Text>
             </Pressable>
           )}
           {currentPlan === 'business' && (
             <View style={styles.currentBadge}>
-              <Text style={styles.currentBadgeText}>Current Plan</Text>
+              <Text style={styles.currentBadgeText}>{t('dashboard.currentPlan')}</Text>
             </View>
           )}
         </View>

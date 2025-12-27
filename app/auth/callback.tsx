@@ -55,6 +55,31 @@ export default function AuthCallback() {
       // Small delay to ensure router is mounted
       await new Promise(resolve => setTimeout(resolve, 100))
       
+      // If we're not in an actual OAuth callback (no code, no tokens, no error), 
+      // check for existing session and redirect appropriately without causing loops
+      if (!code && !accessToken && !refreshToken && !error) {
+        console.log('⚠️ OAuth popup dismissed, waiting for callback to process...')
+        // Check for existing session first
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          console.log('Found existing session, redirecting to dashboard')
+          try {
+            router.replace('/(tabs)/dashboard')
+          } catch (e) {
+            console.error('Navigation error:', e)
+          }
+          return
+        }
+        // If no session and no OAuth params, just go to index (landing page)
+        // Don't redirect to login as that might cause loops
+        try {
+          router.replace('/')
+        } catch (e) {
+          console.error('Navigation error:', e)
+        }
+        return
+      }
+      
       if (error) {
         console.error('OAuth error:', error)
         try {
@@ -72,19 +97,12 @@ export default function AuthCallback() {
         if (existingSession && !sessionCheckError) {
           console.log('✅ Found existing session from OAuth redirect')
           
-          // Save referral code if present
+          // Track referral if present (industry standard: track immediately on signup)
           if (referralCode && existingSession.user) {
             try {
-              const { error: updateError } = await supabase
-                .from('users')
-                .update({ referred_by_code: referralCode })
-                .eq('id', existingSession.user.id)
-              
-              if (updateError) {
-                console.error('Error saving referral code:', updateError)
-              } else {
-                console.log('✅ Referral code saved:', referralCode)
-              }
+              const { trackReferralOnSignup } = await import('@/lib/utils/affiliate-tracking')
+              await trackReferralOnSignup(existingSession.user.id, referralCode, supabase)
+              // Note: Errors are handled inside trackReferralOnSignup, won't block auth
             } catch (err) {
               console.error('Error processing referral code:', err)
             }
@@ -152,19 +170,12 @@ export default function AuthCallback() {
           if (sessionData?.session) {
             console.log('OAuth success, redirecting to dashboard')
             
-            // Save referral code if present
+            // Track referral if present (industry standard: track immediately on signup)
             if (referralCode && sessionData.session.user) {
               try {
-                const { error: updateError } = await supabase
-                  .from('users')
-                  .update({ referred_by_code: referralCode })
-                  .eq('id', sessionData.session.user.id)
-                
-                if (updateError) {
-                  console.error('Error saving referral code:', updateError)
-                } else {
-                  console.log('✅ Referral code saved:', referralCode)
-                }
+                const { trackReferralOnSignup } = await import('@/lib/utils/affiliate-tracking')
+                await trackReferralOnSignup(sessionData.session.user.id, referralCode, supabase)
+                // Note: Errors are handled inside trackReferralOnSignup, won't block auth
               } catch (err) {
                 console.error('Error processing referral code:', err)
               }
@@ -205,19 +216,12 @@ export default function AuthCallback() {
             if (!tokenError && sessionData?.session) {
               console.log('✅ Session created from access_token only')
               
-              // Save referral code if present
+              // Track referral if present (industry standard: track immediately on signup)
               if (referralCode && sessionData.session.user) {
                 try {
-                  const { error: updateError } = await supabase
-                    .from('users')
-                    .update({ referred_by_code: referralCode })
-                    .eq('id', sessionData.session.user.id)
-                  
-                  if (updateError) {
-                    console.error('Error saving referral code:', updateError)
-                  } else {
-                    console.log('✅ Referral code saved:', referralCode)
-                  }
+                  const { trackReferralOnSignup } = await import('@/lib/utils/affiliate-tracking')
+                  await trackReferralOnSignup(sessionData.session.user.id, referralCode, supabase)
+                  // Note: Errors are handled inside trackReferralOnSignup, won't block auth
                 } catch (err) {
                   console.error('Error processing referral code:', err)
                 }
@@ -243,19 +247,12 @@ export default function AuthCallback() {
           if (autoSession && !autoSessionError) {
             console.log('✅ Session auto-created from access_token')
             
-            // Save referral code if present
+            // Track referral if present (industry standard: track immediately on signup)
             if (referralCode && autoSession.user) {
               try {
-                const { error: updateError } = await supabase
-                  .from('users')
-                  .update({ referred_by_code: referralCode })
-                  .eq('id', autoSession.user.id)
-                
-                if (updateError) {
-                  console.error('Error saving referral code:', updateError)
-                } else {
-                  console.log('✅ Referral code saved:', referralCode)
-                }
+                const { trackReferralOnSignup } = await import('@/lib/utils/affiliate-tracking')
+                await trackReferralOnSignup(autoSession.user.id, referralCode, supabase)
+                // Note: Errors are handled inside trackReferralOnSignup, won't block auth
               } catch (err) {
                 console.error('Error processing referral code:', err)
               }
@@ -294,19 +291,12 @@ export default function AuthCallback() {
                 email: sessionData.session.user.email,
               })
               
-              // Save referral code if present
+              // Track referral if present (industry standard: track immediately on signup)
               if (referralCode && sessionData.session.user) {
                 try {
-                  const { error: updateError } = await supabase
-                    .from('users')
-                    .update({ referred_by_code: referralCode })
-                    .eq('id', sessionData.session.user.id)
-                  
-                  if (updateError) {
-                    console.error('Error saving referral code:', updateError)
-                  } else {
-                    console.log('✅ Referral code saved:', referralCode)
-                  }
+                  const { trackReferralOnSignup } = await import('@/lib/utils/affiliate-tracking')
+                  await trackReferralOnSignup(sessionData.session.user.id, referralCode, supabase)
+                  // Note: Errors are handled inside trackReferralOnSignup, won't block auth
                 } catch (err) {
                   console.error('Error processing referral code:', err)
                 }
@@ -400,8 +390,9 @@ export default function AuthCallback() {
         
         if (sessionError) {
           console.error('Session check error:', sessionError)
+          // Don't redirect to login if we're not in an OAuth flow - just go home
           try {
-            router.replace('/(auth)/login?error=' + encodeURIComponent(sessionError.message))
+            router.replace('/')
           } catch (e) {
             console.error('Navigation error:', e)
           }
@@ -418,9 +409,10 @@ export default function AuthCallback() {
           return
         }
         
-        console.error('No authorization code or tokens received, and no existing session')
+        // No code and no session - just go to landing page, don't cause redirect loops
+        console.log('No authorization code or tokens received, and no existing session - redirecting to home')
         try {
-          router.replace('/(auth)/login?error=no_code')
+          router.replace('/')
         } catch (e) {
           console.error('Navigation error:', e)
         }

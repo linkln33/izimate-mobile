@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert, ActivityIndicator, useWindowDimensions } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter, useFocusEffect } from 'expo-router'
 import { supabase } from '@/lib/supabase'
@@ -61,11 +61,15 @@ interface QuickRebookingWidgetProps {
 
 export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWidgetProps) {
   const router = useRouter()
+  const { height: screenHeight } = useWindowDimensions()
   const [rebookingItems, setRebookingItems] = useState<QuickRebookingItem[]>([])
   const [upcomingBookings, setUpcomingBookings] = useState<UpcomingBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [rebookingLoading, setRebookingLoading] = useState<string | null>(null)
   const [userCurrency, setUserCurrency] = useState<CurrencyCode>('GBP')
+  
+  // Responsive spacing for smaller screens
+  const isSmallScreen = screenHeight < 700
 
   // Get user's currency preference
   const loadUserCurrency = async () => {
@@ -323,7 +327,7 @@ export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWid
     // Show upcoming bookings
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, isSmallScreen && { paddingTop: spacing.md, paddingBottom: spacing.sm }]}>
           <Text style={styles.headerTitle}>Upcoming Bookings</Text>
           <Text style={styles.headerSubtitle}>Your scheduled appointments</Text>
         </View>
@@ -404,7 +408,7 @@ export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWid
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, isSmallScreen && { paddingTop: spacing.md, paddingBottom: spacing.sm }]}>
         <Text style={styles.headerTitle}>Book Again</Text>
         <Text style={styles.headerSubtitle}>Your favorite services</Text>
       </View>
@@ -491,9 +495,9 @@ export function QuickRebookingWidget({ userId, maxItems = 5 }: QuickRebookingWid
 const styles = StyleSheet.create({
   container: {
     backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
-    marginVertical: spacing.sm,
+    marginVertical: 0, // Remove vertical margin - parent handles spacing
     borderRadius: borderRadius.lg,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.md, // Increased bottom padding
     ...elevation.level2,
   },
   loadingContainer: {

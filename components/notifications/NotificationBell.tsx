@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { View, Text, Pressable, StyleSheet, Modal } from 'react-native'
+import { View, Text, Pressable, StyleSheet, Modal, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '@/lib/supabase'
 import { getNotifications } from '@/lib/utils/notifications'
@@ -13,7 +13,12 @@ export function NotificationBell() {
   useEffect(() => {
     loadUnreadCount()
 
-    // Subscribe to notification changes
+    // Skip WebSocket subscription on web to prevent connection issues
+    if (Platform.OS === 'web') {
+      return
+    }
+
+    // Subscribe to notification changes (native only)
     const channel = supabase
       .channel('notifications-bell')
       .on(
@@ -27,10 +32,20 @@ export function NotificationBell() {
           loadUnreadCount()
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          // Connection successful
+        } else if (status === 'CHANNEL_ERROR') {
+          console.warn('Channel subscription error for notifications-bell')
+        }
+      })
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(channel).catch((err) => {
+        if (__DEV__) {
+          console.warn('Error removing channel:', err)
+        }
+      })
     }
   }, [])
 

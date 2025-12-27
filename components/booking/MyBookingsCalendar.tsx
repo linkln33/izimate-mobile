@@ -28,6 +28,7 @@ import type { Booking, Listing, User } from '@/lib/types';
 import { SkeletonLoader } from '@/components/common/SkeletonLoader';
 import { triggerLight } from '@/lib/utils/haptics';
 import { getUserCurrency, formatCurrency, type CurrencyCode } from '@/lib/utils/currency';
+import { useTranslation } from 'react-i18next';
 import { AuthRequest, AuthRequestConfig, AuthSessionResult, makeRedirectUri } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { GoogleCalendarService } from '@/lib/utils/google-calendar';
@@ -74,6 +75,7 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
   userId, 
   viewType = 'both' 
 }) => {
+  const { t } = useTranslation();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [bookings, setBookings] = useState<BookingEvent[]>([]);
@@ -1122,29 +1124,29 @@ export const MyBookingsCalendar: React.FC<MyBookingsCalendarProps> = ({
       {/* Monthly Summary */}
       {viewMode === 'month' && !selectedDate && bookings.length > 0 && (
         <View style={styles.summaryContainer}>
-          <Text style={styles.summaryTitle}>This Month</Text>
+          <Text style={styles.summaryTitle}>{t('bookings.thisMonth')}</Text>
           <View style={styles.summaryStats}>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, styles.statNumberTotal]}>{bookings.length}</Text>
-              <Text style={styles.statLabel}>Total Bookings</Text>
+              <Text style={styles.statLabel}>{t('bookings.totalBookings')}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, styles.statNumberConfirmed]}>
                 {bookings.filter(b => b.status === 'confirmed').length}
               </Text>
-              <Text style={styles.statLabel}>Confirmed</Text>
+              <Text style={styles.statLabel}>{t('bookings.confirmed')}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, styles.statNumberPending]}>
                 {bookings.filter(b => b.status === 'pending').length}
               </Text>
-              <Text style={styles.statLabel}>Pending</Text>
+              <Text style={styles.statLabel}>{t('bookings.pending')}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, styles.statNumberCompleted]}>
                 {bookings.filter(b => b.status === 'completed').length}
               </Text>
-              <Text style={styles.statLabel}>Completed</Text>
+              <Text style={styles.statLabel}>{t('bookings.completed')}</Text>
             </View>
           </View>
         </View>

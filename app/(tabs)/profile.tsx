@@ -12,10 +12,11 @@ import type { User, ProviderProfile } from '@/lib/types'
 import { useTranslation } from 'react-i18next'
 import { PaymentSettings } from '@/components/settings/PaymentSettings'
 import { LanguageSelector } from '@/components/settings/LanguageSelector'
+import { HelpSupport } from '@/components/settings/HelpSupport'
 import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection'
 import { AffiliateTab } from '@/components/dashboard/AffiliateTab'
 import { NotificationSettings } from '@/components/notifications/NotificationSettings'
-import { triggerLight } from '@/lib/utils/haptics'
+import { triggerLight, triggerSuccess, triggerWarning } from '@/lib/utils/haptics'
 import { pastelDesignSystem } from '@/lib/pastel-design-system'
 const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem
 
@@ -33,6 +34,23 @@ export default function ProfileScreen() {
   const [phone, setPhone] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [location, setLocation] = useState('')
+  
+  // Track original values to detect changes
+  const [originalValues, setOriginalValues] = useState({
+    name: '',
+    bio: '',
+    phone: '',
+    avatarUrl: '',
+    location: '',
+  })
+  
+  // Track if form has unsaved changes
+  const hasUnsavedChanges = 
+    name.trim() !== originalValues.name ||
+    bio.trim() !== originalValues.bio ||
+    phone.trim() !== originalValues.phone ||
+    avatarUrl !== originalValues.avatarUrl ||
+    location.trim() !== originalValues.location
 
   // Ratings and feedback
   const [userRating, setUserRating] = useState<number | null>(null)
@@ -79,12 +97,36 @@ export default function ProfileScreen() {
 
           if (userData) {
             setUser(userData)
-            // Also update form fields if needed
-            setName(userData.name || '')
-            setBio(userData.bio || '')
-            setPhone(userData.phone || '')
-            setAvatarUrl(userData.avatar_url || '')
-            setLocation(userData.location_address || '')
+            // Check if there are unsaved changes by comparing current form values with original
+            const currentHasChanges = 
+              name.trim() !== originalValues.name ||
+              bio.trim() !== originalValues.bio ||
+              phone.trim() !== originalValues.phone ||
+              avatarUrl !== originalValues.avatarUrl ||
+              location.trim() !== originalValues.location
+            
+            // Only update form fields if there are no unsaved changes
+            if (!currentHasChanges) {
+              const loadedName = userData.name || ''
+              const loadedBio = userData.bio || ''
+              const loadedPhone = userData.phone || ''
+              const loadedAvatarUrl = userData.avatar_url || ''
+              const loadedLocation = userData.location_address || ''
+              
+              setName(loadedName)
+              setBio(loadedBio)
+              setPhone(loadedPhone)
+              setAvatarUrl(loadedAvatarUrl)
+              setLocation(loadedLocation)
+              
+              setOriginalValues({
+                name: loadedName,
+                bio: loadedBio,
+                phone: loadedPhone,
+                avatarUrl: loadedAvatarUrl,
+                location: loadedLocation,
+              })
+            }
           }
         } catch (error) {
           if (__DEV__) {
@@ -118,11 +160,26 @@ export default function ProfileScreen() {
           verification_status: userData.verification_status 
         });
         setUser(userData)
-        setName(userData.name || '')
-        setBio(userData.bio || '')
-        setPhone(userData.phone || '')
-        setAvatarUrl(userData.avatar_url || '')
-        setLocation(userData.location_address || '')
+        const loadedName = userData.name || ''
+        const loadedBio = userData.bio || ''
+        const loadedPhone = userData.phone || ''
+        const loadedAvatarUrl = userData.avatar_url || ''
+        const loadedLocation = userData.location_address || ''
+        
+        setName(loadedName)
+        setBio(loadedBio)
+        setPhone(loadedPhone)
+        setAvatarUrl(loadedAvatarUrl)
+        setLocation(loadedLocation)
+        
+        // Store original values for change detection
+        setOriginalValues({
+          name: loadedName,
+          bio: loadedBio,
+          phone: loadedPhone,
+          avatarUrl: loadedAvatarUrl,
+          location: loadedLocation,
+        })
       }
 
       // Load provider profile if exists
@@ -257,9 +314,15 @@ export default function ProfileScreen() {
             return
           }
           console.log('📸 Database update successful:', updateData)
+          
+          // Update original values if save was successful
+          if (updateData && updateData[0]) {
+            setOriginalValues(prev => ({ ...prev, avatarUrl: imageUrl }))
+          }
         }
         
-        Alert.alert(t('common.success'), t('settings.imageUploaded'))
+        triggerSuccess()
+        Alert.alert('✅ Success', 'Profile picture updated successfully!')
       } catch (uploadError: any) {
         console.error('📸 Upload error:', uploadError)
         Alert.alert(
@@ -295,10 +358,14 @@ export default function ProfileScreen() {
         
         if (error) {
           console.error('📍 Location save error:', error)
+        } else {
+          // Update original values if save was successful
+          setOriginalValues(prev => ({ ...prev, location: address }))
         }
       }
       
-      Alert.alert(t('common.success'), t('settings.locationDetected'))
+      triggerSuccess()
+      Alert.alert('✅ Location Updated', 'Your location has been detected and saved!')
     } catch (error) {
       console.error('📍 Location detection error:', error)
       Alert.alert(t('common.error'), t('settings.failedToGetLocation'))
@@ -308,9 +375,11 @@ export default function ProfileScreen() {
   }
 
   const handleSaveProfile = async () => {
-    if (!user) return
+    if (!user || !hasUnsavedChanges) return
 
     setSaving(true)
+    triggerLight()
+    
     try {
       // Build update object with only fields that exist in the database
       // Note: Some columns may not exist depending on the database schema
@@ -342,11 +411,26 @@ export default function ProfileScreen() {
       if (data && data[0]) {
         setUser(data[0])
       }
+      
+      // Update original values to reflect saved state
+      setOriginalValues({
+        name: name.trim(),
+        bio: bio.trim(),
+        phone: phone.trim(),
+        avatarUrl: avatarUrl,
+        location: location.trim(),
+      })
 
-      Alert.alert(t('common.success'), t('settings.profileUpdated'))
+      triggerSuccess()
+      Alert.alert(
+        '✅ Profile Updated!', 
+        'Your profile changes have been saved successfully.',
+        [{ text: 'OK' }]
+      )
     } catch (error: any) {
       console.error('💾 Profile save failed:', error)
-      Alert.alert(t('common.error'), error?.message || t('settings.failedToUpdate'))
+      triggerWarning()
+      Alert.alert('❌ Error', error?.message || t('settings.failedToUpdate'))
     } finally {
       setSaving(false)
     }
@@ -372,22 +456,15 @@ export default function ProfileScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
         <View style={styles.headerActions}>
-          {user?.id && (
-            <Pressable
-              style={styles.viewAsPublicIconButton}
-              onPress={() => {
-                triggerLight();
-                router.push(`/user/${user.id}`);
-              }}
-            >
-              <Ionicons name="eye-outline" size={22} color="#3b82f6" />
-            </Pressable>
-          )}
           <NotificationBell />
         </View>
       </View>
       
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={true}
+      >
         <View style={styles.section}>
           {/* Avatar */}
           <View style={styles.avatarSection}>
@@ -405,7 +482,7 @@ export default function ProfileScreen() {
               </View>
             </Pressable>
             
-            {/* Display name with verified badge inline */}
+            {/* Display name with verified badge and view as public inline */}
             <View style={styles.nameRow}>
             {name ? (
               <Text style={styles.avatarName}>{name}</Text>
@@ -425,6 +502,18 @@ export default function ProfileScreen() {
               </View>
                 );
               })()}
+              {user?.id && (
+                <Pressable
+                  style={styles.viewAsPublicBadge}
+                  onPress={() => {
+                    triggerLight();
+                    router.push(`/user/${user.id}`);
+                  }}
+                >
+                  <Ionicons name="eye-outline" size={14} color="#3b82f6" />
+                  <Text style={styles.viewAsPublicText}>View</Text>
+                </Pressable>
+              )}
             </View>
           </View>
 
@@ -452,59 +541,67 @@ export default function ProfileScreen() {
             </View>
 
           {/* Profile Information */}
-          <Text style={styles.sectionTitle}>Profile Information</Text>
-
-          {/* Name */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Full Name *</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="Enter your name"
-            />
-          </View>
-
-          {/* Bio */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Bio</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={bio}
-              onChangeText={setBio}
-              placeholder="Tell us about yourself..."
-              multiline
-              numberOfLines={4}
-            />
-          </View>
-
-          {/* Phone */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Phone Number</Text>
-            <TextInput
-              style={styles.input}
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="+1 (555) 123-4567"
-              keyboardType="phone-pad"
-            />
-          </View>
-
-          {/* Location */}
-          <View style={styles.inputGroup}>
-            <View style={styles.locationHeader}>
-              <Text style={styles.label}>Location</Text>
-              <Pressable onPress={handleDetectLocation}>
-                <Ionicons name="location" size={20} color="#f25842" />
-              </Pressable>
+          <CollapsibleSection
+            title={t('profile.profileInformation')}
+            icon="person-outline"
+            iconColor="#3b82f6"
+            badge={hasUnsavedChanges ? 1 : undefined}
+          >
+            {/* Name */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('profile.fullName')} *</Text>
+              <TextInput
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
+                placeholder={t('profile.enterYourName')}
+              />
             </View>
-            <TextInput
-              style={styles.input}
-              value={location}
-              onChangeText={setLocation}
-              placeholder="Enter your location"
-            />
-          </View>
+
+            {/* Bio */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('profile.bio')}</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={bio}
+                onChangeText={setBio}
+                placeholder={t('profile.tellUsAboutYourself')}
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+
+            {/* Phone */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('profile.phone')}</Text>
+              <TextInput
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder={t('profile.phonePlaceholder')}
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            {/* Location */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('profile.location')}</Text>
+              <View style={styles.locationInputContainer}>
+                <TextInput
+                  style={styles.locationInput}
+                  value={location}
+                  onChangeText={setLocation}
+                  placeholder={t('profile.enterYourLocation')}
+                />
+                <Pressable 
+                  style={styles.locationIconButton}
+                  onPress={handleDetectLocation}
+                >
+                  <Ionicons name="location" size={18} color="#f25842" />
+                </Pressable>
+              </View>
+            </View>
+          </CollapsibleSection>
 
           {/* Payment Settings */}
           <CollapsibleSection
@@ -540,24 +637,52 @@ export default function ProfileScreen() {
             <NotificationSettings />
           </CollapsibleSection>
 
-          {/* Save Button */}
-          <Pressable
-            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-            onPress={handleSaveProfile}
-            disabled={saving}
+          {/* Help & Support */}
+          <CollapsibleSection
+            title={t('helpSupport.title')}
+            icon="help-circle-outline"
           >
-            {saving ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <Text style={styles.saveButtonText}>Save Changes</Text>
-            )}
-          </Pressable>
+            <HelpSupport />
+          </CollapsibleSection>
+
+          {/* Save Button - Only show when there are unsaved changes */}
+          {hasUnsavedChanges && (
+            <Pressable
+              style={[
+                styles.saveButton, 
+                saving && styles.saveButtonDisabled,
+                !saving && styles.saveButtonActive
+              ]}
+              onPress={handleSaveProfile}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <View style={styles.saveButtonContent}>
+                  <Ionicons name="save-outline" size={18} color={pastelColors.primary[900]} style={styles.saveIcon} />
+                  <Text style={styles.saveButtonText}>Save Changes</Text>
+                </View>
+              )}
+            </Pressable>
+          )}
 
           {/* Logout Button */}
-          <Pressable style={styles.logoutButton} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </Pressable>
+          <View style={styles.logoutContainer}>
+            <Pressable 
+              style={({ pressed }) => [
+                styles.logoutButton,
+                pressed && styles.logoutButtonPressed
+              ]} 
+              onPress={() => {
+                triggerLight()
+                handleLogout()
+              }}
+            >
+              <Ionicons name="log-out-outline" size={20} color={pastelColors.error[500]} />
+              <Text style={styles.logoutButtonText}>Log Out</Text>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -586,15 +711,6 @@ const styles = StyleSheet.create({
     gap: 8,
     flexShrink: 1,
   },
-  viewAsPublicIconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: pastelColors.secondary[100],
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...elevation.level1,
-  },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -616,6 +732,8 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: spacing.xl,
     paddingTop: Platform.OS === 'ios' ? 50 : 12,
+    paddingBottom: 100, // Extra padding at bottom for scrolling
+    flexGrow: 1,
   },
   section: {
     backgroundColor: pastelColors.sand[200], // Dark sand yellow #FFF4E0 - consistent color
@@ -700,6 +818,21 @@ const styles = StyleSheet.create({
     color: pastelColors.secondary[700],
     fontWeight: '600',
   },
+  viewAsPublicBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: pastelColors.primary[100],
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
+    ...elevation.level1,
+  },
+  viewAsPublicText: {
+    fontSize: 12,
+    color: pastelColors.primary[700],
+    fontWeight: '600',
+  },
   statsSection: {
     marginBottom: 24,
     paddingBottom: 24,
@@ -767,11 +900,27 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: 'top',
   },
-  locationHeader: {
+  locationInputContainer: {
+    position: 'relative',
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+  },
+  locationInput: {
+    flex: 1,
+    backgroundColor: pastelColors.primary[50], // Very light teal #F0FDFD
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    paddingRight: 48, // Make room for icon
+    fontSize: 16,
+    color: surfaces.onSurface,
+    borderWidth: 1,
+    borderColor: surfaces.outline,
+    ...elevation.level1,
+  },
+  locationIconButton: {
+    position: 'absolute',
+    right: spacing.md,
+    padding: spacing.xs,
   },
   currencyButtons: {
     flexDirection: 'row',
@@ -805,8 +954,23 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     ...elevation.level1,
   },
+  saveButtonActive: {
+    backgroundColor: pastelColors.primary[500],
+    ...elevation.level2,
+    borderWidth: 2,
+    borderColor: pastelColors.primary[600],
+  },
   saveButtonDisabled: {
     backgroundColor: pastelColors.neutral[300],
+    opacity: 0.6,
+  },
+  saveButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  saveIcon: {
+    marginRight: 2,
   },
   saveButtonText: {
     color: pastelColors.primary[900], // Very dark teal for better contrast
@@ -876,14 +1040,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: surfaces.onSurfaceVariant,
   },
+  logoutContainer: {
+    marginTop: 24,
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: surfaces.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    borderWidth: 0,
     gap: spacing.sm,
-    marginTop: spacing['2xl'],
-    paddingVertical: spacing.lg,
-    borderTopWidth: 0, // Removed border
+    alignSelf: 'center',
+    width: '50%',
+    ...elevation.level1,
+  },
+  logoutButtonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.98 }],
   },
   logoutButtonText: {
     fontSize: 16,

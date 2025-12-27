@@ -28,10 +28,20 @@ export function NotificationCenter() {
           loadNotifications()
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          // Connection successful
+        } else if (status === 'CHANNEL_ERROR') {
+          console.warn('Channel subscription error for notifications-updates')
+        }
+      })
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(channel).catch((err) => {
+        if (__DEV__) {
+          console.warn('Error removing channel:', err)
+        }
+      })
     }
   }, [])
 

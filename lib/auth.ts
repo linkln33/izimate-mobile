@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import * as AuthSession from 'expo-auth-session'
 import * as WebBrowser from 'expo-web-browser'
 import { Platform, Linking } from 'react-native'
+import Constants from 'expo-constants'
 
 // Complete the auth session for better UX
 WebBrowser.maybeCompleteAuthSession()
@@ -99,13 +100,27 @@ export async function signInWithOAuth(provider: 'google' | 'facebook') {
     redirectTo = webRedirectUrl
     console.log('🌐 Using current origin for redirect:', webRedirectUrl)
   } else if (isExpoNative) {
-    // For native Expo apps, use the Expo callback URL directly
-    // This is the stable network IP that works for OAuth redirects
+    // For native Expo apps, detect tunnel mode and use appropriate URL
     if (isDevelopment) {
-      // Use the specific network IP for development
-      webRedirectUrl = `http://192.168.1.100:8083/auth/callback`
-      redirectTo = webRedirectUrl
-      console.log('📱 Native app detected, using Expo callback URL:', webRedirectUrl)
+      // Try to get the current manifest URL from Constants (works in tunnel mode)
+      const manifestUrl = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.debuggerHost
+      const isTunnelMode = manifestUrl?.includes('.exp.direct') || manifestUrl?.includes('.ngrok.io')
+      
+      if (isTunnelMode && manifestUrl) {
+        // Extract hostname from manifest URL (e.g., "4f50jpc-anonymous-8083.exp.direct")
+        const hostname = manifestUrl.split(':')[0] // Remove port if present
+        webRedirectUrl = `http://${hostname}/auth/callback`
+        redirectTo = webRedirectUrl
+        console.log('📱 Native app in tunnel mode, using tunnel URL:', webRedirectUrl)
+      } else {
+        // LAN mode - try to get current IP or use production fallback
+        // For now, use production callback as it's more reliable
+        // Users can add their local IP to Supabase if needed
+        webRedirectUrl = 'https://izimate.com/auth/callback-mobile?mobile=true'
+        redirectTo = webRedirectUrl
+        console.log('📱 Native app in LAN mode, using production callback (add local IP to Supabase if needed):', webRedirectUrl)
+        console.log('💡 Tip: Add your local IP (e.g., http://YOUR_IP:8083/auth/callback) to Supabase Dashboard for LAN mode')
+      }
     } else {
       // Production: use production callback URL
       webRedirectUrl = 'https://izimate.com/auth/callback-mobile?mobile=true'

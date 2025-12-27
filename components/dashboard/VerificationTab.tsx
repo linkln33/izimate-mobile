@@ -1,17 +1,34 @@
 import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Linking } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import type { User, ProviderProfile } from '@/lib/types'
 import { pastelDesignSystem } from '@/lib/pastel-design-system'
 import { Platform } from 'react-native'
+import Constants from 'expo-constants'
+import { getDiditConfig, createDiditIdentityVerification } from '@/lib/utils/didit-verification'
 const { colors: pastelColors, surfaces, elevation, spacing, borderRadius } = pastelDesignSystem
+
+// Cloudflare Worker URL for verification (only needed for web browsers due to CORS)
+// Native apps (iOS/Android) work fine with direct API calls - no worker needed
+// Set EXPO_PUBLIC_VERIFICATION_WORKER_URL in your .env file ONLY if you need web browser support
+const VERIFICATION_WORKER_URL = 
+  process.env.EXPO_PUBLIC_VERIFICATION_WORKER_URL ||
+  Constants.expoConfig?.extra?.EXPO_PUBLIC_VERIFICATION_WORKER_URL ||
+  undefined
+
+const isWorkerConfigured = VERIFICATION_WORKER_URL && 
+  VERIFICATION_WORKER_URL.length > 0 && 
+  !VERIFICATION_WORKER_URL.includes('your-domain') &&
+  VERIFICATION_WORKER_URL.startsWith('http')
 
 interface Props {
   user: User | null
 }
 
 export function VerificationTab({ user }: Props) {
+  const { t } = useTranslation()
   const [providerProfile, setProviderProfile] = useState<ProviderProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -40,57 +57,204 @@ export function VerificationTab({ user }: Props) {
   }
 
   const handleIdentityVerification = async () => {
-    if (!user?.id) return
+    if (!user?.id) {
+      Alert.alert(t('verification.error'), t('verification.userNotFound'))
+      return
+    }
+
+    const isWeb = Platform.OS === 'web'
+
+    // On web without worker configured, show message immediately (don't try direct call - will always fail with CORS)
+    if (isWeb && !isWorkerConfigured) {
+      // Alert.alert doesn't work in web browsers, use window.alert for web
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(
+          `${t('verification.webBrowserLimitation')}\n\n${t('verification.verificationNotAvailableWeb')}\n\n${t('verification.verificationWorksMobile')}\n\n${t('verification.enableWebSupport')}`
+        )
+      } else {
+        Alert.alert(
+          t('verification.webBrowserLimitation'),
+          `${t('verification.verificationNotAvailableWeb')}\n\n${t('verification.verificationWorksMobile')}\n\n${t('verification.enableWebSupport')}`,
+          [
+            {
+              text: 'OK'
+            }
+          ]
+        )
+      }
+      return
+    }
 
     try {
-      // Create Didit verification session directly
-      const response = await fetch('https://api.didit.me/v1/sessions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer AsiGVVkU_5tKEwQdR2OkTVjh6Gp3eTicnF6dSW-qQmQ`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          workflow_id: '694ea16c-7c1c-41dc-acdc-a191ac4cf67c',
-          user_reference: user.id,
-          redirect_url: `https://izimate.com/verification/callback`,
-          webhook_url: `https://izimate.com/api/verification/webhook`,
-          settings: {
-            language: 'en',
-            theme: {
-              primary_color: '#f25842',
-            }
-          }
-        }),
-      })
+      let sessionData: { session_id: string; verification_url: string }
 
-      const data = await response.json()
-
-      if (response.ok && data.verification_url) {
-        // Store session info in database
-        await supabase
-          .from('verification_sessions')
-          .insert({
-            user_id: user.id,
-            session_id: data.session_id,
-            type: 'identity',
-            status: 'pending',
-            verification_url: data.verification_url
+      if (isWeb && isWorkerConfigured) {
+        // On web with configured worker, use Cloudflare Worker to avoid CORS
+        try {
+          const workerResponse = await fetch(VERIFICATION_WORKER_URL!, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              type: 'identity',
+              user_id: user.id,
+            }),
           })
 
-        // Open Didit verification flow
-        await Linking.openURL(data.verification_url)
+          if (!workerResponse.ok) {
+            const errorData = await workerResponse.json().catch(() => ({}))
+            throw new Error(errorData.error || 'Failed to create verification session')
+          }
+
+          sessionData = await workerResponse.json()
+        } catch (workerError: any) {
+          console.error('Worker error:', workerError)
+          Alert.alert(
+            'Verification Error',
+            'Failed to start verification. Please ensure the verification worker is deployed and accessible.'
+          )
+          return
+        }
       } else {
-        Alert.alert('Error', data.error || 'Failed to start verification')
+        // On native (iOS/Android): direct API call works perfectly (no CORS restrictions)
+        const didItConfig = getDiditConfig()
+        if (!didItConfig.apiKey) {
+          Alert.alert('Configuration Error', 'Didit API key not configured')
+          return
+        }
+
+        const session = await createDiditIdentityVerification(user.id, didItConfig)
+        sessionData = {
+          session_id: session.sessionId,
+          verification_url: session.verificationUrl,
+        }
       }
+
+      // Store session info in database
+      await supabase
+        .from('verification_sessions')
+        .insert({
+          user_id: user.id,
+          session_id: sessionData.session_id,
+          type: 'identity',
+          status: 'pending',
+          verification_url: sessionData.verification_url
+        })
+
+      // Open Didit verification flow
+      await Linking.openURL(sessionData.verification_url)
+      
     } catch (error: any) {
       console.error('Didit verification error:', error)
-      Alert.alert('Error', 'Failed to start verification')
+      Alert.alert(t('verification.error'), error.message || t('verification.failedToStartVerification'))
     }
   }
 
   const handleBusinessVerification = async () => {
-    Alert.alert('Business Verification', 'Please visit the web app to complete business verification.')
+    if (!user?.id || !providerProfile) {
+      Alert.alert(t('verification.error'), t('verification.providerProfileRequired'))
+      return
+    }
+
+    const isWeb = Platform.OS === 'web'
+
+    // On web without worker configured, show message immediately (don't try direct call - will always fail with CORS)
+    if (isWeb && !isWorkerConfigured) {
+      // Alert.alert doesn't work in web browsers, use window.alert for web
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert(
+          `${t('verification.webBrowserLimitation')}\n\n${t('verification.verificationNotAvailableWeb')}\n\n${t('verification.verificationWorksMobile')}\n\n${t('verification.enableWebSupport')}`
+        )
+      } else {
+        Alert.alert(
+          t('verification.webBrowserLimitation'),
+          `${t('verification.verificationNotAvailableWeb')}\n\n${t('verification.verificationWorksMobile')}\n\n${t('verification.enableWebSupport')}`
+        )
+      }
+      return
+    }
+
+    try {
+      let sessionData: { session_id: string; verification_url: string }
+
+      if (isWeb && isWorkerConfigured) {
+        // On web with configured worker, use Cloudflare Worker to avoid CORS
+        try {
+          const businessData = {
+            companyName: providerProfile.business_name || '',
+            registrationNumber: providerProfile.business_registration_number || '',
+            country: 'GB', // Default to UK
+            address: providerProfile.business_address || '',
+          }
+
+          const workerResponse = await fetch(VERIFICATION_WORKER_URL!, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              type: 'business',
+              user_id: user.id,
+              business_data: businessData,
+            }),
+          })
+
+          if (!workerResponse.ok) {
+            const errorData = await workerResponse.json().catch(() => ({}))
+            throw new Error(errorData.error || 'Failed to create verification session')
+          }
+
+          sessionData = await workerResponse.json()
+        } catch (workerError: any) {
+          console.error('Worker error:', workerError)
+          Alert.alert(
+            'Verification Error',
+            'Failed to start verification. Please ensure the verification worker is deployed and accessible.'
+          )
+          return
+        }
+      } else {
+        // On native (iOS/Android), direct API call works fine (no CORS)
+        const didItConfig = getDiditConfig()
+        if (!didItConfig.apiKey) {
+          Alert.alert('Configuration Error', 'Didit API key not configured')
+          return
+        }
+
+        const { createDiditBusinessVerification } = await import('@/lib/utils/didit-verification')
+        const businessData = {
+          companyName: providerProfile.business_name || '',
+          registrationNumber: providerProfile.business_registration_number || '',
+          country: 'GB',
+          address: providerProfile.business_address || '',
+        }
+
+        const session = await createDiditBusinessVerification(user.id, businessData, didItConfig)
+        sessionData = {
+          session_id: session.sessionId,
+          verification_url: session.verificationUrl,
+        }
+      }
+
+      // Store session info in database
+      await supabase
+        .from('verification_sessions')
+        .insert({
+          user_id: user.id,
+          session_id: sessionData.session_id,
+          type: 'business',
+          status: 'pending',
+          verification_url: sessionData.verification_url
+        })
+
+      // Open Didit verification flow
+      await Linking.openURL(sessionData.verification_url)
+      
+    } catch (error: any) {
+      console.error('Business verification error:', error)
+      Alert.alert(t('verification.error'), error.message || t('verification.failedToStartBusinessVerification'))
+    }
   }
 
   if (loading) {
@@ -107,7 +271,7 @@ export function VerificationTab({ user }: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <Text style={styles.title}>Verification Center</Text>
+      <Text style={styles.title}>{t('verification.verificationCenter')}</Text>
 
       {/* Identity Verification */}
       <View style={styles.verificationCard}>
@@ -119,52 +283,59 @@ export function VerificationTab({ user }: Props) {
               color={identityVerified ? pastelColors.success[500] : surfaces.onSurfaceVariant}
             />
             <View style={styles.verificationHeaderText}>
-              <Text style={styles.verificationTitle}>Identity Verification</Text>
+              <Text style={styles.verificationTitle}>{t('verification.identityVerification')}</Text>
               <Text style={styles.verificationSubtitle}>
-                Verify your identity with government-issued ID
+                {t('verification.identityVerificationDesc')}
               </Text>
             </View>
           </View>
           {identityVerified && (
             <View style={styles.verifiedBadge}>
-              <Text style={styles.verifiedBadgeText}>Verified</Text>
+              <Text style={styles.verifiedBadgeText}>{t('verification.verified')}</Text>
             </View>
           )}
         </View>
 
         {identityStatus === 'pending' && (
           <Pressable
-            style={styles.verifyButton}
+            style={({ pressed }) => [
+              styles.verifyButton,
+              pressed && { opacity: 0.7 }
+            ]}
             onPress={handleIdentityVerification}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
           >
-            <Text style={styles.verifyButtonText}>Start Verification</Text>
+            <Text style={styles.verifyButtonText}>{t('verification.startVerification')}</Text>
           </Pressable>
         )}
 
         {identityStatus === 'processing' && (
           <View style={styles.statusInfo}>
             <ActivityIndicator size="small" color={pastelColors.warning[500]} />
-            <Text style={styles.statusText}>Verification in progress...</Text>
+            <Text style={styles.statusText}>{t('verification.verificationInProgress')}</Text>
           </View>
         )}
 
         {identityStatus === 'verified' && (
           <View style={styles.statusInfo}>
             <Ionicons name="checkmark-circle" size={20} color={pastelColors.success[500]} />
-            <Text style={styles.statusText}>Identity verified</Text>
+            <Text style={styles.statusText}>{t('verification.identityVerified')}</Text>
           </View>
         )}
 
-        {identityStatus === 'failed' || identityStatus === 'rejected' && (
+        {(identityStatus === 'failed' || identityStatus === 'rejected') && (
           <View style={styles.statusInfo}>
             <Ionicons name="close-circle" size={20} color={pastelColors.error[500]} />
-            <Text style={styles.statusText}>Verification {identityStatus}</Text>
+            <Text style={styles.statusText}>
+              {identityStatus === 'failed' ? t('verification.verificationFailed') : t('verification.verificationRejected')}
+            </Text>
           </View>
         )}
       </View>
 
       {/* Business Verification */}
-      <View style={styles.verificationCard}>
+      <View style={[styles.verificationCard, styles.businessVerificationCard]}>
         <View style={styles.verificationHeader}>
           <View style={styles.verificationHeaderLeft}>
             <Ionicons
@@ -173,38 +344,38 @@ export function VerificationTab({ user }: Props) {
               color={businessVerified ? pastelColors.success[500] : surfaces.onSurfaceVariant}
             />
             <View style={styles.verificationHeaderText}>
-              <Text style={styles.verificationTitle}>Business Verification</Text>
+              <Text style={styles.verificationTitle}>{t('verification.businessVerification')}</Text>
               <Text style={styles.verificationSubtitle}>
-                Verify your UK business registration (Companies House)
+                {t('verification.businessVerificationDesc')}
               </Text>
             </View>
           </View>
           {businessVerified && (
             <View style={styles.verifiedBadge}>
-              <Text style={styles.verifiedBadgeText}>Verified</Text>
+              <Text style={styles.verifiedBadgeText}>{t('verification.verified')}</Text>
             </View>
           )}
         </View>
 
         {!providerProfile && (
           <Text style={styles.infoText}>
-            Set up a provider profile to verify your business
+            {t('verification.setupProviderProfile')}
           </Text>
         )}
 
         {providerProfile && !businessVerified && (
           <Pressable
-            style={styles.verifyButton}
+            style={styles.businessVerifyButton}
             onPress={handleBusinessVerification}
           >
-            <Text style={styles.verifyButtonText}>Verify Business</Text>
+            <Text style={styles.businessVerifyButtonText}>{t('verification.verifyBusiness')}</Text>
           </Pressable>
         )}
 
         {businessVerified && (
           <View style={styles.statusInfo}>
             <Ionicons name="checkmark-circle" size={20} color={pastelColors.success[500]} />
-            <Text style={styles.statusText}>Business verified</Text>
+            <Text style={styles.statusText}>{t('verification.businessVerified')}</Text>
           </View>
         )}
       </View>
@@ -212,7 +383,7 @@ export function VerificationTab({ user }: Props) {
       {/* Verification Score */}
       {providerProfile && (
         <View style={styles.scoreCard}>
-          <Text style={styles.scoreTitle}>Verification Score</Text>
+          <Text style={styles.scoreTitle}>{t('verification.verificationScore')}</Text>
           <Text style={styles.scoreValue}>{providerProfile.verification_score || 0}/100</Text>
           <View style={styles.scoreBar}>
             <View
@@ -248,7 +419,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   verificationCard: {
-    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
+    backgroundColor: surfaces.surface, // Match overview cards
     borderRadius: borderRadius.lg,
     padding: spacing.xl,
     marginBottom: spacing.lg,
@@ -292,14 +463,31 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   verifyButton: {
-    backgroundColor: pastelColors.primary[400], // Slightly darker teal for better contrast
+    backgroundColor: pastelColors.primary[400], // Light teal #8FEFEB
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48, // Ensure button is tappable
+    ...elevation.level1,
+  },
+  verifyButtonText: {
+    color: '#000000', // Black text for consistency
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  businessVerificationCard: {
+    backgroundColor: pastelColors.secondary[100], // Light pink - match Business Plan
+  },
+  businessVerifyButton: {
+    backgroundColor: pastelColors.secondary[500], // Pink #FF6B8A - match Business Plan button
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     alignItems: 'center',
     ...elevation.level1,
   },
-  verifyButtonText: {
-    color: pastelColors.primary[900], // Very dark teal for better contrast
+  businessVerifyButtonText: {
+    color: '#000000', // Black text for consistency
     fontSize: 16,
     fontWeight: '600',
   },
@@ -318,7 +506,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   scoreCard: {
-    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
+    backgroundColor: surfaces.surface, // Match overview cards
     borderRadius: borderRadius.lg,
     padding: spacing.xl,
     marginTop: spacing.sm,

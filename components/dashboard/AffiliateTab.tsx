@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Share, TextInput, Modal } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from 'react-i18next'
 import * as Clipboard from 'expo-clipboard'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency, getUserCurrency } from '@/lib/utils/currency'
+import { getExchangeRates, convertPriceSync } from '@/lib/utils/exchange-rates'
 import type { User, Affiliate, Referral } from '@/lib/types'
 import { pastelDesignSystem } from '@/lib/pastel-design-system'
 import { Platform } from 'react-native'
@@ -15,6 +17,7 @@ interface Props {
 }
 
 export function AffiliateTab({ user }: Props) {
+  const { t } = useTranslation()
   const router = useRouter()
   const [affiliate, setAffiliate] = useState<Affiliate | null>(null)
   const [referrals, setReferrals] = useState<Referral[]>([])
@@ -23,6 +26,7 @@ export function AffiliateTab({ user }: Props) {
   const [showPayoutModal, setShowPayoutModal] = useState(false)
   const [showEarningsHistory, setShowEarningsHistory] = useState(false)
   const [payoutMethod, setPayoutMethod] = useState<'bank_transfer' | 'revolut' | 'paypal'>('bank_transfer')
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number> | null>(null)
   const [payoutDetails, setPayoutDetails] = useState({
     paypal_email: '',
     bank_account: '',
@@ -31,10 +35,26 @@ export function AffiliateTab({ user }: Props) {
     revolut_phone: '',
   })
   const [requestingPayout, setRequestingPayout] = useState(false)
+  const [showCalculator, setShowCalculator] = useState(false)
+  const [calculatorPro, setCalculatorPro] = useState('0')
+  const [calculatorBusiness, setCalculatorBusiness] = useState('0')
 
   useEffect(() => {
     loadAffiliateData()
+    loadExchangeRates()
   }, [user?.id])
+
+  const loadExchangeRates = async () => {
+    try {
+      const rates = await getExchangeRates()
+      setExchangeRates(rates)
+    } catch (error) {
+      console.error('Error loading exchange rates:', error)
+      // Will use default rates from utility if API fails
+      const rates = await getExchangeRates()
+      setExchangeRates(rates)
+    }
+  }
 
   const loadAffiliateData = async () => {
     if (!user?.id) {
@@ -542,6 +562,17 @@ export function AffiliateTab({ user }: Props) {
   // Get user currency
   const userCurrency = user ? getUserCurrency(user.currency, user.country) : 'GBP'
   
+  // Use real-time exchange rates (with fallback to default if not loaded yet)
+  const rates = exchangeRates || { GBP: 1.0 }
+
+  // Commission amounts in user's currency using real-time exchange rates
+  const proOneTime = convertPriceSync(1.99, userCurrency, rates)
+  const proMonthly = convertPriceSync(0.995, userCurrency, rates)
+  const proTotal = convertPriceSync(14.94, userCurrency, rates)
+  const businessOneTime = convertPriceSync(5.99, userCurrency, rates)
+  const businessMonthly = convertPriceSync(2.995, userCurrency, rates)
+  const businessTotal = convertPriceSync(40.94, userCurrency, rates)
+  
   if (__DEV__ && user) {
     console.log('💰 AffiliateTab: Using currency:', userCurrency, 'from user.currency:', user.currency, 'user.country:', user.country)
   }
@@ -554,38 +585,38 @@ export function AffiliateTab({ user }: Props) {
         <View style={styles.statsGrid}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{affiliate.total_referrals}</Text>
-            <Text style={styles.statLabel}>Total Referrals</Text>
+            <Text style={styles.statLabel}>{t('dashboard.affiliate.totalReferrals')}</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{affiliate.active_referrals}</Text>
-            <Text style={styles.statLabel}>Active</Text>
+            <Text style={styles.statLabel}>{t('dashboard.affiliate.active')}</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{conversionRate}%</Text>
-            <Text style={styles.statLabel}>Conversion</Text>
+            <Text style={styles.statLabel}>{t('dashboard.affiliate.conversion')}</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{formatCurrency(affiliate.total_earnings, userCurrency)}</Text>
-            <Text style={styles.statLabel}>Total Earnings</Text>
+            <Text style={styles.statLabel}>{t('dashboard.affiliate.totalEarnings')}</Text>
           </View>
         </View>
 
         {/* Earnings Breakdown */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Earnings Breakdown</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.affiliate.earningsBreakdown')}</Text>
           <View style={styles.formInput}>
-            <Text style={styles.formLabel}>One-time Commissions:</Text>
+            <Text style={styles.formLabel}>{t('dashboard.affiliate.oneTimeCommissions')}</Text>
             <Text style={styles.formValue}>{formatCurrency(oneTimeEarnings, userCurrency)}</Text>
           </View>
           <View style={styles.formInput}>
-            <Text style={styles.formLabel}>Recurring Commissions:</Text>
+            <Text style={styles.formLabel}>{t('dashboard.affiliate.recurringCommissions')}</Text>
             <Text style={styles.formValue}>{formatCurrency(recurringEarnings, userCurrency)}</Text>
           </View>
         </View>
 
         {/* Referral Code */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Referral Code</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.affiliate.yourReferralCode')}</Text>
           
           {/* Code Display with Copy Button */}
           <View style={styles.codeDisplayContainer}>
@@ -601,11 +632,11 @@ export function AffiliateTab({ user }: Props) {
           <View style={styles.referralActions}>
             <Pressable style={styles.formButton} onPress={handleCopyUrl}>
               <Ionicons name="copy-outline" size={16} color="#6b7280" />
-              <Text style={styles.formButtonText}>Copy URL</Text>
+              <Text style={styles.formButtonText}>{t('dashboard.affiliate.copyUrl')}</Text>
             </Pressable>
             <Pressable style={styles.formButtonPrimary} onPress={handleShare}>
               <Ionicons name="share-social" size={18} color="#ffffff" />
-              <Text style={styles.formButtonPrimaryText}>Share</Text>
+              <Text style={styles.formButtonPrimaryText}>{t('dashboard.affiliate.share')}</Text>
             </Pressable>
           </View>
           
@@ -616,25 +647,139 @@ export function AffiliateTab({ user }: Props) {
           </View>
         </View>
 
-        {/* Tier */}
+        {/* Commission Legend */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Affiliate Program</Text>
-          <Text style={styles.tierDescription}>
-            Earn {formatCurrency(3, userCurrency)} per signup + 10% recurring commissions from all your referrals
-          </Text>
-          <Text style={styles.proUserNote}>*Available to Pro Users</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.affiliate.commissionStructure')}</Text>
+          <View style={styles.legendContainer}>
+            <View style={styles.legendItem}>
+              <View style={styles.legendIcon}>
+                <Ionicons name="cash-outline" size={20} color={pastelColors.primary[500]} />
+              </View>
+              <View style={styles.legendContent}>
+                <Text style={styles.legendTitle}>{t('dashboard.affiliate.oneTimeCommission')}</Text>
+                <Text style={styles.legendDescription}>{t('dashboard.affiliate.oneTimeCommissionDesc')}</Text>
+              </View>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={styles.legendIcon}>
+                <Ionicons name="repeat-outline" size={20} color={pastelColors.primary[500]} />
+              </View>
+              <View style={styles.legendContent}>
+                <Text style={styles.legendTitle}>{t('dashboard.affiliate.recurringCommission')}</Text>
+                <Text style={styles.legendDescription}>{t('dashboard.affiliate.recurringCommissionDesc')}</Text>
+              </View>
+            </View>
+          </View>
+          <View style={styles.commissionExamples}>
+            <View style={styles.commissionExample}>
+              <Text style={styles.commissionExampleTitle}>{t('dashboard.proPlan')} ({formatCurrency(9.95, userCurrency)}{t('dashboard.month')})</Text>
+              <Text style={styles.commissionExampleText}>
+                {t('dashboard.affiliate.oneTime')}: {formatCurrency(proOneTime, userCurrency)} • {t('dashboard.affiliate.monthly')}: {formatCurrency(proMonthly, userCurrency)} • {t('dashboard.affiliate.total12mo')}: {formatCurrency(proTotal, userCurrency)}
+              </Text>
+            </View>
+            <View style={styles.commissionExample}>
+              <Text style={styles.commissionExampleTitle}>{t('dashboard.businessPlan')} ({formatCurrency(29.95, userCurrency)}{t('dashboard.month')})</Text>
+              <Text style={styles.commissionExampleText}>
+                {t('dashboard.affiliate.oneTime')}: {formatCurrency(businessOneTime, userCurrency)} • {t('dashboard.affiliate.monthly')}: {formatCurrency(businessMonthly, userCurrency)} • {t('dashboard.affiliate.total12mo')}: {formatCurrency(businessTotal, userCurrency)}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.proUserNote}>{t('dashboard.affiliate.availableToProBusiness')}</Text>
+        </View>
+
+        {/* Earnings Calculator */}
+        <View style={styles.section}>
+          <Pressable 
+            style={styles.calculatorHeader}
+            onPress={() => setShowCalculator(!showCalculator)}
+          >
+            <View>
+              <Text style={styles.sectionTitle}>{t('dashboard.affiliate.earningsCalculator')}</Text>
+              <Text style={styles.calculatorSubtitle}>{t('dashboard.affiliate.estimateEarnings')}</Text>
+            </View>
+            <Ionicons 
+              name={showCalculator ? "chevron-up" : "chevron-down"} 
+              size={24} 
+              color={surfaces.onSurfaceVariant} 
+            />
+          </Pressable>
+          
+          {showCalculator && (
+            <View style={styles.calculatorContent}>
+              <View style={styles.calculatorInputGroup}>
+                <Text style={styles.calculatorLabel}>{t('dashboard.affiliate.proPlanReferrals')}</Text>
+                <TextInput
+                  style={styles.calculatorInput}
+                  value={calculatorPro}
+                  onChangeText={setCalculatorPro}
+                  keyboardType="numeric"
+                  placeholder="0"
+                />
+                <Text style={styles.calculatorHint}>
+                  {t('dashboard.affiliate.oneTime')}: {formatCurrency(proOneTime, userCurrency)} {t('dashboard.affiliate.each')}
+                </Text>
+              </View>
+              
+              <View style={styles.calculatorInputGroup}>
+                <Text style={styles.calculatorLabel}>{t('dashboard.affiliate.businessPlanReferrals')}</Text>
+                <TextInput
+                  style={styles.calculatorInput}
+                  value={calculatorBusiness}
+                  onChangeText={setCalculatorBusiness}
+                  keyboardType="numeric"
+                  placeholder="0"
+                />
+                <Text style={styles.calculatorHint}>
+                  {t('dashboard.affiliate.oneTime')}: {formatCurrency(businessOneTime, userCurrency)} {t('dashboard.affiliate.each')}
+                </Text>
+              </View>
+
+              <View style={styles.calculatorResults}>
+                <View style={styles.calculatorResultRow}>
+                  <Text style={styles.calculatorResultLabel}>{t('dashboard.affiliate.oneTimeEarnings')}</Text>
+                  <Text style={styles.calculatorResultValue}>
+                    {formatCurrency(
+                      (parseFloat(calculatorPro) || 0) * proOneTime + 
+                      (parseFloat(calculatorBusiness) || 0) * businessOneTime,
+                      userCurrency
+                    )}
+                  </Text>
+                </View>
+                <View style={styles.calculatorResultRow}>
+                  <Text style={styles.calculatorResultLabel}>{t('dashboard.affiliate.recurringEarnings')}</Text>
+                  <Text style={styles.calculatorResultValue}>
+                    {formatCurrency(
+                      (parseFloat(calculatorPro) || 0) * proMonthly + 
+                      (parseFloat(calculatorBusiness) || 0) * businessMonthly,
+                      userCurrency
+                    )}
+                  </Text>
+                </View>
+                <View style={styles.calculatorResultRow}>
+                  <Text style={styles.calculatorResultLabel}>{t('dashboard.affiliate.total12Months')}</Text>
+                  <Text style={[styles.calculatorResultValue, styles.calculatorResultTotal]}>
+                    {formatCurrency(
+                      (parseFloat(calculatorPro) || 0) * proTotal + 
+                      (parseFloat(calculatorBusiness) || 0) * businessTotal,
+                      userCurrency
+                    )}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Payout Management */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Payout Settings</Text>
+            <Text style={styles.sectionTitle}>{t('dashboard.affiliate.payoutSettings')}</Text>
             <Pressable onPress={() => setShowPayoutModal(true)}>
               <Ionicons name="settings-outline" size={20} color="#f25842" />
             </Pressable>
           </View>
           <View style={styles.formInput}>
-            <Text style={styles.formLabel}>Method:</Text>
+            <Text style={styles.formLabel}>{t('dashboard.affiliate.method')}</Text>
             <Text style={styles.formValue}>
               {affiliate.payout_method ? 
                 (affiliate.payout_method === 'bank_transfer' ? 'Bank' : 
@@ -823,7 +968,7 @@ export function AffiliateTab({ user }: Props) {
 
               {payoutMethod === 'revolut' && (
                 <View style={styles.modalInputGroup}>
-                  <Text style={styles.modalLabel}>Revolut Phone Number</Text>
+                  <Text style={styles.modalLabel}>{t('payment.revolutPhone')}</Text>
                   <TextInput
                     style={styles.modalInput}
                     value={payoutDetails.revolut_phone}
@@ -837,31 +982,31 @@ export function AffiliateTab({ user }: Props) {
               {payoutMethod === 'bank_transfer' && (
                 <>
                   <View style={styles.modalInputGroup}>
-                    <Text style={styles.modalLabel}>Bank Name</Text>
+                    <Text style={styles.modalLabel}>{t('payment.bankName')}</Text>
                     <TextInput
                       style={styles.modalInput}
                       value={payoutDetails.bank_name}
                       onChangeText={(text) => setPayoutDetails({ ...payoutDetails, bank_name: text })}
-                      placeholder="Bank Name"
+                      placeholder={t('payment.bankName')}
                     />
                   </View>
                   <View style={styles.modalInputGroup}>
-                    <Text style={styles.modalLabel}>Account Number</Text>
+                    <Text style={styles.modalLabel}>{t('payment.accountNumber')}</Text>
                     <TextInput
                       style={styles.modalInput}
                       value={payoutDetails.bank_account}
                       onChangeText={(text) => setPayoutDetails({ ...payoutDetails, bank_account: text })}
-                      placeholder="Account Number"
+                      placeholder={t('payment.accountNumber')}
                       keyboardType="numeric"
                     />
                   </View>
                   <View style={styles.modalInputGroup}>
-                    <Text style={styles.modalLabel}>Sort Code</Text>
+                    <Text style={styles.modalLabel}>{t('payment.sortCode')}</Text>
                     <TextInput
                       style={styles.modalInput}
                       value={payoutDetails.bank_sort_code}
                       onChangeText={(text) => setPayoutDetails({ ...payoutDetails, bank_sort_code: text })}
-                      placeholder="Sort Code"
+                      placeholder={t('payment.sortCode')}
                       keyboardType="numeric"
                     />
                   </View>
@@ -894,15 +1039,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0, // Remove horizontal padding - match location box width
   },
   mainContainer: {
-    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
-    borderRadius: borderRadius.lg, // 16px
-    padding: spacing.sm, // Smaller padding (8px) - wider boxes
-    marginHorizontal: 0, // No horizontal margin - same width as location box
-    ...elevation.level2,
+    backgroundColor: 'transparent', // Transparent - sections are individual cards
+    borderRadius: 0, // No container border
+    padding: 0, // No padding - sections handle their own spacing
+    marginHorizontal: 0, // No horizontal margin
   },
   section: {
+    backgroundColor: surfaces.surface, // Match overview card style
+    borderRadius: borderRadius.lg, // 16px - match overview
+    padding: spacing.lg, // Match overview
     marginTop: spacing.lg,
     marginBottom: spacing.md,
+    ...elevation.level2, // Match overview - no borders
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -911,12 +1059,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   formInput: {
-    backgroundColor: pastelColors.primary[50], // Very light teal for form inputs
+    backgroundColor: 'transparent', // Transparent inside section cards
     borderRadius: borderRadius.md, // 12px - form-sized
     padding: spacing.md, // 12px
     marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: surfaces.outline,
+    borderWidth: 0, // No borders - section card provides elevation
   },
   formRow: {
     flexDirection: 'row',
@@ -944,13 +1091,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: pastelColors.primary[50], // Very light teal
+    backgroundColor: surfaces.background, // Match page background
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.md, // Form-sized
     gap: spacing.xs,
-    borderWidth: 1,
-    borderColor: surfaces.outline,
+    ...elevation.level1, // Use elevation instead of borders
   },
   formButtonText: {
     color: surfaces.onSurface,
@@ -1019,28 +1165,32 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
+    gap: spacing.md, // Match overview spacing
     marginBottom: spacing.lg,
   },
   statItem: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: pastelColors.primary[50], // Very light teal - form-sized
-    borderRadius: borderRadius.md, // Form-sized (12px)
-    padding: spacing.md, // Small padding
+    backgroundColor: surfaces.surface, // Match overview stat cards
+    borderRadius: borderRadius.lg, // 16px - match overview
+    padding: spacing.lg, // Match overview
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: surfaces.outline,
+    minHeight: 140, // Match overview
+    justifyContent: 'center',
+    ...elevation.level2, // Match overview - no borders
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 36, // Match overview
     fontWeight: 'bold',
     color: surfaces.onSurface,
+    marginTop: spacing.xs,
   },
   statLabel: {
-    fontSize: 12,
-    color: surfaces.onSurfaceVariant,
+    fontSize: 13, // Match overview
+    color: pastelColors.secondary[600], // Match overview link color
     marginTop: spacing.xs,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   referralTitle: {
     fontSize: 18,
@@ -1151,18 +1301,18 @@ const styles = StyleSheet.create({
   codeDisplayContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
   },
   copyCodeButton: {
     backgroundColor: pastelColors.primary[500],
-    borderRadius: borderRadius.sm,
+    borderRadius: borderRadius.md,
     padding: spacing.md,
     justifyContent: 'center',
     alignItems: 'center',
     minWidth: 44,
     minHeight: 44,
-    ...elevation.level1,
+    ...elevation.level2,
   },
   copyButton: {
     padding: 8,
@@ -1170,10 +1320,10 @@ const styles = StyleSheet.create({
   },
   referralActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: spacing.md,
     width: '100%',
-    marginBottom: 16,
-    marginTop: 8,
+    marginBottom: spacing.md,
+    marginTop: spacing.sm,
   },
   breakdownRow: {
     flexDirection: 'row',
@@ -1404,5 +1554,122 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  legendContainer: {
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  legendIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.md,
+    backgroundColor: pastelColors.primary[100],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  legendContent: {
+    flex: 1,
+  },
+  legendTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: surfaces.onSurface,
+    marginBottom: spacing.xs,
+  },
+  legendDescription: {
+    fontSize: 13,
+    color: surfaces.onSurfaceVariant,
+    lineHeight: 18,
+  },
+  commissionExamples: {
+    marginTop: spacing.md,
+    gap: spacing.sm,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: surfaces.surfaceVariant,
+  },
+  commissionExample: {
+    padding: spacing.md,
+    backgroundColor: pastelColors.primary[50],
+    borderRadius: borderRadius.md,
+  },
+  commissionExampleTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: surfaces.onSurface,
+    marginBottom: spacing.xs,
+  },
+  commissionExampleText: {
+    fontSize: 12,
+    color: surfaces.onSurfaceVariant,
+    lineHeight: 16,
+  },
+  calculatorHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  calculatorSubtitle: {
+    fontSize: 12,
+    color: surfaces.onSurfaceVariant,
+    marginTop: spacing.xs,
+  },
+  calculatorContent: {
+    marginTop: spacing.md,
+    gap: spacing.md,
+  },
+  calculatorInputGroup: {
+    marginBottom: spacing.md,
+  },
+  calculatorLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: surfaces.onSurface,
+    marginBottom: spacing.sm,
+  },
+  calculatorInput: {
+    backgroundColor: pastelColors.primary[50],
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    fontSize: 16,
+    color: surfaces.onSurface,
+    borderWidth: 1,
+    borderColor: surfaces.surfaceVariant,
+  },
+  calculatorHint: {
+    fontSize: 12,
+    color: surfaces.onSurfaceVariant,
+    marginTop: spacing.xs,
+  },
+  calculatorResults: {
+    marginTop: spacing.md,
+    padding: spacing.md,
+    backgroundColor: pastelColors.success[50],
+    borderRadius: borderRadius.md,
+    gap: spacing.sm,
+  },
+  calculatorResultRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  calculatorResultLabel: {
+    fontSize: 14,
+    color: surfaces.onSurfaceVariant,
+  },
+  calculatorResultValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: pastelColors.success[600],
+  },
+  calculatorResultTotal: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: pastelColors.success[700],
   },
 })

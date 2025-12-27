@@ -180,7 +180,7 @@ export function SettingsTab({ user, onUserUpdate, initialSection = 'profile', on
 
       {activeSection === 'profile' && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Profile Information</Text>
+          <Text style={styles.sectionTitle}>{t('profile.profileInformation')}</Text>
 
           {/* Avatar */}
           <View style={styles.avatarSection}>
@@ -192,29 +192,29 @@ export function SettingsTab({ user, onUserUpdate, initialSection = 'profile', on
               </View>
             )}
             <Pressable style={styles.changeAvatarButton} onPress={handlePickAvatar}>
-              <Text style={styles.changeAvatarText}>Change Photo</Text>
+              <Text style={styles.changeAvatarText}>{t('profile.changePhoto')}</Text>
             </Pressable>
           </View>
 
           {/* Name */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Full Name *</Text>
+            <Text style={styles.label}>{t('profile.fullName')} *</Text>
             <TextInput
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholder="Enter your name"
+              placeholder={t('profile.enterYourName')}
             />
           </View>
 
           {/* Bio */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Bio</Text>
+            <Text style={styles.label}>{t('profile.bio')}</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={bio}
               onChangeText={setBio}
-              placeholder="Tell us about yourself..."
+              placeholder={t('profile.tellUsAboutYourself')}
               multiline
               numberOfLines={4}
             />
@@ -222,12 +222,12 @@ export function SettingsTab({ user, onUserUpdate, initialSection = 'profile', on
 
           {/* Phone */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Phone Number</Text>
+            <Text style={styles.label}>{t('profile.phone')}</Text>
             <TextInput
               style={styles.input}
               value={phone}
               onChangeText={setPhone}
-              placeholder="+1 (555) 123-4567"
+              placeholder={t('profile.phonePlaceholder')}
               keyboardType="phone-pad"
             />
           </View>

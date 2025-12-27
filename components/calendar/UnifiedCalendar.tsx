@@ -18,6 +18,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { slotCalculator } from '@/lib/utils/slot-calculator'
 import { CalendarGrid } from './CalendarGrid'
@@ -64,6 +65,7 @@ export const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({
   visible = undefined, // Default undefined for CollapsibleSection usage
   initialDate,
 }) => {
+  const { t } = useTranslation()
   const router = useRouter()
   const [currentDate, setCurrentDate] = useState(initialDate || new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(
@@ -462,7 +464,7 @@ export const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({
                 viewMode === mode && styles.viewModeTextActive,
               ]}
             >
-              {mode.charAt(0).toUpperCase() + mode.slice(1)}
+              {t(`calendar.${mode}`)}
             </Text>
           </Pressable>
         ))}

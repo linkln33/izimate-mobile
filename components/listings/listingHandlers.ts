@@ -888,6 +888,21 @@ export function createListingHandlers(
           await saveReviewIncentiveSettings(data[0].id, user.id, formState);
         }
         
+        // Notify followers of new listing
+        if (data && data[0]) {
+          try {
+            const { notifyFollowersOfNewListing } = await import('@/lib/utils/follows')
+            await notifyFollowersOfNewListing(
+              user.id,
+              data[0].id,
+              formState.title
+            )
+          } catch (error) {
+            // Don't fail listing creation if notification fails
+            console.warn('Failed to notify followers:', error)
+          }
+        }
+        
         Alert.alert('Success', 'Listing created successfully!')
       }
 

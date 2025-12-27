@@ -9,6 +9,7 @@ import { formatRelativeTime, formatDate } from '@/lib/utils/date'
 import { normalizePhotoUrls } from '@/lib/utils/images'
 import { LocationPickerMap } from '@/components/location/LocationPickerMap'
 import { triggerLight, triggerSuccess } from '@/lib/utils/haptics'
+import { followUser, unfollowUser, isFollowing, getFollowersCount, getFollowingCount } from '@/lib/utils/follows'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 
@@ -80,6 +81,10 @@ export default function UserProfileScreen() {
     message: '',
   })
   const [sendingMessage, setSendingMessage] = useState(false)
+  const [isFollowingUser, setIsFollowingUser] = useState(false)
+  const [followersCount, setFollowersCount] = useState(0)
+  const [followingCount, setFollowingCount] = useState(0)
+  const [followLoading, setFollowLoading] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -133,6 +138,20 @@ export default function UserProfileScreen() {
       if (providerData) {
         setProviderProfile(providerData as ProviderProfile)
       }
+      
+      // Check if current user is following this user
+      if (authUser && authUser.id !== id) {
+        const followingStatus = await isFollowing(authUser.id, id)
+        setIsFollowingUser(followingStatus)
+      }
+      
+      // Load followers and following counts
+      const [followers, following] = await Promise.all([
+        getFollowersCount(id),
+        getFollowingCount(id)
+      ])
+      setFollowersCount(followers)
+      setFollowingCount(following)
       
       if (__DEV__) {
         console.log('👤 User data loaded:', {
@@ -289,6 +308,48 @@ export default function UserProfileScreen() {
     router.push(`/listings/${listingId}`)
   }
 
+  const handleFollowToggle = async () => {
+    if (!user || isOwnProfile || followLoading) return
+
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) {
+      router.push('/(auth)/login')
+      return
+    }
+
+    setFollowLoading(true)
+    triggerLight()
+
+    try {
+      if (isFollowingUser) {
+        // Unfollow
+        const result = await unfollowUser(authUser.id, user.id)
+        if (result.success) {
+          setIsFollowingUser(false)
+          setFollowersCount(prev => Math.max(0, prev - 1))
+          triggerSuccess()
+        } else {
+          Alert.alert('Error', result.error || 'Failed to unfollow user')
+        }
+      } else {
+        // Follow
+        const result = await followUser(authUser.id, user.id)
+        if (result.success) {
+          setIsFollowingUser(true)
+          setFollowersCount(prev => prev + 1)
+          triggerSuccess()
+        } else {
+          Alert.alert('Error', result.error || 'Failed to follow user')
+        }
+      }
+    } catch (error: any) {
+      console.error('Error toggling follow:', error)
+      Alert.alert('Error', 'Failed to update follow status')
+    } finally {
+      setFollowLoading(false)
+    }
+  }
+
   const handleSubmitContactForm = async () => {
     if (!user || !contactFormData.name || !contactFormData.email || !contactFormData.message) {
       Alert.alert('Error', 'Please fill in all required fields');
@@ -396,6 +457,7 @@ export default function UserProfileScreen() {
         <Pressable 
           style={styles.backButton} 
           onPress={() => {
+            triggerLight()
             // Check if we can go back, otherwise navigate to swipe screen
             if (typeof router.canGoBack === 'function' && router.canGoBack()) {
               router.back()
@@ -405,7 +467,7 @@ export default function UserProfileScreen() {
             }
           }}
         >
-          <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
+          <Ionicons name="arrow-back" size={22} color="#1a1a1a" />
         </Pressable>
         <Text style={styles.navTitle}>User Profile</Text>
         <View style={styles.navSpacer} />
@@ -464,9 +526,60 @@ export default function UserProfileScreen() {
           </View>
         </View>
 
+        {/* Follow/Followers Stats */}
+        <View style={styles.followStats}>
+          <Pressable 
+            style={styles.followStatItem}
+            onPress={() => {
+              // TODO: Navigate to followers list
+              Alert.alert('Followers', `${followersCount} follower${followersCount !== 1 ? 's' : ''}`)
+            }}
+          >
+            <Text style={styles.followStatNumber}>{followersCount}</Text>
+            <Text style={styles.followStatLabel}>Followers</Text>
+          </Pressable>
+          <Pressable 
+            style={styles.followStatItem}
+            onPress={() => {
+              // TODO: Navigate to following list
+              Alert.alert('Following', `${followingCount} following`)
+            }}
+          >
+            <Text style={styles.followStatNumber}>{followingCount}</Text>
+            <Text style={styles.followStatLabel}>Following</Text>
+          </Pressable>
+        </View>
+
         {/* Action Buttons */}
         {!isOwnProfile && (
           <View style={styles.actionButtons}>
+            <Pressable 
+              style={[
+                styles.followButton, 
+                isFollowingUser && styles.followButtonActive,
+                followLoading && styles.followButtonDisabled
+              ]} 
+              onPress={handleFollowToggle}
+              disabled={followLoading}
+            >
+              {followLoading ? (
+                <ActivityIndicator size="small" color={isFollowingUser ? "#ffffff" : "#3b82f6"} />
+              ) : (
+                <>
+                  <Ionicons 
+                    name={isFollowingUser ? "checkmark-circle" : "add-circle-outline"} 
+                    size={18} 
+                    color={isFollowingUser ? "#ffffff" : "#3b82f6"} 
+                  />
+                  <Text style={[
+                    styles.followButtonText,
+                    isFollowingUser && styles.followButtonTextActive
+                  ]}>
+                    {isFollowingUser ? 'Following' : 'Follow'}
+                  </Text>
+                </>
+              )}
+            </Pressable>
             <Pressable style={styles.messageButton} onPress={handleMessage}>
               <Ionicons name="chatbubble-ellipses-outline" size={18} color="#ffffff" />
               <Text style={styles.messageButtonText}>Message</Text>
@@ -884,8 +997,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
     ...Platform.select({
       ios: {
         paddingTop: 50,
@@ -893,16 +1004,16 @@ const styles = StyleSheet.create({
     }),
   },
   backButton: {
-    padding: 8,
-    marginLeft: -8,
+    padding: 4,
+    marginLeft: -4,
   },
   navTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: '#1a1a1a',
   },
   navSpacer: {
-    width: 40,
+    width: 30,
   },
   container: {
     flex: 1,
@@ -1036,10 +1147,60 @@ const styles = StyleSheet.create({
     color: '#4b5563',
     lineHeight: 20,
   },
+  followStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  followStatItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  followStatNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+  },
+  followStatLabel: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
   actionButtons: {
     marginTop: 16,
     flexDirection: 'row',
     gap: 12,
+    paddingHorizontal: 20,
+  },
+  followButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: '#3b82f6',
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  followButtonActive: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  followButtonDisabled: {
+    opacity: 0.6,
+  },
+  followButtonText: {
+    color: '#3b82f6',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  followButtonTextActive: {
+    color: '#ffffff',
   },
   messageButton: {
     flex: 1,

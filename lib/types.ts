@@ -232,13 +232,22 @@ export interface Message {
 export interface Notification {
   id: string
   user_id: string
-  type: 'match' | 'interested' | 'message' | 'review' | 'pending_approval' | 'rejection' | 'liked' | 'booking_confirmed' | 'booking_request' | 'booking_cancelled' | 'booking_completed' | 'booking_reminder' | 'booking_status_update'
+  type: 'match' | 'interested' | 'message' | 'review' | 'pending_approval' | 'rejection' | 'liked' | 'booking_confirmed' | 'booking_request' | 'booking_cancelled' | 'booking_completed' | 'booking_reminder' | 'booking_status_update' | 'followed_user_new_listing' | 'new_follower'
   title: string
   message: string
   link?: string
   is_read: boolean
   created_at: string
   updated_at: string
+}
+
+export interface UserFollow {
+  id: string
+  follower_id: string
+  following_id: string
+  created_at: string
+  follower?: User
+  following?: User
 }
 
 export interface PendingApproval {

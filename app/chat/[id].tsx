@@ -47,10 +47,20 @@ export default function ChatScreen() {
           await markAsRead(newMessage)
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          // Connection successful
+        } else if (status === 'CHANNEL_ERROR') {
+          console.warn('Channel subscription error for match:', matchId)
+        }
+      })
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(channel).catch((err) => {
+        if (__DEV__) {
+          console.warn('Error removing channel:', err)
+        }
+      })
     }
   }, [matchId])
 
