@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
   bookingCard: {
     width: 240,
     marginRight: spacing.md,
-    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
+    backgroundColor: surfaces.background, // Match page background for contrast
     borderRadius: borderRadius.lg,
     ...elevation.level3,
   },

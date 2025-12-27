@@ -21,8 +21,9 @@ interface Subscription {
 }
 
 // Base prices in GBP
-const PRO_PLAN_PRICE_GBP = 4.95
-const BUSINESS_PLAN_PRICE_GBP = 19.95
+const FREE_PLAN_PRICE_GBP = 0.00
+const PRO_PLAN_PRICE_GBP = 9.95
+const BUSINESS_PLAN_PRICE_GBP = 29.95
 
 // Simple exchange rates (approximate, should be updated from API in production)
 const EXCHANGE_RATES: Record<CurrencyCode, number> = {
@@ -173,6 +174,7 @@ export function BillingTab({ user }: Props) {
   const currentPlan = subscription?.plan || 'free'
 
   // Convert prices to user's currency
+  const freePrice = convertPrice(FREE_PLAN_PRICE_GBP, userCurrency)
   const proPrice = convertPrice(PRO_PLAN_PRICE_GBP, userCurrency)
   const businessPrice = convertPrice(BUSINESS_PLAN_PRICE_GBP, userCurrency)
 
@@ -180,18 +182,48 @@ export function BillingTab({ user }: Props) {
     <View style={styles.container}>
       <Text style={styles.title}>Membership & Billing</Text>
 
-      <View style={styles.currentPlan}>
-        <Text style={styles.currentPlanLabel}>Current Plan</Text>
-        <Text style={styles.currentPlanName}>
-          {currentPlan === 'pro' ? 'Pro Plan' : currentPlan === 'business' ? 'Business Plan' : 'Free Plan'}
-        </Text>
-      </View>
-
       <View style={styles.plansContainer}>
+        {/* Free Plan */}
+        <View style={[styles.planCard, styles.freePlanCard, currentPlan === 'free' && styles.freePlanCardActive]}>
+          <View style={styles.planHeader}>
+            <Text style={styles.planName}>Free Plan</Text>
+            <Text style={[styles.planPrice, styles.freePlanPrice]}>
+              {formatCurrency(freePrice, userCurrency)}
+              <Text style={styles.planPeriod}>/month</Text>
+            </Text>
+          </View>
+          <View style={styles.planFeatures}>
+            <View style={styles.feature}>
+              <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
+              <Text style={styles.featureText}>Purchase, book, or hire</Text>
+            </View>
+            <View style={styles.feature}>
+              <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
+              <Text style={styles.featureText}>Create up to 10 listings</Text>
+            </View>
+            <View style={styles.feature}>
+              <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
+              <Text style={styles.featureText}>Business Calendar</Text>
+            </View>
+          </View>
+          {currentPlan === 'free' && (
+            <View style={styles.freeCurrentBadge}>
+              <Text style={styles.freeCurrentBadgeText}>Current Plan</Text>
+            </View>
+          )}
+        </View>
+
         {/* Pro Plan */}
         <View style={[styles.planCard, styles.proPlanCard, currentPlan === 'pro' && styles.proPlanCardActive]}>
           <View style={styles.planHeader}>
-            <Text style={styles.planName}>Pro Plan</Text>
+            <View style={styles.planHeaderTop}>
+              <Text style={styles.planName}>Pro Plan</Text>
+              {currentPlan !== 'pro' && (
+                <View style={styles.recommendedBadge}>
+                  <Text style={styles.recommendedBadgeText}>Recommended</Text>
+                </View>
+              )}
+            </View>
             <Text style={[styles.planPrice, styles.proPlanPrice]}>
               {formatCurrency(proPrice, userCurrency)}
               <Text style={styles.planPeriod}>/month</Text>
@@ -200,19 +232,19 @@ export function BillingTab({ user }: Props) {
           <View style={styles.planFeatures}>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>10 listings per month</Text>
+              <Text style={styles.featureText}>All Free plan features</Text>
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>Priority support</Text>
+              <Text style={styles.featureText}>Create up to 50 listings</Text>
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>Advanced search filters</Text>
+              <Text style={styles.featureText}>Earn 20% as an Affiliate</Text>
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>Analytics dashboard</Text>
+              <Text style={styles.featureText}>Verify as business & provide business services</Text>
             </View>
           </View>
           {currentPlan !== 'pro' && (
@@ -233,7 +265,13 @@ export function BillingTab({ user }: Props) {
         {/* Business Plan */}
         <View style={[styles.planCard, styles.businessPlanCard, currentPlan === 'business' && styles.businessPlanCardActive]}>
           <View style={styles.planHeader}>
-            <Text style={styles.planName}>Business Plan</Text>
+            <View style={styles.planHeaderTop}>
+              <Text style={styles.planName}>Business Plan</Text>
+              <View style={styles.verifiedBusinessBadge}>
+                <Ionicons name="shield-checkmark" size={16} color="#FFFFFF" />
+                <Text style={styles.verifiedBusinessBadgeText}>Verified Business</Text>
+              </View>
+            </View>
             <Text style={[styles.planPrice, styles.businessPlanPrice]}>
               {formatCurrency(businessPrice, userCurrency)}
               <Text style={styles.planPeriod}>/month</Text>
@@ -246,19 +284,19 @@ export function BillingTab({ user }: Props) {
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>24/7 priority support</Text>
+              <Text style={styles.featureText}>24/7 support</Text>
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>All Pro features</Text>
+              <Text style={styles.featureText}>Custom domain name</Text>
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>Custom branding</Text>
+              <Text style={styles.featureText}>Priority in search results</Text>
             </View>
             <View style={styles.feature}>
               <Ionicons name="checkmark" size={20} color={pastelColors.success[500]} />
-              <Text style={styles.featureText}>API access</Text>
+              <Text style={styles.featureText}>Business badge</Text>
             </View>
           </View>
           {currentPlan !== 'business' && (
@@ -297,23 +335,6 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     backgroundColor: 'transparent',
   },
-  currentPlan: {
-    backgroundColor: pastelColors.primary[100], // Light teal #E0FBFB
-    padding: spacing.xl,
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing.md,
-    ...elevation.level2,
-  },
-  currentPlanLabel: {
-    fontSize: 14,
-    color: surfaces.onSurfaceVariant,
-    marginBottom: spacing.xs,
-  },
-  currentPlanName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: surfaces.onSurface,
-  },
   plansContainer: {
     padding: spacing.xl,
     gap: spacing.lg,
@@ -326,6 +347,15 @@ const styles = StyleSheet.create({
   },
   planCardActive: {
     ...elevation.level3,
+  },
+  freePlanCard: {
+    backgroundColor: pastelColors.sand[50], // Light yellow/sand background for Free
+  },
+  freePlanCardActive: {
+    ...elevation.level3,
+  },
+  freePlanPrice: {
+    color: surfaces.onSurface,
   },
   proPlanCard: {
     backgroundColor: pastelColors.primary[100], // Light cyan background for Pro
@@ -348,11 +378,44 @@ const styles = StyleSheet.create({
   planHeader: {
     marginBottom: spacing.xl,
   },
+  planHeaderTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
   planName: {
     fontSize: 24,
     fontWeight: 'bold',
     color: surfaces.onSurface,
-    marginBottom: spacing.sm,
+  },
+  recommendedBadge: {
+    backgroundColor: pastelColors.secondary[500], // Pink #FF6B8A
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    ...elevation.level1,
+  },
+  recommendedBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  verifiedBusinessBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#9333EA', // Purple
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    gap: spacing.xs,
+    ...elevation.level1,
+  },
+  verifiedBusinessBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   planPrice: {
     fontSize: 32,
@@ -399,6 +462,18 @@ const styles = StyleSheet.create({
   businessUpgradeButtonText: {
     color: pastelColors.secondary[900], // Very dark pink #B31E2E for better contrast
     fontSize: 16,
+    fontWeight: '600',
+  },
+  freeCurrentBadge: {
+    backgroundColor: pastelColors.sand[400], // Darker yellow #FFE5B4
+    borderRadius: borderRadius.md, // Match upgrade buttons
+    padding: spacing.lg, // Match upgrade buttons
+    alignItems: 'center',
+    ...elevation.level1, // Match upgrade buttons
+  },
+  freeCurrentBadgeText: {
+    color: pastelColors.neutral[900], // Dark text for contrast
+    fontSize: 16, // Match upgrade buttons
     fontWeight: '600',
   },
   currentBadge: {
