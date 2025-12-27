@@ -67,7 +67,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#f25842',
-        sound: 'default',
+        sound: 'booking.wav', // Custom sound for booking notifications
       })
 
       await Notifications.setNotificationChannelAsync('reminder', {
@@ -75,7 +75,23 @@ export async function registerForPushNotifications(): Promise<string | null> {
         importance: Notifications.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#f59e0b',
-        sound: 'default',
+        sound: 'reminder.wav', // Custom sound for reminders
+      })
+
+      await Notifications.setNotificationChannelAsync('message', {
+        name: 'Messages',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#3b82f6',
+        sound: 'message.wav', // Custom sound for messages
+      })
+
+      await Notifications.setNotificationChannelAsync('alarm', {
+        name: 'Alarms',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 500, 500, 500],
+        lightColor: '#ef4444',
+        sound: 'alarm.wav', // Custom sound for alarms
       })
     }
   } catch (error) {
@@ -179,8 +195,12 @@ export async function scheduleBookingReminder(
           bookingId,
           type: 'booking_reminder',
         },
-        categoryIdentifier: 'booking',
-        sound: 'default',
+        categoryIdentifier: 'reminder',
+        sound: 'reminder.wav', // Use custom reminder sound
+        // Android-specific: specify channel ID
+        ...(Platform.OS === 'android' && {
+          channelId: 'reminder',
+        }),
       },
       trigger: {
         date: triggerDate,
@@ -223,6 +243,24 @@ export async function showBookingNotification(data: BookingNotificationData): Pr
   const Notifications = await getNotificationsModule()
   if (!Notifications) return
   
+  // Determine sound and channel based on notification type
+  let soundFile = 'notification.wav'
+  let channelId = 'booking'
+  
+  if (data.type.includes('reminder') || data.type.includes('alarm')) {
+    soundFile = data.type.includes('alarm') ? 'alarm.wav' : 'reminder.wav'
+    channelId = data.type.includes('alarm') ? 'alarm' : 'reminder'
+  } else if (data.type.includes('message') || data.type.includes('chat')) {
+    soundFile = 'message.wav'
+    channelId = 'message'
+  } else if (data.type.includes('urgent')) {
+    soundFile = 'alarm.wav'
+    channelId = 'alarm'
+  } else {
+    soundFile = 'booking.wav'
+    channelId = 'booking'
+  }
+
   try {
     await Notifications.presentNotificationAsync({
       title: data.title,
@@ -232,8 +270,12 @@ export async function showBookingNotification(data: BookingNotificationData): Pr
         type: data.type,
         ...data.data,
       },
-      categoryIdentifier: data.type.includes('reminder') ? 'reminder' : 'booking',
-      sound: 'default',
+      categoryIdentifier: channelId,
+      sound: soundFile, // Use custom sound
+      // Android-specific: specify channel ID
+      ...(Platform.OS === 'android' && {
+        channelId: channelId,
+      }),
     })
   } catch (error) {
     if (__DEV__) {

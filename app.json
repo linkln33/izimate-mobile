@@ -80,7 +80,13 @@
           "icon": "./assets/notification-icon.png",
           "color": "#f25842",
           "defaultChannel": "default",
-          "sounds": ["./assets/sounds/notification.wav"]
+          "sounds": [
+            "./assets/sounds/notification.wav",
+            "./assets/sounds/booking.wav",
+            "./assets/sounds/reminder.wav",
+            "./assets/sounds/message.wav",
+            "./assets/sounds/alarm.wav"
+          ]
         }
       ],
       [
