@@ -334,6 +334,7 @@ export default function DashboardScreen() {
           title={t('dashboard.billing')}
           icon="card"
           iconColor="#10b981"
+          defaultExpanded={params.section === 'billing'}
         >
           <BillingTab user={user} />
         </CollapsibleSection>
@@ -371,7 +372,7 @@ export default function DashboardScreen() {
         )}
 
         {/* Business Section - Provider business management */}
-        {user && listings.length > 0 && (
+        {user && (
         <CollapsibleSection
             title={t('dashboard.business')}
           icon="briefcase"
@@ -407,9 +408,9 @@ function OverviewTab({ user, listings, matches, stats, router }: any) {
   const { t } = useTranslation()
   const { height: screenHeight } = useWindowDimensions()
   
-  // Calculate active listings (assuming max 5 listings per user)
+  // Calculate active listings (assuming max 10 listings per user for free tier)
   const activeListings = listings?.filter((listing: any) => listing.status === 'active').length || 0
-  const maxListings = 5
+  const maxListings = 10
   
   // Calculate positive rating percentage (convert 4.5/5 to percentage)
   const overallRating = user?.rating || 4.5

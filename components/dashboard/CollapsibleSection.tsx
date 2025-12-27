@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
@@ -27,6 +27,19 @@ export function CollapsibleSection({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
   const rotation = useSharedValue(defaultExpanded ? 1 : 0)
   const height = useSharedValue(defaultExpanded ? 1 : 0)
+
+  // Update expanded state when defaultExpanded prop changes
+  useEffect(() => {
+    setIsExpanded(defaultExpanded)
+    rotation.value = withSpring(defaultExpanded ? 1 : 0, {
+      damping: 15,
+      stiffness: 200,
+    })
+    height.value = withSpring(defaultExpanded ? 1 : 0, {
+      damping: 15,
+      stiffness: 200,
+    })
+  }, [defaultExpanded])
 
   const toggle = () => {
     const newExpanded = !isExpanded

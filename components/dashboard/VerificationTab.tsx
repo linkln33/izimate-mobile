@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Linking } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
+import { useRouter } from 'expo-router'
 import { supabase } from '@/lib/supabase'
-import type { User, ProviderProfile } from '@/lib/types'
+import type { User } from '@/lib/types'
 import { pastelDesignSystem } from '@/lib/pastel-design-system'
 import { Platform } from 'react-native'
 import Constants from 'expo-constants'
@@ -29,28 +30,40 @@ interface Props {
 
 export function VerificationTab({ user }: Props) {
   const { t } = useTranslation()
-  const [providerProfile, setProviderProfile] = useState<ProviderProfile | null>(null)
+  const router = useRouter()
+  const [subscription, setSubscription] = useState<{ plan: 'free' | 'pro' | 'business' } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadProviderProfile()
+    loadSubscription()
   }, [user?.id])
 
-  const loadProviderProfile = async () => {
-    if (!user?.id) return
+  const loadSubscription = async () => {
+    if (!user?.id) {
+      setLoading(false)
+      return
+    }
 
     try {
-      const { data } = await supabase
-        .from('provider_profiles')
-        .select('*')
+      // Check subscription from subscriptions table
+      const { data: subscriptionData } = await supabase
+        .from('subscriptions')
+        .select('plan_type')
         .eq('user_id', user.id)
+        .eq('status', 'active')
         .single()
 
-      if (data) {
-        setProviderProfile(data)
+      if (subscriptionData) {
+        setSubscription({ plan: subscriptionData.plan_type as 'free' | 'pro' | 'business' })
+      } else if (user.verification_status === 'pro') {
+        // Fallback: check user's verification_status
+        setSubscription({ plan: 'pro' })
+      } else {
+        setSubscription({ plan: 'free' })
       }
     } catch (error) {
-      // No provider profile yet
+      // Default to free if no subscription found
+      setSubscription({ plan: 'free' })
     } finally {
       setLoading(false)
     }
@@ -152,8 +165,18 @@ export function VerificationTab({ user }: Props) {
   }
 
   const handleBusinessVerification = async () => {
-    if (!user?.id || !providerProfile) {
-      Alert.alert(t('verification.error'), t('verification.providerProfileRequired'))
+    if (!user?.id) {
+      Alert.alert(t('verification.error'), t('verification.userNotFound'))
+      return
+    }
+
+    // Check if user has Pro or Business plan
+    const hasProOrBusiness = subscription?.plan === 'pro' || subscription?.plan === 'business'
+    if (!hasProOrBusiness) {
+      Alert.alert(
+        t('verification.error'),
+        'Business verification is available for Pro and Business plan subscribers. Please upgrade your plan first.'
+      )
       return
     }
 
@@ -178,16 +201,17 @@ export function VerificationTab({ user }: Props) {
     try {
       let sessionData: { session_id: string; verification_url: string }
 
+      // Use user's name and location for business verification
+      const businessData = {
+        companyName: user.name || '',
+        registrationNumber: '', // Can be added later if needed
+        country: user.country || 'GB',
+        address: user.location_address || '',
+      }
+
       if (isWeb && isWorkerConfigured) {
         // On web with configured worker, use Cloudflare Worker to avoid CORS
         try {
-          const businessData = {
-            companyName: providerProfile.business_name || '',
-            registrationNumber: providerProfile.business_registration_number || '',
-            country: 'GB', // Default to UK
-            address: providerProfile.business_address || '',
-          }
-
           const workerResponse = await fetch(VERIFICATION_WORKER_URL!, {
             method: 'POST',
             headers: {
@@ -223,13 +247,6 @@ export function VerificationTab({ user }: Props) {
         }
 
         const { createDiditBusinessVerification } = await import('@/lib/utils/didit-verification')
-        const businessData = {
-          companyName: providerProfile.business_name || '',
-          registrationNumber: providerProfile.business_registration_number || '',
-          country: 'GB',
-          address: providerProfile.business_address || '',
-        }
-
         const session = await createDiditBusinessVerification(user.id, businessData, didItConfig)
         sessionData = {
           session_id: session.sessionId,
@@ -267,7 +284,8 @@ export function VerificationTab({ user }: Props) {
 
   const identityVerified = user?.identity_verified || false
   const identityStatus = user?.identity_verification_status || 'pending'
-  const businessVerified = providerProfile?.business_verified || false
+  const businessVerified = user?.business_verified || false
+  const hasProOrBusiness = subscription?.plan === 'pro' || subscription?.plan === 'business'
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -357,13 +375,23 @@ export function VerificationTab({ user }: Props) {
           )}
         </View>
 
-        {!providerProfile && (
-          <Text style={styles.infoText}>
-            {t('verification.setupProviderProfile')}
-          </Text>
+        {!hasProOrBusiness && !businessVerified && (
+          <Pressable
+            style={styles.businessVerifyButton}
+            onPress={() => {
+              // Update URL params to expand billing section
+              router.setParams({ section: 'billing' })
+              // Scroll to billing section after a short delay
+              setTimeout(() => {
+                // The billing section should expand automatically via defaultExpanded prop
+              }, 100)
+            }}
+          >
+            <Text style={styles.businessVerifyButtonText}>Verify as Business</Text>
+          </Pressable>
         )}
 
-        {providerProfile && !businessVerified && (
+        {hasProOrBusiness && !businessVerified && (
           <Pressable
             style={styles.businessVerifyButton}
             onPress={handleBusinessVerification}
@@ -381,15 +409,15 @@ export function VerificationTab({ user }: Props) {
       </View>
 
       {/* Verification Score */}
-      {providerProfile && (
+      {hasProOrBusiness && (
         <View style={styles.scoreCard}>
           <Text style={styles.scoreTitle}>{t('verification.verificationScore')}</Text>
-          <Text style={styles.scoreValue}>{providerProfile.verification_score || 0}/100</Text>
+          <Text style={styles.scoreValue}>{user?.verification_score || 0}/100</Text>
           <View style={styles.scoreBar}>
             <View
               style={[
                 styles.scoreBarFill,
-                { width: `${providerProfile.verification_score || 0}%` },
+                { width: `${user?.verification_score || 0}%` },
               ]}
             />
           </View>
@@ -484,6 +512,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     alignItems: 'center',
+    justifyContent: 'center',
     ...elevation.level1,
   },
   businessVerifyButtonText: {

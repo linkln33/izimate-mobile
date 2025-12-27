@@ -2,7 +2,7 @@
 import { supabase } from '../supabase'
 import type { ListingQuota } from '../types'
 
-const LIMITED_LISTING_LIMIT = 5
+const LIMITED_LISTING_LIMIT = 10
 const UNLIMITED = 999999
 
 /**

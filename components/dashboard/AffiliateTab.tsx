@@ -540,12 +540,6 @@ export function AffiliateTab({ user }: Props) {
               <Text style={styles.registerButtonText}>Start Earning Now</Text>
             )}
           </Pressable>
-          {/* Debug info */}
-          {__DEV__ && (
-            <Text style={{ marginTop: 10, fontSize: 12, color: '#666' }}>
-              User ID: {user?.id || 'None'} | Verified: {user?.identity_verified ? 'Yes' : 'No'}
-            </Text>
-          )}
         </View>
       </ScrollView>
     )

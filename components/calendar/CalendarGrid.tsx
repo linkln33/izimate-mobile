@@ -122,7 +122,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                         onAddEvent?.(date)
                       }}
                     >
-                      <Ionicons name="add" size={14} color={pastelColors.primary[500]} />
+                      <Ionicons name="add" size={14} color="#f25842" />
                     </Pressable>
                   )}
                 </View>

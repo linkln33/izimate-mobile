@@ -123,8 +123,20 @@ export default function FindScreen() {
       const quota = await getSuperLikeQuota(authUser.id)
       setSuperLikeQuota(quota)
 
+      // Load current user data
+      const { data: userData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser.id)
+        .single()
+      
+      if (userData) {
+        setCurrentUser(userData)
+      }
+
       // Load ALL active listings with user data in one query (fixes N+1 problem)
-      const { data: listingsData } = await supabase
+      // Exclude user's own listings
+      const { data: listingsData, error: listingsError } = await supabase
         .from('listings')
         .select(`
           *,
@@ -132,8 +144,16 @@ export default function FindScreen() {
         `)
         .eq('status', 'active')
         .gte('expires_at', new Date().toISOString())
+        .neq('user_id', authUser.id) // Exclude own listings
         .order('created_at', { ascending: false })
         .limit(50)
+
+      if (listingsError) {
+        console.error('Error loading listings:', listingsError)
+        setListings([])
+        setLoading(false)
+        return
+      }
 
       if (listingsData) {
         // Debug: log raw data
@@ -259,6 +279,11 @@ export default function FindScreen() {
 
         console.log('Enriched listings:', enriched.length)
         setListings(enriched)
+        setCurrentUserId(authUser.id)
+      } else {
+        // No listings found, set empty array
+        console.log('No listings found')
+        setListings([])
         setCurrentUserId(authUser.id)
       }
     } catch (error) {
@@ -836,7 +861,7 @@ export default function FindScreen() {
             {/* Apply Button */}
             <Pressable
               style={styles.applyButton}
-              onPress={() => setIsFilterModalOpen(false)}
+              onPress={() => setShowFilters(false)}
             >
               <Text style={styles.applyButtonText}>Apply Filters</Text>
             </Pressable>

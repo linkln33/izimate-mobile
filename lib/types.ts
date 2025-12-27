@@ -19,6 +19,9 @@ export interface User {
   identity_verification_id?: string
   identity_verified_at?: string
   identity_verification_status?: 'pending' | 'processing' | 'verified' | 'failed' | 'rejected'
+  business_verified?: boolean
+  business_verified_at?: string
+  verification_score?: number
   referred_by_code?: string
   referral_code?: string
   push_token?: string
