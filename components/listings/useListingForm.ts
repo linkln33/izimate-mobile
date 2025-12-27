@@ -15,7 +15,7 @@ export interface ListingFormState {
   photos: string[]
   categoryDropdownOpen: boolean
   tagInput: string
-  listing_type?: 'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content' | 'experience' | 'subscription' | 'freelance' | 'auction' | 'space_sharing' | 'fundraising' | 'delivery' | 'taxi' | 'link' | 'experience' | 'subscription' | 'freelance' | 'auction' | 'space_sharing' | 'fundraising' | 'delivery' | 'taxi' | 'link'
+  listing_type?: 'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content' | 'experience' | 'digital_services' | 'fundraising' | 'transportation'
   
   // Step 2: Budget & Urgency
   budgetType: BudgetType
@@ -157,7 +157,7 @@ export interface ListingFormActions {
   setPhotos: (value: string[]) => void
   setCategoryDropdownOpen: (value: boolean) => void
   setTagInput: (value: string) => void
-  setListingType?: (value: 'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content' | 'experience' | 'subscription' | 'freelance' | 'auction' | 'space_sharing' | 'fundraising' | 'delivery' | 'taxi' | 'link') => void
+  setListingType?: (value: 'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content' | 'experience' | 'digital_services' | 'fundraising' | 'transportation') => void
   
   // Step 2
   setBudgetType: (value: BudgetType) => void

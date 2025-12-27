@@ -419,13 +419,7 @@ function CreateListingScreenContent() {
           'Virtual Experience', 'Group Activity', 'Other', 'Custom',
         ]
       
-      case 'subscription':
-        return [
-          'Monthly Service', 'Membership', 'Subscription Box', 'Software',
-          'Content Access', 'Gym', 'Co-working', 'Streaming', 'Other', 'Custom',
-        ]
-      
-      case 'freelance':
+      case 'digital_services':
         return [
           'UGC Creator', 'Design', 'Writing', 'Video Editing', 'Photography',
           'Social Media', 'Consulting', 'Web Development', 'Marketing',
@@ -447,9 +441,10 @@ function CreateListingScreenContent() {
           'Airport Transfer', 'City Tour', 'Moving/Relocation', 'Other', 'Custom',
         ]
       
-      case 'link':
+      case 'gated_content':
         return [
-          'Affiliate', 'Redirect', 'Short Link', 'Promotion', 'Other', 'Custom',
+          'Membership', 'Premium Content', 'Course', 'Tutorial', 'Exclusive Access',
+          'Community', 'Newsletter', 'Other', 'Custom',
         ]
       
       case 'goods':

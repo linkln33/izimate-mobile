@@ -112,11 +112,10 @@ export function Step1BasicInfo({
             'goods', 
             'rental', 
             'experience', 
-            'subscription', 
-            'freelance', 
+            'digital_services', 
             'fundraising', 
             'transportation', 
-            'link'
+            'gated_content'
           ] as const).map((type) => {
             const isActive = formState.listing_type === type
             const typeConfig = {
@@ -124,11 +123,10 @@ export function Step1BasicInfo({
               goods: { icon: 'cube-outline', gradient: gradients.secondary, color: colors.secondary, label: 'Goods' },
               rental: { icon: 'home-outline', gradient: gradients.success, color: colors.success, label: 'Rental' },
               experience: { icon: 'ticket-outline', gradient: gradients.warmSunset, color: colors.warning, label: 'Experience' },
-              subscription: { icon: 'repeat-outline', gradient: gradients.cool, color: colors.secondary, label: 'Subscription' },
-              freelance: { icon: 'person-outline', gradient: gradients.primary, color: colors.primary, label: 'Freelance' },
+              digital_services: { icon: 'laptop-outline', gradient: gradients.primary, color: colors.primary, label: 'Digital Services' },
               fundraising: { icon: 'heart-outline', gradient: gradients.primary, color: colors.error, label: 'Fundraising' },
               transportation: { icon: 'car-outline', gradient: gradients.secondaryDark, color: colors.secondaryDark, label: 'Transport' },
-              link: { icon: 'link-outline', gradient: gradients.neutralDark, color: colors.gray[600], label: 'Link' },
+              gated_content: { icon: 'lock-closed-outline', gradient: gradients.neutralDark, color: colors.gray[600], label: 'Gated Content' },
             }[type]
             
             return (

@@ -22,11 +22,23 @@ interface PriceListItem {
 
 export function StandardPricing({ formState, formActions }: StandardPricingProps) {
   const {
+    listing_type,
     budgetType,
     budgetMin,
     budgetMax,
     price_list,
     currency,
+    // Subscription fields
+    subscription_billing_cycle,
+    subscription_trial_days,
+    subscription_auto_renew,
+    subscription_features,
+    // Auction fields
+    auction_start_price,
+    auction_reserve_price,
+    auction_end_time,
+    auction_bid_increment,
+    auction_buy_now_price,
   } = formState
 
   const {
@@ -35,11 +47,26 @@ export function StandardPricing({ formState, formActions }: StandardPricingProps
     setBudgetMax,
     setPriceList,
     setCurrency,
+    // Subscription setters
+    setSubscriptionBillingCycle,
+    setSubscriptionTrialDays,
+    setSubscriptionAutoRenew,
+    setSubscriptionFeatures,
+    // Auction setters
+    setAuctionStartPrice,
+    setAuctionReservePrice,
+    setAuctionEndTime,
+    setAuctionBidIncrement,
+    setAuctionBuyNowPrice,
   } = formActions
 
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false)
+  const [subscriptionEnabled, setSubscriptionEnabled] = useState(false)
+  const [featureInput, setFeatureInput] = useState('')
 
   const selectedCurrency: Currency = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0]
+  const isGoods = listing_type === 'goods'
+  const isService = listing_type === 'service'
 
   // Initialize price list from form state or create a default one
   const [priceList, setPriceListLocal] = useState<PriceListItem[]>(() => {
@@ -136,7 +163,11 @@ export function StandardPricing({ formState, formActions }: StandardPricingProps
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Pricing Type</Text>
         <View style={styles.budgetTypeButtons}>
-          {(['fixed', 'range', 'price_list'] as const).map((type) => (
+          {(
+            isGoods 
+              ? (['fixed', 'auction'] as const)
+              : (['fixed', 'price_list'] as const)
+          ).map((type) => (
             <Pressable
               key={type}
               style={[
@@ -151,7 +182,7 @@ export function StandardPricing({ formState, formActions }: StandardPricingProps
                   budgetType === type && styles.budgetTypeButtonTextActive,
                 ]}
               >
-                {type === 'price_list' ? 'Price List' : type.charAt(0).toUpperCase() + type.slice(1)}
+                {type === 'price_list' ? 'Price List' : type === 'auction' ? 'Auction' : type.charAt(0).toUpperCase() + type.slice(1)}
               </Text>
             </Pressable>
           ))}
@@ -176,33 +207,83 @@ export function StandardPricing({ formState, formActions }: StandardPricingProps
         </View>
       )}
 
-      {/* Range */}
-      {budgetType === 'range' && (
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Price Range ({selectedCurrency.symbol})</Text>
-          <View style={styles.priceRangeContainer}>
+      {/* Auction Pricing (Goods only) */}
+      {isGoods && budgetType === 'auction' && (
+        <>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Starting Bid ({selectedCurrency.symbol})</Text>
             <TextInput
-              style={[styles.input, styles.priceRangeInput]}
-              value={budgetMin}
-              onChangeText={setBudgetMin}
-              placeholder="Min (e.g., 20)"
+              style={styles.input}
+              value={auction_start_price || ''}
+              onChangeText={setAuctionStartPrice}
+              placeholder="e.g., 50"
               keyboardType="numeric"
               placeholderTextColor="#9ca3af"
             />
-            <Text style={styles.priceRangeSeparator}>-</Text>
-            <TextInput
-              style={[styles.input, styles.priceRangeInput]}
-              value={budgetMax}
-              onChangeText={setBudgetMax}
-              placeholder="Max (e.g., 100)"
-              keyboardType="numeric"
-              placeholderTextColor="#9ca3af"
-            />
+            <Text style={styles.inputHelp}>
+              The initial bid price for your auction
+            </Text>
           </View>
-          <Text style={styles.inputHelp}>
-            Set a minimum and maximum price for your service
-          </Text>
-        </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Reserve Price ({selectedCurrency.symbol}) - Optional</Text>
+            <TextInput
+              style={styles.input}
+              value={auction_reserve_price || ''}
+              onChangeText={setAuctionReservePrice}
+              placeholder="e.g., 100"
+              keyboardType="numeric"
+              placeholderTextColor="#9ca3af"
+            />
+            <Text style={styles.inputHelp}>
+              Minimum acceptable bid (auction won't sell below this)
+            </Text>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Buy Now Price ({selectedCurrency.symbol}) - Optional</Text>
+            <TextInput
+              style={styles.input}
+              value={auction_buy_now_price || ''}
+              onChangeText={setAuctionBuyNowPrice}
+              placeholder="e.g., 200"
+              keyboardType="numeric"
+              placeholderTextColor="#9ca3af"
+            />
+            <Text style={styles.inputHelp}>
+              Instant purchase price (optional)
+            </Text>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Bid Increment ({selectedCurrency.symbol})</Text>
+            <TextInput
+              style={styles.input}
+              value={auction_bid_increment || ''}
+              onChangeText={setAuctionBidIncrement}
+              placeholder="e.g., 5"
+              keyboardType="numeric"
+              placeholderTextColor="#9ca3af"
+            />
+            <Text style={styles.inputHelp}>
+              Minimum bid increase amount
+            </Text>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Auction End Date & Time</Text>
+            <TextInput
+              style={styles.input}
+              value={auction_end_time || ''}
+              onChangeText={setAuctionEndTime}
+              placeholder="YYYY-MM-DDTHH:MM (e.g., 2025-02-15T18:00)"
+              placeholderTextColor="#9ca3af"
+            />
+            <Text style={styles.inputHelp}>
+              When the auction will end (ISO format)
+            </Text>
+          </View>
+        </>
       )}
 
       {/* Price List */}
@@ -247,6 +328,145 @@ export function StandardPricing({ formState, formActions }: StandardPricingProps
             <Text style={styles.addServiceButtonText}>Add Service</Text>
           </Pressable>
         </View>
+      )}
+
+      {/* Subscription Option (Service only) */}
+      {isService && (
+        <>
+          <View style={styles.inputGroup}>
+            <Pressable
+              style={styles.checkboxContainer}
+              onPress={() => setSubscriptionEnabled(!subscriptionEnabled)}
+            >
+              <View style={[styles.checkbox, subscriptionEnabled && styles.checkboxChecked]}>
+                {subscriptionEnabled && <Ionicons name="checkmark" size={16} color="#ffffff" />}
+              </View>
+              <Text style={styles.checkboxLabel}>Enable Subscription Billing</Text>
+            </Pressable>
+            <Text style={styles.inputHelp}>
+              Allow customers to subscribe for recurring service delivery
+            </Text>
+          </View>
+
+          {subscriptionEnabled && (
+            <>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Billing Cycle</Text>
+                <View style={styles.budgetTypeButtons}>
+                  {(['weekly', 'monthly', 'quarterly', 'yearly'] as const).map((cycle) => (
+                    <Pressable
+                      key={cycle}
+                      style={[
+                        styles.budgetTypeButton,
+                        subscription_billing_cycle === cycle && styles.budgetTypeButtonActive,
+                      ]}
+                      onPress={() => setSubscriptionBillingCycle?.(cycle)}
+                    >
+                      <Text
+                        style={[
+                          styles.budgetTypeButtonText,
+                          subscription_billing_cycle === cycle && styles.budgetTypeButtonTextActive,
+                        ]}
+                      >
+                        {cycle.charAt(0).toUpperCase() + cycle.slice(1)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Subscription Price per Cycle ({selectedCurrency.symbol})</Text>
+                <TextInput
+                  style={styles.input}
+                  value={budgetMin}
+                  onChangeText={setBudgetMin}
+                  placeholder="e.g., 29.99"
+                  keyboardType="numeric"
+                  placeholderTextColor="#9ca3af"
+                />
+                <Text style={styles.inputHelp}>
+                  Price charged per billing cycle
+                </Text>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Free Trial Days (Optional)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={subscription_trial_days ? String(subscription_trial_days) : ''}
+                  onChangeText={(text) => setSubscriptionTrialDays?.(parseInt(text) || 0)}
+                  placeholder="e.g., 7"
+                  keyboardType="numeric"
+                  placeholderTextColor="#9ca3af"
+                />
+                <Text style={styles.inputHelp}>
+                  Number of free trial days (leave empty for no trial)
+                </Text>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Features Included</Text>
+                <View style={styles.featuresContainer}>
+                  {(subscription_features || []).map((feature, index) => (
+                    <View key={index} style={styles.featureTag}>
+                      <Text style={styles.featureTagText}>{feature}</Text>
+                      <Pressable onPress={() => {
+                        const updated = (subscription_features || []).filter((_, i) => i !== index)
+                        setSubscriptionFeatures?.(updated)
+                      }}>
+                        <Ionicons name="close-circle" size={18} color="#ef4444" />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+                <View style={styles.featureInputContainer}>
+                  <TextInput
+                    style={styles.featureInput}
+                    value={featureInput}
+                    onChangeText={setFeatureInput}
+                    placeholder="e.g., Weekly cleaning, Supplies included"
+                    placeholderTextColor="#9ca3af"
+                    onSubmitEditing={() => {
+                      if (featureInput.trim()) {
+                        const updated = [...(subscription_features || []), featureInput.trim()]
+                        setSubscriptionFeatures?.(updated)
+                        setFeatureInput('')
+                      }
+                    }}
+                  />
+                  <Pressable onPress={() => {
+                    if (featureInput.trim()) {
+                      const updated = [...(subscription_features || []), featureInput.trim()]
+                      setSubscriptionFeatures?.(updated)
+                      setFeatureInput('')
+                    }
+                  }} style={styles.addFeatureButton}>
+                    <Ionicons name="add-circle" size={24} color="#f25842" />
+                  </Pressable>
+                </View>
+                <Text style={styles.inputHelp}>
+                  List what's included in the subscription
+                </Text>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Pressable
+                  style={styles.checkboxContainer}
+                  onPress={() => setSubscriptionAutoRenew?.(!subscription_auto_renew)}
+                >
+                  <View style={[styles.checkbox, subscription_auto_renew && styles.checkboxChecked]}>
+                    {subscription_auto_renew && <Ionicons name="checkmark" size={16} color="#ffffff" />}
+                  </View>
+                  <Text style={styles.checkboxLabel}>Auto-renewal enabled</Text>
+                </Pressable>
+                <Text style={styles.inputHelp}>
+                  Subscriptions will automatically renew unless cancelled
+                </Text>
+              </View>
+            </>
+          )}
+        </>
       )}
     </>
   )
@@ -455,6 +675,70 @@ const styles = StyleSheet.create({
   currencyDropdownItemTextActive: {
     color: '#f25842',
     fontWeight: '600',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#f25842',
+    borderColor: '#f25842',
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    color: '#1a1a1a',
+    fontWeight: '500',
+  },
+  featuresContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  featureTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#eff6ff',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+  },
+  featureTagText: {
+    fontSize: 14,
+    color: '#3b82f6',
+    fontWeight: '500',
+  },
+  featureInputContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  featureInput: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#1a1a1a',
+  },
+  addFeatureButton: {
+    padding: 4,
   },
 })
 

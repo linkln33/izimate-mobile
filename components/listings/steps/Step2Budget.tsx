@@ -4,11 +4,10 @@ import {
   RentalPricing,
   StandardPricing,
   ExperiencePricing,
-  SubscriptionPricing,
-  FreelancePricing,
+  DigitalServicesPricing,
   FundraisingPricing,
   TransportationPricing,
-  LinkPricing,
+  GatedContentPricing,
 } from '../pricing'
 
 interface Step2BudgetProps {
@@ -29,11 +28,10 @@ export function Step2Budget({ formState, formActions }: Step2BudgetProps) {
       {/* Route to appropriate pricing component based on listing type */}
       {listing_type === 'rental' && <RentalPricing formState={formState} formActions={formActions} />}
       {listing_type === 'experience' && <ExperiencePricing formState={formState} formActions={formActions} />}
-      {listing_type === 'subscription' && <SubscriptionPricing formState={formState} formActions={formActions} />}
-      {listing_type === 'freelance' && <FreelancePricing formState={formState} formActions={formActions} />}
+      {listing_type === 'digital_services' && <DigitalServicesPricing formState={formState} formActions={formActions} />}
       {listing_type === 'fundraising' && <FundraisingPricing formState={formState} formActions={formActions} />}
       {listing_type === 'transportation' && <TransportationPricing formState={formState} formActions={formActions} />}
-      {listing_type === 'link' && <LinkPricing formState={formState} formActions={formActions} />}
+      {listing_type === 'gated_content' && <GatedContentPricing formState={formState} formActions={formActions} />}
       {(listing_type === 'service' || listing_type === 'goods' || !listing_type) && (
         <StandardPricing formState={formState} formActions={formActions} />
       )}

@@ -11,10 +11,10 @@ export type { Currency, PricingComponentProps } from './types'
 // Placeholder exports for components to be implemented
 export { ExperiencePricing } from './ExperiencePricing'
 export { SubscriptionPricing } from './SubscriptionPricing'
-export { FreelancePricing } from './FreelancePricing'
+export { DigitalServicesPricing } from './FreelancePricing' // Renamed from FreelancePricing
 export { FundraisingPricing } from './FundraisingPricing'
 export { TransportationPricing } from './TransportationPricing'
-export { LinkPricing } from './LinkPricing'
+export { GatedContentPricing } from './GatedContentPricing'
 
 // Legacy exports (kept for backward compatibility, but deprecated)
 export { AuctionPricing } from './AuctionPricing'

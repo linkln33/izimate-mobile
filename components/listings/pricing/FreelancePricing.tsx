@@ -1,6 +1,6 @@
 /**
- * Freelance Pricing Component (Includes UGC Creator)
- * Handles pricing configuration for freelance listings including UGC creators
+ * Digital Services Pricing Component (Includes UGC Creator)
+ * Handles pricing configuration for digital services listings including UGC creators
  */
 
 import { useState } from 'react'
@@ -9,12 +9,12 @@ import { Ionicons } from '@expo/vector-icons'
 import type { ListingFormState, ListingFormActions, BudgetType } from '../useListingForm'
 import { CURRENCIES, type Currency } from './types'
 
-interface FreelancePricingProps {
+interface DigitalServicesPricingProps {
   formState: ListingFormState
   formActions: ListingFormActions
 }
 
-export function FreelancePricing({ formState, formActions }: FreelancePricingProps) {
+export function DigitalServicesPricing({ formState, formActions }: DigitalServicesPricingProps) {
   const {
     currency,
     freelance_category,
@@ -111,7 +111,7 @@ export function FreelancePricing({ formState, formActions }: FreelancePricingPro
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Freelance Category</Text>
+        <Text style={styles.label}>Digital Service Category</Text>
         <View style={styles.budgetTypeButtons}>
           {(['ugc', 'design', 'writing', 'video', 'photography', 'social_media', 'consulting', 'other'] as const).map((category) => (
             <Pressable

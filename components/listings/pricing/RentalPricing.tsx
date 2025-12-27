@@ -24,6 +24,7 @@ export function RentalPricing({ formState, formActions }: RentalPricingProps) {
     rental_rate_monthly,
     security_deposit,
     cleaning_fee,
+    space_type,
   } = formState
 
   const {
@@ -35,10 +36,12 @@ export function RentalPricing({ formState, formActions }: RentalPricingProps) {
     setSecurityDeposit,
     setCleaningFee,
     setCurrency,
+    setSpaceType,
   } = formActions
 
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false)
   const selectedCurrency: Currency = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0]
+  const isCouchsurfing = space_type === 'couchsurfing'
 
   return (
     <>
@@ -93,8 +96,55 @@ export function RentalPricing({ formState, formActions }: RentalPricingProps) {
           Select the currency for your pricing
         </Text>
       </View>
+
+      {/* Rental Type Selection */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Rental Duration Type</Text>
+        <Text style={styles.label}>Rental Type</Text>
+        <View style={styles.budgetTypeButtons}>
+          <Pressable
+            style={[
+              styles.budgetTypeButton,
+              !isCouchsurfing && styles.budgetTypeButtonActive,
+            ]}
+            onPress={() => setSpaceType?.('parking')}
+          >
+            <Text
+              style={[
+                styles.budgetTypeButtonText,
+                !isCouchsurfing && styles.budgetTypeButtonTextActive,
+              ]}
+            >
+              Standard Rental
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.budgetTypeButton,
+              isCouchsurfing && styles.budgetTypeButtonActive,
+            ]}
+            onPress={() => setSpaceType?.('couchsurfing')}
+          >
+            <Text
+              style={[
+                styles.budgetTypeButtonText,
+                isCouchsurfing && styles.budgetTypeButtonTextActive,
+              ]}
+            >
+              Couch-surfing (Exchange)
+            </Text>
+          </Pressable>
+        </View>
+        <Text style={styles.inputHelp}>
+          {isCouchsurfing 
+            ? 'Couch-surfing allows users to exchange accommodation or services'
+            : 'Standard rental with fixed pricing'}
+        </Text>
+      </View>
+
+      {!isCouchsurfing && (
+        <>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Rental Duration Type</Text>
         <View style={styles.budgetTypeButtons}>
           {(['hourly', 'daily', 'weekly', 'monthly'] as const).map((type) => (
             <Pressable
@@ -202,6 +252,25 @@ export function RentalPricing({ formState, formActions }: RentalPricingProps) {
           One-time cleaning fee (optional)
         </Text>
       </View>
+        </>
+      )}
+
+      {isCouchsurfing && (
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Couch-surfing Exchange</Text>
+          <Text style={styles.inputHelp}>
+            Couch-surfing mode enabled. Users can request to exchange accommodation or services.
+            Pricing is flexible and can be negotiated between parties.
+          </Text>
+          <View style={styles.infoBox}>
+            <Ionicons name="information-circle-outline" size={20} color="#3b82f6" />
+            <Text style={styles.infoBoxText}>
+              In couch-surfing mode, hosts can offer free accommodation in exchange for services,
+              cultural exchange, or future reciprocal stays. Pricing is optional and negotiable.
+            </Text>
+          </View>
+        </View>
+      )}
     </>
   )
 }
@@ -312,6 +381,23 @@ const styles = StyleSheet.create({
   currencyDropdownItemTextActive: {
     color: '#f25842',
     fontWeight: '600',
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginTop: 12,
+    padding: 16,
+    backgroundColor: '#eff6ff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+  },
+  infoBoxText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1e40af',
+    lineHeight: 20,
   },
 })
 

@@ -71,7 +71,7 @@ export interface Listing {
   description: string
   category: string
   tags: string[]
-  listing_type?: 'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content' | 'experience' | 'subscription' | 'freelance' | 'fundraising' | 'transportation' | 'link'
+  listing_type?: 'service' | 'goods' | 'rental' | 'book' | 'pdf' | 'gated_content' | 'experience' | 'digital_services' | 'fundraising' | 'transportation'
   budget_min?: number
   budget_max?: number
   budget_type: 'fixed' | 'range' | 'hourly' | 'price_list'
